@@ -1,0 +1,9 @@
+# 실제 Wi-Fi, MQTT, OTA 비밀번호 파일은 모든 하위 폴더에서 제외합니다.
+secrets.h
+
+# ESP32 컴파일 결과와 빌드 폴더를 제외합니다.
+build/
+.pio/
+*.bin
+*.elf
+*.map
