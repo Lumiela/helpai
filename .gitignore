@@ -2,7 +2,6 @@
 .env
 .env.*
 !.env.example
-env.zip
 backup/
 mosquitto/config/dynamic-security.json
 mosquitto/config/passwd
