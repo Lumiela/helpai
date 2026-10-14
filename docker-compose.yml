@@ -1,0 +1,140 @@
+# /data/docker-compose.yml — v3 (2026-09-28 개편, 랩탑 ClaudeCode)
+#
+# 바뀐 것 (사용자 결정 2026-09-28):
+#   · bridge · telegraf 제거 — api 가 원본 토픽을 받아 InfluxDB 에 직접 기록한다(app/writer.py)
+#   · influxdb 8086 은 호스트 로컬(127.0.0.1)에만. 관리자는 SSH 터널로
+#   · InfluxDB 토큰 분리: api 쓰기 INFLUX_WRITE_TOKEN, api 조회·Grafana 읽기 INFLUX_READ_TOKEN.
+#     전권 토큰(INFLUX_TOKEN)은 influxdb 초기화 값으로만 남는다
+#   · api 에 Supabase 인증(AUTH_MODE, SUPABASE_*) 과 시간대(TZ) 추가
+#   · grafana 유지
+#
+# .env 에 추가로 필요한 변수(이름만): INFLUX_WRITE_TOKEN, INFLUX_READ_TOKEN, AUTH_MODE,
+#   SUPABASE_URL, SUPABASE_SERVICE_KEY, SUPABASE_JWT_SECRET(구 프로젝트만, 없으면 빈 값)
+# 적용: 배포 스크립트(edgeserver-JS/deploy/deploy.sh compose) 또는
+#   cd /data && docker compose up -d --build --remove-orphans   (--remove-orphans 가 bridge·telegraf 컨테이너를 내린다)
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: mosquitto
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1883:1883"
+    volumes:
+      - /data/mosquitto/config:/mosquitto/config
+      - /data/mosquitto/data:/mosquitto/data
+      - /data/mosquitto/log:/mosquitto/log
+
+  influxdb:
+    image: influxdb:2.7
+    container_name: influxdb
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_PASSWORD}
+      DOCKER_INFLUXDB_INIT_ORG: smartcube
+      DOCKER_INFLUXDB_INIT_BUCKET: sensors
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN}
+    volumes:
+      - /data/influxdb/data:/var/lib/influxdb2
+      - /data/influxdb/config:/etc/influxdb2
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - influxdb
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      # 프로비저닝 파일(datasource.yml)이 INFLUX_TOKEN 이름을 쓰므로 이름은 두고 값만 읽기 전용으로
+      INFLUX_TOKEN: ${INFLUX_READ_TOKEN}
+    volumes:
+      - /data/grafana/data:/var/lib/grafana
+      - /data/grafana/provisioning:/etc/grafana/provisioning:ro
+
+  web:
+    image: nginx:1.27-alpine
+    container_name: web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - /data/web:/usr/share/nginx/html:ro
+      - /data/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+
+  api:
+    build: /data/api
+    image: smartcube-api:2
+    container_name: api
+    restart: unless-stopped
+    depends_on:
+      - mosquitto
+      - influxdb
+    environment:
+      TZ: Asia/Seoul
+      MQTT_USER: ${MQTT_USER}
+      MQTT_PASSWORD: ${MQTT_PASSWORD}
+      AG_APP: helpai.cube
+      # InfluxDB — 기록(쓰기 전용)과 조회(읽기 전용) 토큰 분리
+      INFLUX_WRITE_TOKEN: ${INFLUX_WRITE_TOKEN}
+      INFLUX_READ_TOKEN: ${INFLUX_READ_TOKEN}
+      WRITER_ENABLED: "1"
+      # 인증 — required 가 운영값. 개발·병행 시험에서만 off
+      AUTH_MODE: ${AUTH_MODE}
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
+      # 소유자 모델(2026-09-29): 운영자 마스터 키. 인스턴스·큐브 목록은 Supabase 표(instances·cubes)에서 기동 때 읽는다
+      #   (09-29 오후 다중 인스턴스: INSTANCE_ID 환경변수는 더 이상 쓰지 않는다. 경로 /i/<iid>/ 로 나눈다)
+      OPERATOR_MASTER_KEY: ${OPERATOR_MASTER_KEY}
+      OPERATOR_GRANT_MINUTES: "60"
+      REGISTRY_RELOAD_SECONDS: "60"
+      # 브로커 계정 자동 관리(09-29 오후, mosquitto 동적 보안 플러그인). 장치에 보여 줄 공개 접속 주소(Funnel TLS 8443)
+      BROKER_ADMIN: "1"
+      BROKER_PUBLIC_HOST: helphyai-jetson.tail3126a6.ts.net
+      BROKER_PUBLIC_PORT: "8443"
+      # 카메라(09-29 오후): 스냅샷 저장 폴더(NVMe), 주기 촬영 시각(KST, 결정 대기 C1 — 기본값), 즉시 촬영 대기, 스트림 상한(결정 대기 C4)
+      SNAPSHOT_DIR: /data/snapshots
+      SNAPSHOT_TIMES: "09:00,21:00"
+      SNAPSHOT_TIMEOUT: "60"    # 2026-10-12 사용자 결정 25 → 60(안정성 우선). 펌웨어 SNAP_REQ_WAIT_MS(zoom-3 부터 60초)와 같아야 함
+      STREAM_MAX_SECONDS: "300"
+      # AI 리포트(2026-10-07, 계획서 AI리포트 v4): 젯슨 api 안에서 LangGraph 로 작성, GPU 서버 llama-server 는 추론만.
+      #   결과 저장 폴더, LLM 서버 주소(OpenAI 호환 …/v1)·키(비면 작성하지 않음), 재료 집계 간격(지금 10분 평균, 나중에 조절),
+      #   외부 추적(LangSmith)은 끈 상태를 명시(사용자 결정 10-07)
+      REPORT_DIR: /data/reports
+      REPORT_LLM_URL: ${REPORT_LLM_URL:-}
+      HELPAI_LLM_KEY: ${HELPAI_LLM_KEY:-}
+      REPORT_EVERY: "10m"
+      LANGSMITH_TRACING: "false"
+      # 아래는 기본값이 코드에 있어 생략 가능
+      # BROKER_HOST: mosquitto
+      # INFLUX_URL: http://influxdb:8086
+      # INFLUX_ORG: smartcube
+      # INFLUX_BUCKET: sensors
+      # ACK_TIMEOUT: "5"
+    volumes:
+      - /data/snapshots:/data/snapshots      # 카메라 스냅샷(09-29). 바인드 마운트 — 폴더 자체를 바꿔치기하지 말 것
+      - /data/reports:/data/reports          # AI 리포트 설정·회차·결과(10-06). 폴더 자체를 바꿔치기하지 말 것
+    # ports: 는 일부러 없다. nginx(web) 뒤에서만 받는다.
+
+  # GPU 서버 JupyterLab 중계 (2026-10-01, 사용자 지시 "3번 방식 = 포트 분리 공개")
+  #   인터넷 → Funnel :10000 → 127.0.0.1:10080(이 컨테이너) → 210.125.70.71:31355(팀원 JupyterLab, 자체 로그인)
+  #   설정 = /data/nginx/gpu-relay.conf (원본 config/nginx/gpu-relay.conf). 젯슨 → GPU 서버는 Wi-Fi 경로로만 나간다.
+  #   Funnel 켜기(사용자 실행): sudo tailscale funnel --bg --https=10000 http://127.0.0.1:10080
+  #   적용: cd /data && docker compose up -d gpu-relay   (다른 컨테이너는 건드리지 않는다)
+  gpu-relay:
+    image: nginx:1.27-alpine
+    container_name: gpu-relay
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:10080:10080"
+    volumes:
+      - /data/nginx/gpu-relay.conf:/etc/nginx/conf.d/default.conf:ro
+      # (10-06 의 AI 리포트 결과 창구 인증 파일 연결 /data/nginx/report 는 10-07 창구를 닫으며 지웠다)
