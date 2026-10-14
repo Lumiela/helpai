@@ -1,0 +1,30 @@
+# /data/docker-compose.yml 의 services: 아래에 붙여 넣을 조각.
+# 젯슨에 배포할 때 이 폴더 전체를 /data/api/ 로 복사한 뒤 사용한다.
+#
+#   scp -r edgeserver-JS/api jetson:/tmp/api && ssh jetson 'sudo mv /tmp/api /data/api'
+#   (compose 에 아래 블록 추가) → cd /data && docker compose up -d --build api
+#
+# networks: 를 안 써도 다른 서비스처럼 data_default 에 자동으로 붙는다.
+# 안에서는 mosquitto:1883, influxdb:8086 이 이름으로 풀린다.
+
+  api:
+    build: /data/api
+    image: smartcube-api:1
+    container_name: api
+    restart: unless-stopped
+    depends_on:
+      - mosquitto
+      - influxdb
+    environment:
+      MQTT_USER: ${MQTT_USER}
+      MQTT_PASSWORD: ${MQTT_PASSWORD}
+      INFLUX_TOKEN: ${INFLUX_TOKEN}
+      # 아래는 기본값이 코드에 있어 생략 가능. 바꿀 때만 푼다.
+      # BROKER_HOST: mosquitto
+      # INFLUX_URL: http://influxdb:8086
+      # INFLUX_ORG: smartcube
+      # INFLUX_BUCKET: sensors
+      # AG_APP: ag.smartcube.esp32
+      # ACK_TIMEOUT: "5"
+    # ports: 는 일부러 없다. 호스트로 직접 내보내지 않고 nginx(web) 뒤에서만 받는다.
+    # 내부 시험은  docker exec web wget -qO- http://api:8000/health  로 한다.
