@@ -1,0 +1,7 @@
+# tested on the training server (NVIDIA PyTorch container 24.03, V100)
+ultralytics==8.4.175
+torch>=2.1
+torchvision>=0.16
+opencv-python>=4.7
+pillow>=10.0
+numpy>=1.24

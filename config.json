@@ -1,0 +1,14 @@
+{
+ "seg_weights": "leaf_seg_v8r2.pt",
+ "cls_weights": "leaf_cls_v8.pt",
+ "states": "states.json",
+ "conf": 0.35,
+ "tile_mult": 8,
+ "imgsz": 640,
+ "est_imgsz": 1280,
+ "min_area": 400,
+ "dedup_iou": 0.5,
+ "box_scale": 1.25,
+ "min_solidity": 0.8,
+ "device": null
+}

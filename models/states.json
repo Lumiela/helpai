@@ -1,0 +1,63 @@
+{
+ "thresholds": {
+  "s_min": 0,
+  "d_max": 1.01,
+  "L_min": 0,
+  "t_anom": 0.5,
+  "t_fresh": 0.7
+ },
+ "val": {
+  "real_healthy": {
+   "FRESH": 1.0,
+   "ANOMALY": 0.0,
+   "UNKNOWN": 0.0,
+   "HOLD": 0.0
+  },
+  "real_synthetic_anomaly": {
+   "FRESH": 0.0016,
+   "ANOMALY": 0.9969,
+   "UNKNOWN": 0.0016,
+   "HOLD": 0.0
+  },
+  "n_healthy": 639,
+  "n_anom": 639
+ },
+ "test": {
+  "real_healthy": {
+   "FRESH": 1.0,
+   "ANOMALY": 0.0,
+   "UNKNOWN": 0.0,
+   "HOLD": 0.0
+  },
+  "real_synthetic_anomaly": {
+   "FRESH": 0.0023,
+   "ANOMALY": 0.9977,
+   "UNKNOWN": 0.0,
+   "HOLD": 0.0
+  },
+  "n_healthy": 865,
+  "n_anom": 865,
+  "synthetic_Black": {
+   "n": 288,
+   "anomaly": 1.0,
+   "correct_class": 1.0,
+   "unknown": 0.0
+  },
+  "synthetic_Hole": {
+   "n": 288,
+   "anomaly": 0.997,
+   "correct_class": 0.997,
+   "unknown": 0.0
+  },
+  "synthetic_Yellow": {
+   "n": 289,
+   "anomaly": 0.997,
+   "correct_class": 0.993,
+   "unknown": 0.0
+  },
+  "argmax_rule": {
+   "real_healthy_flagged": 0.0,
+   "synthetic_detected": 0.9977
+  }
+ }
+}
