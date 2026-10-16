@@ -1,0 +1,326 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="1900" viewBox="0 0 2400 1900" font-family="Malgun Gothic, Apple SD Gothic Neo, Noto Sans KR, sans-serif">
+  <defs>
+    <!-- 전원 꼬리표: 같은 글자끼리 전부 이어진 것으로 봅니다 (긴 레일 대신 사용) -->
+    <g id="tag12v"><rect x="-25" y="-13" width="50" height="26" rx="6" fill="#ffebee" stroke="#c62828" stroke-width="2"/><text y="6" font-size="16" font-weight="bold" text-anchor="middle" fill="#c62828">12V</text></g>
+    <g id="tag5v"><rect x="-22" y="-13" width="44" height="26" rx="6" fill="#fff3e0" stroke="#e65100" stroke-width="2"/><text y="6" font-size="16" font-weight="bold" text-anchor="middle" fill="#e65100">5V</text></g>
+    <g id="tag3v3"><rect x="-25" y="-13" width="50" height="26" rx="6" fill="#f3e5f5" stroke="#6a1b9a" stroke-width="2"/><text y="6" font-size="16" font-weight="bold" text-anchor="middle" fill="#6a1b9a">3V3</text></g>
+    <g id="taggnd"><rect x="-28" y="-13" width="56" height="26" rx="6" fill="#eeeeee" stroke="#212121" stroke-width="2"/><text y="6" font-size="16" font-weight="bold" text-anchor="middle" fill="#212121">GND</text></g>
+  </defs>
+  <rect x="0" y="0" width="2400" height="1900" fill="#ffffff"/>
+
+  <!-- ===== 제목 ===== -->
+  <text x="1200" y="58" font-size="40" font-weight="bold" text-anchor="middle" fill="#111">스마트큐브 제어기 전체 배선도 — ESP32 DevKitC(WROOM-32D) · 펌웨어 cube-devkit-1.5.0</text>
+  <text x="1200" y="96" font-size="22" text-anchor="middle" fill="#555">2026-10-13 · 랩탑 ClaudeCode · 핀 배정은 esp32_devkit_node_test/config.h 기준(사용자 결정 09-29 · 10-06 · 10-12 · 10-13) · 전원은 꼬리표(12V·5V·3V3·GND)로 표시</text>
+
+  <!-- ===== ESP32 DevKitC (가운데) ===== -->
+  <rect x="900" y="200" width="600" height="1140" rx="16" fill="#eef3fb" stroke="#2b4c7e" stroke-width="3"/>
+  <text x="1200" y="242" font-size="30" font-weight="bold" text-anchor="middle" fill="#1c3557">ESP32 DevKitC (WROOM-32D)</text>
+  <text x="1200" y="272" font-size="18" text-anchor="middle" fill="#1c3557">보드 "ESP32 Dev Module" · 펌웨어 cube-devkit-1.5.0 (esp32_devkit_node_test)</text>
+
+  <text x="1200" y="450" font-size="19" text-anchor="middle" fill="#444">비어 있는 출력 핀: 4 · 13 · 14</text>
+  <text x="1200" y="480" font-size="19" text-anchor="middle" fill="#444">아날로그 예비(입력 전용): 36 · 39</text>
+  <text x="1200" y="510" font-size="19" text-anchor="middle" fill="#444">쓰지 않는 핀: 0·2·5·12·15 (부팅 스트래핑), 6~11 (플래시)</text>
+  <text x="1200" y="540" font-size="19" text-anchor="middle" fill="#444">UART0 1/3 = USB 콘솔·업로드 115200 (다른 용도 금지)</text>
+  <text x="1200" y="570" font-size="19" text-anchor="middle" fill="#444">I2C 100kHz · UART1 9600 (CO2) · UART2 9600 (RS485)</text>
+
+  <!-- 왼쪽 핀 (액추에이터) -->
+  <circle cx="900" cy="360" r="7" fill="#1565c0"/><text x="916" y="367" font-size="20" font-weight="bold" fill="#1565c0">GPIO18  모터(펌프) PWM</text>
+  <circle cx="900" cy="610" r="7" fill="#1565c0"/><text x="916" y="617" font-size="20" font-weight="bold" fill="#1565c0">GPIO16  LED PWM</text>
+  <circle cx="900" cy="820" r="7" fill="#1565c0"/><text x="916" y="827" font-size="20" font-weight="bold" fill="#1565c0">GPIO25  배기팬 릴레이</text>
+  <circle cx="900" cy="880" r="7" fill="#1565c0"/><text x="916" y="887" font-size="20" font-weight="bold" fill="#1565c0">GPIO26  배기팬 PWM</text>
+  <circle cx="900" cy="930" r="7" fill="#795548"/><text x="916" y="937" font-size="20" font-weight="bold" fill="#795548">GPIO34  배기팬 TACH (입력 전용)</text>
+  <circle cx="900" cy="1135" r="7" fill="#1565c0"/><text x="916" y="1142" font-size="20" font-weight="bold" fill="#1565c0">GPIO19  순환팬 릴레이</text>
+  <circle cx="900" cy="1195" r="7" fill="#1565c0"/><text x="916" y="1202" font-size="20" font-weight="bold" fill="#1565c0">GPIO23  순환팬 PWM</text>
+  <circle cx="900" cy="1245" r="7" fill="#795548"/><text x="916" y="1252" font-size="20" font-weight="bold" fill="#795548">GPIO35  순환팬 TACH (입력 전용)</text>
+
+  <!-- 오른쪽 핀 (센서·통신) -->
+  <circle cx="1500" cy="320" r="7" fill="#2e7d32"/><text x="1484" y="327" font-size="20" font-weight="bold" text-anchor="end" fill="#2e7d32">I2C SDA  GPIO21</text>
+  <circle cx="1500" cy="380" r="7" fill="#2e7d32"/><text x="1484" y="387" font-size="20" font-weight="bold" text-anchor="end" fill="#2e7d32">I2C SCL  GPIO22</text>
+  <circle cx="1500" cy="790" r="7" fill="#00838f"/><text x="1484" y="797" font-size="20" font-weight="bold" text-anchor="end" fill="#00838f">UART2 TX  GPIO17</text>
+  <circle cx="1500" cy="850" r="7" fill="#00838f"/><text x="1484" y="857" font-size="20" font-weight="bold" text-anchor="end" fill="#00838f">UART2 RX  GPIO27</text>
+  <circle cx="1500" cy="1040" r="7" fill="#00838f"/><text x="1484" y="1047" font-size="20" font-weight="bold" text-anchor="end" fill="#00838f">UART1 TX  GPIO32</text>
+  <circle cx="1500" cy="1100" r="7" fill="#00838f"/><text x="1484" y="1107" font-size="20" font-weight="bold" text-anchor="end" fill="#00838f">UART1 RX  GPIO33</text>
+
+  <!-- 아래쪽 핀 (전원·USB) -->
+  <circle cx="1000" cy="1340" r="7" fill="#e65100"/><text x="1000" y="1322" font-size="18" font-weight="bold" text-anchor="middle" fill="#e65100">5V (VIN)</text>
+  <line x1="1000" y1="1340" x2="1000" y2="1355" stroke="#e65100" stroke-width="3"/><use href="#tag5v" x="1000" y="1368"/>
+  <circle cx="1160" cy="1340" r="7" fill="#6a1b9a"/><text x="1160" y="1322" font-size="18" font-weight="bold" text-anchor="middle" fill="#6a1b9a">3V3 (출력)</text>
+  <line x1="1160" y1="1340" x2="1160" y2="1355" stroke="#6a1b9a" stroke-width="3"/><use href="#tag3v3" x="1160" y="1368"/>
+  <circle cx="1320" cy="1340" r="7" fill="#212121"/><text x="1320" y="1322" font-size="18" font-weight="bold" text-anchor="middle" fill="#212121">GND</text>
+  <line x1="1320" y1="1340" x2="1320" y2="1355" stroke="#212121" stroke-width="3"/><use href="#taggnd" x="1320" y="1368"/>
+  <text x="1440" y="1322" font-size="18" font-weight="bold" text-anchor="middle" fill="#555">USB</text>
+  <text x="1440" y="1372" font-size="14" text-anchor="middle" fill="#555">마이크로 USB: 콘솔·업로드</text>
+
+  <!-- ===== 펌프 모터 ===== -->
+  <rect x="80" y="240" width="680" height="230" rx="12" fill="#fdf3f3" stroke="#b05050" stroke-width="2"/>
+  <text x="100" y="268" font-size="22" font-weight="bold" fill="#7a1f1f">펌프 모터 — GPIO18 PWM 25kHz (최소 duty 83% · 최대 30초)</text>
+  <line x1="900" y1="360" x2="700" y2="360" stroke="#1565c0" stroke-width="4"/>
+  <rect x="640" y="346" width="60" height="28" fill="#fff" stroke="#1565c0" stroke-width="3"/>
+  <text x="670" y="338" font-size="16" text-anchor="middle" fill="#1565c0">100Ω</text>
+  <line x1="640" y1="360" x2="540" y2="360" stroke="#1565c0" stroke-width="4"/>
+  <circle cx="590" cy="360" r="6" fill="#1565c0"/>
+  <line x1="590" y1="360" x2="590" y2="380" stroke="#1565c0" stroke-width="4"/>
+  <rect x="576" y="380" width="28" height="40" fill="#fff" stroke="#1565c0" stroke-width="3"/>
+  <text x="612" y="406" font-size="16" fill="#333">10kΩ 풀다운 (필수)</text>
+  <line x1="590" y1="420" x2="590" y2="429" stroke="#212121" stroke-width="3"/><use href="#taggnd" x="590" y="442"/>
+  <rect x="440" y="320" width="100" height="80" fill="#fff" stroke="#333" stroke-width="2"/>
+  <text x="490" y="312" font-size="15" text-anchor="middle" fill="#333">로직레벨 N-MOSFET (IRLZ44N·IRLB8721)</text>
+  <text x="528" y="366" font-size="14" fill="#333">G</text><text x="452" y="344" font-size="14" fill="#333">D</text><text x="452" y="388" font-size="14" fill="#333">S</text>
+  <text x="490" y="364" font-size="14" text-anchor="middle" fill="#333">MOSFET</text>
+  <line x1="440" y1="338" x2="318" y2="338" stroke="#555" stroke-width="4"/>
+  <circle cx="290" cy="338" r="28" fill="#fff" stroke="#555" stroke-width="3"/>
+  <text x="290" y="346" font-size="22" font-weight="bold" text-anchor="middle" fill="#333">M</text>
+  <line x1="262" y1="338" x2="200" y2="338" stroke="#555" stroke-width="4"/>
+  <circle cx="200" cy="338" r="6" fill="#c62828"/>
+  <line x1="200" y1="338" x2="183" y2="338" stroke="#c62828" stroke-width="4"/><use href="#tag12v" x="158" y="338"/>
+  <text x="290" y="392" font-size="16" text-anchor="middle" fill="#333">12V 펌프 모터 (+ 12V · − 드레인)</text>
+  <circle cx="380" cy="338" r="6" fill="#555"/>
+  <line x1="380" y1="338" x2="380" y2="300" stroke="#555" stroke-width="3"/>
+  <line x1="380" y1="300" x2="200" y2="300" stroke="#555" stroke-width="3"/>
+  <line x1="200" y1="300" x2="200" y2="338" stroke="#555" stroke-width="3"/>
+  <polygon points="304,290 304,310 280,300" fill="#555"/>
+  <line x1="278" y1="290" x2="278" y2="310" stroke="#555" stroke-width="3"/>
+  <text x="330" y="292" font-size="14" fill="#333">1N5819 쇼트키 (캐소드 → 12V+)</text>
+  <line x1="440" y1="382" x2="410" y2="382" stroke="#212121" stroke-width="4"/>
+  <line x1="410" y1="382" x2="410" y2="429" stroke="#212121" stroke-width="4"/><use href="#taggnd" x="410" y="442"/>
+
+  <!-- ===== LED 바 ===== -->
+  <rect x="80" y="490" width="680" height="210" rx="12" fill="#fdf3f3" stroke="#b05050" stroke-width="2"/>
+  <text x="100" y="518" font-size="22" font-weight="bold" fill="#7a1f1f">LED 바 — GPIO16 PWM 25kHz (감마 보정 · 1%/5ms 램프)</text>
+  <line x1="900" y1="610" x2="700" y2="610" stroke="#1565c0" stroke-width="4"/>
+  <rect x="640" y="596" width="60" height="28" fill="#fff" stroke="#1565c0" stroke-width="3"/>
+  <text x="670" y="588" font-size="16" text-anchor="middle" fill="#1565c0">100Ω</text>
+  <line x1="640" y1="610" x2="540" y2="610" stroke="#1565c0" stroke-width="4"/>
+  <circle cx="590" cy="610" r="6" fill="#1565c0"/>
+  <line x1="590" y1="610" x2="590" y2="626" stroke="#1565c0" stroke-width="4"/>
+  <rect x="576" y="626" width="28" height="34" fill="#fff" stroke="#1565c0" stroke-width="3"/>
+  <text x="612" y="650" font-size="16" fill="#333">10kΩ 풀다운 (필수)</text>
+  <line x1="590" y1="660" x2="590" y2="667" stroke="#212121" stroke-width="3"/><use href="#taggnd" x="590" y="680"/>
+  <rect x="440" y="570" width="100" height="80" fill="#fff" stroke="#333" stroke-width="2"/>
+  <text x="490" y="562" font-size="15" text-anchor="middle" fill="#333">로직레벨 N-MOSFET</text>
+  <text x="528" y="616" font-size="14" fill="#333">G</text><text x="452" y="594" font-size="14" fill="#333">D</text><text x="452" y="638" font-size="14" fill="#333">S</text>
+  <text x="490" y="614" font-size="14" text-anchor="middle" fill="#333">MOSFET</text>
+  <line x1="440" y1="588" x2="350" y2="588" stroke="#555" stroke-width="4"/>
+  <rect x="230" y="570" width="120" height="36" fill="#fffde7" stroke="#555" stroke-width="2"/>
+  <text x="290" y="594" font-size="15" text-anchor="middle" fill="#333">LED 바 12V</text>
+  <line x1="230" y1="588" x2="183" y2="588" stroke="#c62828" stroke-width="4"/><use href="#tag12v" x="158" y="588"/>
+  <text x="290" y="628" font-size="15" text-anchor="middle" fill="#333">(+ 쪽이 12V, − 쪽이 드레인)</text>
+  <line x1="440" y1="632" x2="410" y2="632" stroke="#212121" stroke-width="4"/>
+  <line x1="410" y1="632" x2="410" y2="667" stroke="#212121" stroke-width="4"/><use href="#taggnd" x="410" y="680"/>
+
+  <!-- ===== 배기팬 fan1 ===== -->
+  <rect x="80" y="720" width="680" height="295" rx="12" fill="#fdf3f3" stroke="#b05050" stroke-width="2"/>
+  <text x="100" y="748" font-size="20" font-weight="bold" fill="#7a1f1f">배기팬 fan1 — 4핀 PC 팬 (릴레이 25 · PWM 26 · TACH 34)</text>
+  <rect x="560" y="770" width="160" height="90" fill="#fff" stroke="#555" stroke-width="2"/>
+  <text x="640" y="794" font-size="17" font-weight="bold" text-anchor="middle" fill="#333">릴레이 모듈</text>
+  <text x="640" y="812" font-size="13" text-anchor="middle" fill="#555">(5V 전원 · IN 3.3V)</text>
+  <use href="#tag5v" x="600" y="842"/><use href="#taggnd" x="680" y="842"/>
+  <circle cx="720" cy="820" r="6" fill="#1565c0"/><text x="730" y="812" font-size="13" fill="#1565c0">IN</text>
+  <line x1="900" y1="820" x2="720" y2="820" stroke="#1565c0" stroke-width="4"/>
+  <circle cx="560" cy="790" r="6" fill="#c62828"/><text x="530" y="782" font-size="12" text-anchor="middle" fill="#c62828">COM</text>
+  <line x1="560" y1="790" x2="500" y2="790" stroke="#c62828" stroke-width="4"/><use href="#tag12v" x="470" y="790"/>
+  <circle cx="560" cy="830" r="6" fill="#c62828"/><text x="520" y="822" font-size="12" text-anchor="middle" fill="#c62828">NO</text>
+  <line x1="560" y1="830" x2="420" y2="830" stroke="#c62828" stroke-width="4"/>
+  <rect x="160" y="770" width="260" height="190" fill="#fff" stroke="#555" stroke-width="2"/>
+  <text x="290" y="796" font-size="17" font-weight="bold" text-anchor="middle" fill="#333">배기팬 (4핀 PC 팬)</text>
+  <text x="290" y="816" font-size="13" text-anchor="middle" fill="#555">12V · PWM 25kHz · TACH 2펄스/회전</text>
+  <circle cx="420" cy="830" r="6" fill="#c62828"/><text x="410" y="836" font-size="14" text-anchor="end" fill="#c62828">12V (릴레이 NO)</text>
+  <circle cx="420" cy="880" r="6" fill="#1565c0"/><text x="410" y="886" font-size="14" text-anchor="end" fill="#1565c0">PWM (파랑)</text>
+  <circle cx="420" cy="930" r="6" fill="#795548"/><text x="410" y="936" font-size="14" text-anchor="end" fill="#795548">TACH (노랑)</text>
+  <circle cx="290" cy="960" r="6" fill="#212121"/><line x1="290" y1="960" x2="290" y2="969" stroke="#212121" stroke-width="3"/><use href="#taggnd" x="290" y="982"/>
+  <line x1="900" y1="880" x2="420" y2="880" stroke="#1565c0" stroke-width="4"/>
+  <line x1="420" y1="930" x2="900" y2="930" stroke="#795548" stroke-width="4"/>
+  <circle cx="480" cy="930" r="6" fill="#795548"/>
+  <line x1="480" y1="930" x2="480" y2="944" stroke="#6a1b9a" stroke-width="3"/>
+  <rect x="466" y="944" width="28" height="30" fill="#fff" stroke="#6a1b9a" stroke-width="3"/>
+  <line x1="480" y1="974" x2="480" y2="979" stroke="#6a1b9a" stroke-width="3"/><use href="#tag3v3" x="480" y="992"/>
+  <text x="502" y="968" font-size="15" fill="#6a1b9a">10kΩ 풀업 (3.3V 에만)</text>
+
+  <!-- ===== 순환팬 fan2 ===== -->
+  <rect x="80" y="1035" width="680" height="295" rx="12" fill="#fdf3f3" stroke="#b05050" stroke-width="2"/>
+  <text x="100" y="1063" font-size="20" font-weight="bold" fill="#7a1f1f">순환팬 fan2 — 4핀 PC 팬 (릴레이 19 · PWM 23 · TACH 35)</text>
+  <rect x="560" y="1085" width="160" height="90" fill="#fff" stroke="#555" stroke-width="2"/>
+  <text x="640" y="1109" font-size="17" font-weight="bold" text-anchor="middle" fill="#333">릴레이 모듈</text>
+  <text x="640" y="1127" font-size="13" text-anchor="middle" fill="#555">(5V 전원 · IN 3.3V)</text>
+  <use href="#tag5v" x="600" y="1157"/><use href="#taggnd" x="680" y="1157"/>
+  <circle cx="720" cy="1135" r="6" fill="#1565c0"/><text x="730" y="1127" font-size="13" fill="#1565c0">IN</text>
+  <line x1="900" y1="1135" x2="720" y2="1135" stroke="#1565c0" stroke-width="4"/>
+  <circle cx="560" cy="1105" r="6" fill="#c62828"/><text x="530" y="1097" font-size="12" text-anchor="middle" fill="#c62828">COM</text>
+  <line x1="560" y1="1105" x2="500" y2="1105" stroke="#c62828" stroke-width="4"/><use href="#tag12v" x="470" y="1105"/>
+  <circle cx="560" cy="1145" r="6" fill="#c62828"/><text x="520" y="1137" font-size="12" text-anchor="middle" fill="#c62828">NO</text>
+  <line x1="560" y1="1145" x2="420" y2="1145" stroke="#c62828" stroke-width="4"/>
+  <rect x="160" y="1085" width="260" height="190" fill="#fff" stroke="#555" stroke-width="2"/>
+  <text x="290" y="1111" font-size="17" font-weight="bold" text-anchor="middle" fill="#333">순환팬 (4핀 PC 팬)</text>
+  <text x="290" y="1131" font-size="13" text-anchor="middle" fill="#555">12V · PWM 25kHz · TACH 2펄스/회전</text>
+  <circle cx="420" cy="1145" r="6" fill="#c62828"/><text x="410" y="1151" font-size="14" text-anchor="end" fill="#c62828">12V (릴레이 NO)</text>
+  <circle cx="420" cy="1195" r="6" fill="#1565c0"/><text x="410" y="1201" font-size="14" text-anchor="end" fill="#1565c0">PWM (파랑)</text>
+  <circle cx="420" cy="1245" r="6" fill="#795548"/><text x="410" y="1251" font-size="14" text-anchor="end" fill="#795548">TACH (노랑)</text>
+  <circle cx="290" cy="1275" r="6" fill="#212121"/><line x1="290" y1="1275" x2="290" y2="1284" stroke="#212121" stroke-width="3"/><use href="#taggnd" x="290" y="1297"/>
+  <line x1="900" y1="1195" x2="420" y2="1195" stroke="#1565c0" stroke-width="4"/>
+  <line x1="420" y1="1245" x2="900" y2="1245" stroke="#795548" stroke-width="4"/>
+  <circle cx="480" cy="1245" r="6" fill="#795548"/>
+  <line x1="480" y1="1245" x2="480" y2="1259" stroke="#6a1b9a" stroke-width="3"/>
+  <rect x="466" y="1259" width="28" height="30" fill="#fff" stroke="#6a1b9a" stroke-width="3"/>
+  <line x1="480" y1="1289" x2="480" y2="1294" stroke="#6a1b9a" stroke-width="3"/><use href="#tag3v3" x="480" y="1307"/>
+  <text x="502" y="1283" font-size="15" fill="#6a1b9a">10kΩ 풀업 (3.3V 에만)</text>
+
+  <!-- ===== I2C 버스 ===== -->
+  <rect x="1640" y="230" width="700" height="440" rx="12" fill="#f2f7f2" stroke="#3a7a3a" stroke-width="2"/>
+  <text x="1660" y="258" font-size="20" font-weight="bold" fill="#1f5a1f">I2C 버스 — SDA GPIO21 · SCL GPIO22 · 100kHz · 풀업 4.7kΩ (3.3V)</text>
+  <line x1="1500" y1="320" x2="2040" y2="320" stroke="#2e7d32" stroke-width="4"/>
+  <line x1="1500" y1="380" x2="2110" y2="380" stroke="#2e7d32" stroke-width="4"/>
+  <circle cx="1560" cy="320" r="6" fill="#2e7d32"/>
+  <line x1="1560" y1="320" x2="1560" y2="304" stroke="#6a1b9a" stroke-width="3"/>
+  <rect x="1546" y="274" width="28" height="30" fill="#fff" stroke="#6a1b9a" stroke-width="3"/>
+  <line x1="1560" y1="274" x2="1560" y2="267" stroke="#6a1b9a" stroke-width="3"/><use href="#tag3v3" x="1560" y="254"/>
+  <text x="1580" y="294" font-size="14" fill="#6a1b9a">4.7kΩ</text>
+  <circle cx="1600" cy="380" r="6" fill="#2e7d32"/>
+  <line x1="1600" y1="380" x2="1600" y2="396" stroke="#6a1b9a" stroke-width="3"/>
+  <rect x="1586" y="396" width="28" height="30" fill="#fff" stroke="#6a1b9a" stroke-width="3"/>
+  <line x1="1600" y1="426" x2="1600" y2="433" stroke="#6a1b9a" stroke-width="3"/><use href="#tag3v3" x="1600" y="446"/>
+  <text x="1620" y="416" font-size="14" fill="#6a1b9a">4.7kΩ</text>
+
+  <!-- ADS1115 -->
+  <rect x="1660" y="430" width="150" height="130" fill="#fff" stroke="#2e7d32" stroke-width="2"/>
+  <circle cx="1700" cy="430" r="6" fill="#2e7d32"/><line x1="1700" y1="430" x2="1700" y2="320" stroke="#2e7d32" stroke-width="3"/><circle cx="1700" cy="320" r="6" fill="#2e7d32"/>
+  <circle cx="1770" cy="430" r="6" fill="#2e7d32"/><line x1="1770" y1="430" x2="1770" y2="380" stroke="#2e7d32" stroke-width="3"/><circle cx="1770" cy="380" r="6" fill="#2e7d32"/>
+  <text x="1700" y="446" font-size="12" text-anchor="middle" fill="#2e7d32">SDA</text><text x="1770" y="446" font-size="12" text-anchor="middle" fill="#2e7d32">SCL</text>
+  <text x="1735" y="468" font-size="17" font-weight="bold" text-anchor="middle" fill="#333">ADS1115</text>
+  <text x="1735" y="488" font-size="12" text-anchor="middle" fill="#555">0x48 (ADDR → GND)</text>
+  <text x="1735" y="506" font-size="12" text-anchor="middle" fill="#555">A0 ← 토양 센서 AOUT</text>
+  <use href="#tag3v3" x="1700" y="540"/><use href="#taggnd" x="1770" y="540"/>
+  <line x1="1735" y1="560" x2="1735" y2="580" stroke="#555" stroke-width="3"/>
+  <rect x="1660" y="580" width="150" height="70" fill="#fffde7" stroke="#999" stroke-width="2"/>
+  <text x="1735" y="600" font-size="14" font-weight="bold" text-anchor="middle" fill="#333">토양 수분 센서</text>
+  <text x="1735" y="618" font-size="12" text-anchor="middle" fill="#555">SEN0193 · AOUT → A0</text>
+  <text x="1735" y="636" font-size="12" text-anchor="middle" fill="#555">VCC 3V3 권장 · GND</text>
+
+  <!-- BH1750 -->
+  <rect x="1830" y="430" width="150" height="130" fill="#fff" stroke="#2e7d32" stroke-width="2"/>
+  <circle cx="1870" cy="430" r="6" fill="#2e7d32"/><line x1="1870" y1="430" x2="1870" y2="320" stroke="#2e7d32" stroke-width="3"/><circle cx="1870" cy="320" r="6" fill="#2e7d32"/>
+  <circle cx="1940" cy="430" r="6" fill="#2e7d32"/><line x1="1940" y1="430" x2="1940" y2="380" stroke="#2e7d32" stroke-width="3"/><circle cx="1940" cy="380" r="6" fill="#2e7d32"/>
+  <text x="1870" y="446" font-size="12" text-anchor="middle" fill="#2e7d32">SDA</text><text x="1940" y="446" font-size="12" text-anchor="middle" fill="#2e7d32">SCL</text>
+  <text x="1905" y="468" font-size="16" font-weight="bold" text-anchor="middle" fill="#333">BH1750 (GY-302)</text>
+  <text x="1905" y="488" font-size="12" text-anchor="middle" fill="#555">0x23 또는 0x5C (ADDR 핀)</text>
+  <text x="1905" y="506" font-size="12" text-anchor="middle" fill="#555">조도 lux · 버스 직결</text>
+  <use href="#tag3v3" x="1870" y="540"/><use href="#taggnd" x="1940" y="540"/>
+
+  <!-- PCA9548A + SHT45 ×3 -->
+  <rect x="2000" y="430" width="320" height="130" fill="#fff" stroke="#2e7d32" stroke-width="2"/>
+  <circle cx="2040" cy="430" r="6" fill="#2e7d32"/><line x1="2040" y1="430" x2="2040" y2="320" stroke="#2e7d32" stroke-width="3"/><circle cx="2040" cy="320" r="6" fill="#2e7d32"/>
+  <circle cx="2110" cy="430" r="6" fill="#2e7d32"/><line x1="2110" y1="430" x2="2110" y2="380" stroke="#2e7d32" stroke-width="3"/><circle cx="2110" cy="380" r="6" fill="#2e7d32"/>
+  <text x="2040" y="446" font-size="12" text-anchor="middle" fill="#2e7d32">SDA</text><text x="2110" y="446" font-size="12" text-anchor="middle" fill="#2e7d32">SCL</text>
+  <text x="2160" y="468" font-size="16" font-weight="bold" text-anchor="middle" fill="#333">PCA9548A 멀티플렉서</text>
+  <text x="2160" y="488" font-size="12" text-anchor="middle" fill="#555">0x70 (A0~A2 → GND) · 채널 0·1·2 → SHT45</text>
+  <text x="2160" y="506" font-size="12" text-anchor="middle" fill="#555">채널마다 SDA·SCL 2선 · 없는 자리는 null 보고</text>
+  <use href="#tag3v3" x="2040" y="540"/><use href="#taggnd" x="2110" y="540"/>
+  <line x1="2047" y1="560" x2="2047" y2="580" stroke="#2e7d32" stroke-width="3"/>
+  <line x1="2160" y1="560" x2="2160" y2="580" stroke="#2e7d32" stroke-width="3"/>
+  <line x1="2273" y1="560" x2="2273" y2="580" stroke="#2e7d32" stroke-width="3"/>
+  <rect x="2000" y="580" width="95" height="70" fill="#fff" stroke="#2e7d32" stroke-width="2"/>
+  <text x="2047" y="600" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">SHT45 #1</text>
+  <text x="2047" y="618" font-size="12" text-anchor="middle" fill="#555">0x44 · 채널 0</text>
+  <text x="2047" y="636" font-size="12" text-anchor="middle" fill="#555">3V3 · GND</text>
+  <rect x="2113" y="580" width="95" height="70" fill="#fff" stroke="#2e7d32" stroke-width="2"/>
+  <text x="2160" y="600" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">SHT45 #2</text>
+  <text x="2160" y="618" font-size="12" text-anchor="middle" fill="#555">0x44 · 채널 1</text>
+  <text x="2160" y="636" font-size="12" text-anchor="middle" fill="#555">3V3 · GND</text>
+  <rect x="2226" y="580" width="95" height="70" fill="#fff" stroke="#2e7d32" stroke-width="2"/>
+  <text x="2273" y="600" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">SHT45 #3</text>
+  <text x="2273" y="618" font-size="12" text-anchor="middle" fill="#555">0x44 · 채널 2</text>
+  <text x="2273" y="636" font-size="12" text-anchor="middle" fill="#555">3V3 · GND</text>
+  <text x="2160" y="665" font-size="12" text-anchor="middle" fill="#555">SHT45 는 1~3개 모두 동작 (없는 자리는 null)</text>
+
+  <!-- ===== RS485 토양 7종 센서 ===== -->
+  <rect x="1640" y="700" width="700" height="240" rx="12" fill="#eef7f8" stroke="#2a7a84" stroke-width="2"/>
+  <text x="1660" y="728" font-size="20" font-weight="bold" fill="#1a5560">RS485 토양 7종 센서 — UART2 TX 17 / RX 27 · 9600 8N1 · 주소 2</text>
+  <rect x="1760" y="760" width="230" height="140" fill="#fff" stroke="#2a7a84" stroke-width="2"/>
+  <text x="1875" y="784" font-size="16" font-weight="bold" text-anchor="middle" fill="#333">TTL ↔ RS485 변환기</text>
+  <text x="1875" y="804" font-size="12" text-anchor="middle" fill="#555">SZH-CVBE-010 (MAX13487E)</text>
+  <text x="1875" y="822" font-size="12" text-anchor="middle" fill="#555">자동 방향 전환 · R16 종단 열어 둠</text>
+  <use href="#tag5v" x="1830" y="882"/><use href="#taggnd" x="1920" y="882"/>
+  <circle cx="1760" cy="790" r="6" fill="#00838f"/><text x="1768" y="786" font-size="12" fill="#00838f">RXD</text>
+  <circle cx="1760" cy="850" r="6" fill="#00838f"/><text x="1768" y="846" font-size="12" fill="#00838f">TXD (5V 출력)</text>
+  <circle cx="1990" cy="790" r="6" fill="#2a7a84"/><text x="1982" y="786" font-size="12" text-anchor="end" fill="#2a7a84">A</text>
+  <circle cx="1990" cy="850" r="6" fill="#2a7a84"/><text x="1982" y="846" font-size="12" text-anchor="end" fill="#2a7a84">B</text>
+  <line x1="1500" y1="790" x2="1760" y2="790" stroke="#00838f" stroke-width="4"/>
+  <text x="1630" y="780" font-size="14" text-anchor="middle" fill="#00838f">3.3V 직결</text>
+  <line x1="1760" y1="850" x2="1740" y2="850" stroke="#00838f" stroke-width="4"/>
+  <rect x="1680" y="836" width="60" height="28" fill="#fff" stroke="#00838f" stroke-width="3"/>
+  <text x="1710" y="828" font-size="14" text-anchor="middle" fill="#00838f">10kΩ</text>
+  <line x1="1680" y1="850" x2="1500" y2="850" stroke="#00838f" stroke-width="4"/>
+  <circle cx="1620" cy="850" r="6" fill="#00838f"/>
+  <text x="1600" y="840" font-size="13" text-anchor="middle" fill="#00838f">≈3.3V</text>
+  <line x1="1620" y1="850" x2="1620" y2="868" stroke="#00838f" stroke-width="3"/>
+  <rect x="1606" y="868" width="28" height="30" fill="#fff" stroke="#00838f" stroke-width="3"/>
+  <text x="1642" y="890" font-size="14" fill="#00838f">20kΩ</text>
+  <line x1="1620" y1="898" x2="1620" y2="905" stroke="#212121" stroke-width="3"/><use href="#taggnd" x="1620" y="918"/>
+  <rect x="2100" y="760" width="220" height="140" fill="#fff" stroke="#2a7a84" stroke-width="2"/>
+  <text x="2210" y="784" font-size="16" font-weight="bold" text-anchor="middle" fill="#333">토양 7종 센서</text>
+  <text x="2210" y="804" font-size="12" text-anchor="middle" fill="#555">온도·수분·EC·염분·N·P·K·pH</text>
+  <text x="2210" y="822" font-size="12" text-anchor="middle" fill="#555">Modbus-RTU · 주소 2 · 9600 8N1</text>
+  <use href="#tag5v" x="2170" y="882"/><use href="#taggnd" x="2250" y="882"/>
+  <circle cx="2100" cy="790" r="6" fill="#2a7a84"/><text x="2108" y="786" font-size="12" fill="#2a7a84">A</text>
+  <circle cx="2100" cy="850" r="6" fill="#2a7a84"/><text x="2108" y="846" font-size="12" fill="#2a7a84">B</text>
+  <line x1="1990" y1="790" x2="2100" y2="790" stroke="#2a7a84" stroke-width="4"/>
+  <line x1="1990" y1="850" x2="2100" y2="850" stroke="#2a7a84" stroke-width="4"/>
+  <text x="2045" y="826" font-size="12" text-anchor="middle" fill="#555">응답 없으면 A/B 교체</text>
+
+  <!-- ===== CO2 센서 ===== -->
+  <rect x="1640" y="970" width="700" height="250" rx="12" fill="#eef7f8" stroke="#2a7a84" stroke-width="2"/>
+  <text x="1660" y="998" font-size="20" font-weight="bold" fill="#1a5560">CO2 센서 HX-2000U — UART1 TX 32 / RX 33 · 9600 8N1 · 요청-응답</text>
+  <rect x="2000" y="1020" width="320" height="180" fill="#fff" stroke="#2a7a84" stroke-width="2"/>
+  <text x="2306" y="1046" font-size="16" font-weight="bold" text-anchor="end" fill="#333">EXSEN HX-2000U</text>
+  <text x="2306" y="1068" font-size="12" text-anchor="end" fill="#555">7핀 2.0mm 피치 · 커넥터 없음</text>
+  <text x="2306" y="1088" font-size="12" text-anchor="end" fill="#555">400~5,000 ppm · 첫 응답 뒤 15분 예열</text>
+  <text x="2306" y="1108" font-size="12" text-anchor="end" fill="#555">팬 바람·펠티어 옆·결로 피함</text>
+  <circle cx="2000" cy="1040" r="6" fill="#00838f"/><text x="2008" y="1036" font-size="12" fill="#00838f">4 Rx</text>
+  <circle cx="2000" cy="1100" r="6" fill="#00838f"/><text x="2008" y="1096" font-size="12" fill="#00838f">3 Tx</text>
+  <circle cx="2000" cy="1150" r="6" fill="#999"/><text x="2008" y="1146" font-size="12" fill="#777">5 RST 미연결 · 6·7 NC</text>
+  <text x="2060" y="1166" font-size="11" text-anchor="middle" fill="#555">1 VCC</text><use href="#tag5v" x="2060" y="1182"/>
+  <text x="2150" y="1166" font-size="11" text-anchor="middle" fill="#555">2 GND</text><use href="#taggnd" x="2150" y="1182"/>
+  <line x1="1500" y1="1040" x2="2000" y2="1040" stroke="#00838f" stroke-width="4"/>
+  <text x="1750" y="1030" font-size="14" text-anchor="middle" fill="#00838f">3.3V 직결</text>
+  <line x1="2000" y1="1100" x2="1760" y2="1100" stroke="#00838f" stroke-width="4"/>
+  <rect x="1620" y="1070" width="180" height="122" rx="8" fill="none" stroke="#00838f" stroke-width="2" stroke-dasharray="8 6"/>
+  <rect x="1700" y="1086" width="60" height="28" fill="#fff" stroke="#00838f" stroke-width="3"/>
+  <text x="1730" y="1078" font-size="14" text-anchor="middle" fill="#00838f">10kΩ</text>
+  <line x1="1700" y1="1100" x2="1500" y2="1100" stroke="#00838f" stroke-width="4"/>
+  <circle cx="1660" cy="1100" r="6" fill="#00838f"/>
+  <line x1="1660" y1="1100" x2="1660" y2="1118" stroke="#00838f" stroke-width="3"/>
+  <rect x="1646" y="1118" width="28" height="30" fill="#fff" stroke="#00838f" stroke-width="3"/>
+  <text x="1682" y="1140" font-size="14" fill="#00838f">20kΩ</text>
+  <line x1="1660" y1="1148" x2="1660" y2="1155" stroke="#212121" stroke-width="3"/><use href="#taggnd" x="1660" y="1168"/>
+  <text x="1660" y="1212" font-size="13" fill="#00838f">점선 안: 센서 Tx 가 5V 로 나올 때만 (전압 측정 뒤 결정) · 3.3V 면 직결</text>
+
+  <!-- ===== 전원 ===== -->
+  <rect x="80" y="1400" width="2260" height="180" rx="12" fill="#fafafa" stroke="#bbb" stroke-width="2"/>
+  <text x="100" y="1428" font-size="22" font-weight="bold" fill="#333">전원 (같은 꼬리표는 전부 이어진 것 · 모든 GND 는 한 점에서 공통)</text>
+  <use href="#tag12v" x="150" y="1462"/><text x="200" y="1468" font-size="18" fill="#333">12V 입력(전력 기판) → 펌프 모터 · LED 바 · 배기팬 릴레이 COM · 순환팬 릴레이 COM. 12V 전원 GND 는 보드 GND 와 공통.</text>
+  <use href="#tag5v" x="150" y="1496"/><text x="200" y="1502" font-size="18" fill="#333">12V→5V 강압 모듈(전력 기판, 출력 5.1~5.2V) → 보드 5V(VIN) · 릴레이 모듈 ×2 · RS485 변환기 · 토양 7종 센서 · CO2 센서(예열 중 0.15A). 벤치에서는 USB 5V 로 보드만 급전 가능.</text>
+  <use href="#tag3v3" x="150" y="1530"/><text x="200" y="1536" font-size="18" fill="#333">보드 3V3 핀(내장 레귤레이터 출력) → ADS1115 · BH1750 · PCA9548A · SHT45 ×3 · 토양 수분 센서 · I2C 풀업 4.7kΩ ×2 · TACH 풀업 10kΩ ×2. 3V3 핀에 5V 를 넣지 말 것.</text>
+  <use href="#taggnd" x="150" y="1564"/><text x="200" y="1570" font-size="18" fill="#333">보드 GND · 12V 전원 GND · 강압 모듈 GND · 모든 모듈·센서 GND 공통(한 점에서 묶음). 접지가 빠지면 센서 값이 사라지거나 흔들림(09-30 사고).</text>
+
+  <!-- ===== 범례 ===== -->
+  <rect x="80" y="1600" width="2260" height="60" rx="12" fill="#fafafa" stroke="#bbb" stroke-width="2"/>
+  <line x1="100" y1="1630" x2="140" y2="1630" stroke="#c62828" stroke-width="5"/><text x="150" y="1636" font-size="16" fill="#333">12V</text>
+  <line x1="220" y1="1630" x2="260" y2="1630" stroke="#e65100" stroke-width="5"/><text x="270" y="1636" font-size="16" fill="#333">5V</text>
+  <line x1="330" y1="1630" x2="370" y2="1630" stroke="#6a1b9a" stroke-width="5"/><text x="380" y="1636" font-size="16" fill="#333">3.3V (풀업 포함)</text>
+  <line x1="540" y1="1630" x2="580" y2="1630" stroke="#212121" stroke-width="5"/><text x="590" y="1636" font-size="16" fill="#333">GND</text>
+  <line x1="660" y1="1630" x2="700" y2="1630" stroke="#1565c0" stroke-width="5"/><text x="710" y="1636" font-size="16" fill="#333">GPIO 출력 (PWM · 릴레이 IN)</text>
+  <line x1="960" y1="1630" x2="1000" y2="1630" stroke="#795548" stroke-width="5"/><text x="1010" y="1636" font-size="16" fill="#333">GPIO 입력 (TACH)</text>
+  <line x1="1180" y1="1630" x2="1220" y2="1630" stroke="#2e7d32" stroke-width="5"/><text x="1230" y="1636" font-size="16" fill="#333">I2C</text>
+  <line x1="1300" y1="1630" x2="1340" y2="1630" stroke="#00838f" stroke-width="5"/><text x="1350" y="1636" font-size="16" fill="#333">UART (TTL)</text>
+  <line x1="1480" y1="1630" x2="1520" y2="1630" stroke="#2a7a84" stroke-width="5"/><text x="1530" y="1636" font-size="16" fill="#333">RS485 A/B</text>
+  <line x1="1660" y1="1630" x2="1700" y2="1630" stroke="#555" stroke-width="5"/><text x="1710" y="1636" font-size="16" fill="#333">부하 배선 (12V 쪽)</text>
+  <circle cx="1900" cy="1630" r="6" fill="#333"/><text x="1914" y="1636" font-size="16" fill="#333">연결점 · 점 없이 교차만 하는 선은 미연결</text>
+
+  <!-- ===== 주의 ===== -->
+  <rect x="80" y="1680" width="2260" height="200" rx="12" fill="#fafafa" stroke="#bbb" stroke-width="2"/>
+  <text x="100" y="1708" font-size="22" font-weight="bold" fill="#8a1c1c">주의</text>
+  <text x="100" y="1740" font-size="17" fill="#333">1. MOSFET 은 로직레벨(IRLZ44N·IRLB8721). 게이트 100Ω 직렬 + 10kΩ 풀다운은 부팅·모드 전환 중 핀이 뜰 때의 마지막 안전장치라 빼면 안 됨. 모터의 쇼트키 1N5819 는 캐소드 → 12V+.</text>
+  <text x="100" y="1770" font-size="17" fill="#333">2. 풀업(TACH 10kΩ · I2C 4.7kΩ)은 3.3V 에만. 5V/12V 로 풀업하면 입력을 태움. GPIO34·35·36·39 는 입력 전용·내부 풀업 없음. 보드 3V3 핀에 5V 금지.</text>
+  <text x="100" y="1800" font-size="17" fill="#333">3. 5V 로 나오는 신호(RS485 변환기 TXD, CO2 Tx 가 5V 일 때)는 10kΩ 직렬 + 20kΩ 접지 분압(≈3.3V) 뒤 GPIO 로. ESP32 GPIO 는 5V 를 못 견딤. ESP32 → 모듈 방향(3.3V)은 직결.</text>
+  <text x="100" y="1830" font-size="17" fill="#333">4. I2C 주소: ADS1115 0x48(ADDR→GND) · BH1750 0x23/0x5C · PCA9548A 0x70(A0~A2→GND) · SHT45 0x44(채널 뒤). 시리얼 x = 주소 스캔, xr = 버스 복구 뒤 스캔.</text>
+  <text x="100" y="1860" font-size="17" fill="#333">5. 시리얼: g&lt;pin&gt; = 3초 HIGH 핀 시험(2 4 5 13 14 16 17 18 19 23 25 26 32 33) · s 상태 · e/a 팬 · b RS485 · co CO2. 그림은 펌웨어 1.5.0 핀 기준. 펠티어·INA226 전류 감시는 펌웨어 미반영이라 없음.</text>
+</svg>
