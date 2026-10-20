@@ -14,9 +14,9 @@
  * .ino 가 쓰는 함수 이름은 연결판(esp32_cam_uno_link)의 led namespace 와 같습니다.
  * 주파수 모드 함수(setModeIndex 등)는 호환용으로만 남겨 항상 거부합니다.
  *
- * 배선: GPIO16(config.h PIN_LED_PWM) → 100Ω → 로직레벨 MOSFET 게이트, 게이트↔GND 10kΩ 풀다운.
- *       소형 LED 라면 GPIO16 → 220Ω → LED 애노드, 캐소드 → GND 로 직결해도 됩니다.
- *       (ESP32-CAM 판은 GPIO2 였습니다. DevKitC 판에서 GPIO16 으로 옮김, 2026-09-29)
+ * 배선: GPIO33(config.h PIN_LED_PWM, v2) → 100Ω → 로직레벨 MOSFET 게이트, 게이트↔GND 10kΩ 풀다운.
+ *       소형 LED 라면 GPIO33 → 220Ω → LED 애노드, 캐소드 → GND 로 직결해도 됩니다.
+ *       (ESP32-CAM 판은 GPIO2, DevKitC 1.x 판은 GPIO16 이었습니다. v2 에서 설비 열(J2)의 GPIO33 으로 옮김, 2026-10-16)
  */
 
 #ifndef LED_H

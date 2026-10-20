@@ -1,17 +1,18 @@
 /*
- * 헬피아이 — ESP32 DevKitC(WROOM-32D) 통합판 (2026-09-29)
+ * 헬피아이 — ESP32 DevKitC(WROOM-32D) 통합판 v2 (2026-10-16)
  * ==================================================================
- * esp32_cam_node(ESP32-CAM 단독 통합판 1.0.2)를 새 ESP32 DevKitC 로 옮긴 판입니다. 장치 제어·센서
- * 읽기·서버 통신·안전 규칙·원격 보정은 ESP32-CAM 판 그대로이고, 핀만 바뀌었으며, 핀이 넉넉해져
- * 09-22 병합본(esp32_cube_node)의 배기팬 모듈(fan1)을 다시 넣었습니다. 배경·핀·배선은 config.h 머리말.
+ * 시험 폴더(esp32_devkit_node_test, 1.5.1)를 복사한 새 판입니다(사용자 지시 "코드는 새 폴더에"). 바뀐 것 두 가지(사용자 결정 10-16):
+ *   1) 핀을 헤더 열로 모음 — 설비는 3V3·5V 쪽 열(J2: 32·33·25·26·34·27·13·35), 센서는 TX·RX 쪽 열(J3: 21·22·17·16·19·18).
+ *   2) I2C 센서는 전부 PCA9548A 채널 뒤 — SHT45 ch0·1·2, ADS1115 ch3, BH1750 ×2 ch4·5(조도 2개: lux 평균 + lux_1·lux_2).
+ * 장치 제어·센서 읽기·서버 통신·안전 규칙·원격 보정·시리얼 명령은 그대로. 배경·핀·배선은 config.h 머리말.
  *
- *   젯슨 서버 --Wi-Fi/TLS MQTT--> ESP32 DevKitC --GPIO18 PWM--> 모터(펌프) MOSFET
- *                                               --GPIO16 PWM--> LED MOSFET
+ *   젯슨 서버 --Wi-Fi/TLS MQTT--> ESP32 DevKitC --GPIO32 PWM--> 모터(펌프) MOSFET
+ *                                               --GPIO33 PWM--> LED MOSFET
  *                                               --GPIO25/26/34--> 배기팬(릴레이 · PWM · TACH)
- *                                               --GPIO19/23/35--> 순환팬(릴레이 · PWM · TACH) (2026-10-13)
- *                                               --I2C 21/22--> ADS1115 --> 토양 센서 AOUT
- *                                               --UART2 TX17/RX27--> RS485 변환기 --> 토양 7종 센서 (2026-10-12)
- *                                               --UART1 TX32/RX33--> CO2 센서 EXSEN HX-2000U (2026-10-13)
+ *                                               --GPIO27/13/35--> 순환팬(릴레이 · PWM · TACH)
+ *                                               --I2C 21/22--> PCA9548A --ch0·1·2--> SHT45 ×3 / --ch3--> ADS1115 → 토양 센서 / --ch4·5--> BH1750 ×2
+ *                                               --UART2 TX17/RX16--> RS485 변환기 --> 토양 7종 센서
+ *                                               --UART1 TX19/RX18--> CO2 센서 EXSEN HX-2000U
  *
  *   ESP32-CAM 판에서 그대로 : motor(최소 duty 83% 보정 + 램프 + 진단 모드 d/f0~f5), led(감마 + 램프),
  *                             soil(ADS1115 10회 평균 · NVS 보정 · 원격 보정), comm(Wi-Fi + NTP + TLS MQTT +
@@ -22,17 +23,19 @@
  *                             시리얼 팬 명령 e0~e100 · ef<Hz> 추가, 1초 상태 줄에 팬 표시
  *
  * ── 실물 구성 ────────────────────────────────────────────────────
- *   pump = 12V DC 모터(GPIO18). 켜면 모터 PUMP_MOTOR_PERCENT(1% = duty 83%), 30초 뒤 자동 정지
- *   led1 = LED(GPIO16). led2 = 하드웨어 없음
- *   fan1 = 배기팬(GPIO25/26/34, fan 모듈. TACH 는 10-06 27→34). 부팅 직후 SAFE_FAN_PERCENT(100%)로 돕니다(09-22 결정 J39)
- *   fan2 = 순환팬(GPIO19/23/35, fan 모듈 두 번째 인스턴스, 2026-10-13 사용자 결정). 배기팬과 같은 규칙으로 실제 출력.
+ *   pump = 12V DC 모터(GPIO32, v2). 켜면 모터 PUMP_MOTOR_PERCENT(1% = duty 83%), 30초 뒤 자동 정지
+ *   led1 = LED(GPIO33, v2). led2 = 하드웨어 없음
+ *   fan1 = 배기팬(GPIO25/26/34, fan 모듈). 부팅 직후 SAFE_FAN_PERCENT(100%)로 돕니다(09-22 결정 J39)
+ *   fan2 = 순환팬(GPIO27/13/35, v2. fan 모듈 두 번째 인스턴스, 2026-10-13 사용자 결정). 배기팬과 같은 규칙으로 실제 출력.
  *          ENABLE_FAN2=0 으로 빌드하면 예전처럼 값만 받아 둡니다(가상값과 다르면 denied). 시리얼 a0~a100 / af<Hz>
- *   토양 = ADS1115 AIN0. 원시값 0~32767 (0.125mV 눈금), 전압은 moisture_v 로 함께 보고
- *   토양 7종 = RS485 Modbus 센서(UART2 TX17/RX27, 자동 흐름제어 변환기 SZH-CVBE-010). 2026-10-12 추가(rs485_soil 모듈).
+ *   토양 = ADS1115 AIN0 (v2: PCA9548A 채널 3 뒤). 원시값 0~32767 (0.125mV 눈금), 전압은 moisture_v 로 함께 보고
+ *   온습도 = SHT45 ×1~3 (채널 0·1·2). 텔레메트리 temperature/humidity 평균 + temp_1~3/hum_1~3
+ *   조도 = BH1750 ×2 (v2: 채널 4·5). 텔레메트리 lux 평균 + lux_1·lux_2 + bh1750_count, status bh1750_ok·bh1750_addr(자리 1)·bh1750_count
+ *   토양 7종 = RS485 Modbus 센서(UART2 TX17/RX16 v2, 자동 흐름제어 변환기 SZH-CVBE-010). 2026-10-12 추가(rs485_soil 모듈).
  *            텔레메트리 soil_rs485_ok · soil_temp · soil_vwc · soil_ec · soil_salinity · soil_n · soil_p · soil_k · soil_ph,
  *            status soil_rs485_ok · soil_rs485_addr. 시리얼 b / b<addr> / bs / br. 기존 ADS1115 moisture_* 는 그대로.
- *   CO2  = EXSEN HX-2000U(UART1 TX32/RX33, 9600 8N1, 요청-응답). 2026-10-13 추가(co2_hx2000u 모듈).
- *            텔레메트리 co2_ok · co2_ppm(첫 응답 뒤 15분 예열 중·없음이면 null), status co2_ok. 시리얼 co / cor.
+ *   CO2  = EXSEN HX-2000U(UART1 TX19/RX18 v2, 9600 8N1, 요청-응답). 2026-10-13 추가(co2_hx2000u 모듈).
+ *            텔레메트리 co2_ok · co2_ppm(첫 응답 뒤 3분 예열 중·없음이면 null), status co2_ok. 시리얼 co / cor.
  *
  * ── 제어 규칙 (ESP32-CAM 판과 동일) ─────────────────────────────
  *   한 프레임에 7개 키(session, seq, pump, led1, led2, fan1, fan2)가 다 옵니다.
@@ -347,8 +350,8 @@ void publishTelemetry() {
   if (soilPct < 0) snprintf(pctText, sizeof(pctText), "null"); else snprintf(pctText, sizeof(pctText), "%d", soilPct);
   if (soilMv  < 0) snprintf(vText,   sizeof(vText),   "null"); else snprintf(vText,   sizeof(vText),   "%d.%03d", soilMv / 1000, soilMv % 1000);
 
-  // 온습도(평균 + 개별 1~3) · 조도. 없는 것은 null (2026-09-29 추가)
-  char tAvg[12], hAvg[12], luxText[16], tS[SHT45_MAX][12], hS[SHT45_MAX][12];
+  // 온습도(평균 + 개별 1~3) · 조도(평균 + 개별 1·2, v2 2026-10-16). 없는 것은 null
+  char tAvg[12], hAvg[12], luxText[16], tS[SHT45_MAX][12], hS[SHT45_MAX][12], lxS[BH1750_MAX][16];
   numText(tAvg, sizeof(tAvg), sht45::avgTemperature(), 1);
   numText(hAvg, sizeof(hAvg), sht45::avgHumidity(), 1);
   numText(luxText, sizeof(luxText), light::lux(), 1);
@@ -356,6 +359,7 @@ void publishTelemetry() {
     numText(tS[i], sizeof(tS[i]), sht45::temperature(i), 1);
     numText(hS[i], sizeof(hS[i]), sht45::humidity(i), 1);
   }
+  for (uint8_t i = 0; i < BH1750_MAX; i++) numText(lxS[i], sizeof(lxS[i]), light::lux(i), 1);
   // ESP32 칩 내부 온도 (2026-09-30 추가, 사용자 지시). 원래 ESP32 는 보정 안 된 센서라 절대값보다 변화 추이용.
   // 젯슨 api 기록기가 숫자 필드를 그대로 InfluxDB 에 쓰므로 시계열은 서버 변경 없이 쌓인다.
   char chipText[12];
@@ -372,7 +376,7 @@ void publishTelemetry() {
   intText(sK,    sizeof(sK),    rs485soil::potassium());
   numText(sPh,   sizeof(sPh),   rs485soil::ph(), 1);
 
-  // CO2 HX-2000U (2026-10-13 추가, 사용자 결정: 예열 15분 동안과 없음은 null)
+  // CO2 HX-2000U (2026-10-13 추가, 사용자 결정: 예열 동안과 없음은 null. 예열 15분 → 3분, 2026-10-16)
   char co2Text[12];
   intText(co2Text, sizeof(co2Text), co2::ppm());
 
@@ -386,7 +390,7 @@ void publishTelemetry() {
     "\"diag_mode\":%s,"
     "\"temperature\":%s,\"humidity\":%s,\"lux\":%s,"
     "\"temp_1\":%s,\"hum_1\":%s,\"temp_2\":%s,\"hum_2\":%s,\"temp_3\":%s,\"hum_3\":%s,"
-    "\"sht45_count\":%u,\"chip_temp\":%s,"
+    "\"sht45_count\":%u,\"lux_1\":%s,\"lux_2\":%s,\"bh1750_count\":%u,\"chip_temp\":%s,"
     "\"soil_rs485_ok\":%s,\"soil_temp\":%s,\"soil_vwc\":%s,\"soil_ec\":%s,\"soil_salinity\":%s,"
     "\"soil_n\":%s,\"soil_p\":%s,\"soil_k\":%s,\"soil_ph\":%s,"
     "\"co2_ok\":%s,\"co2_ppm\":%s}",
@@ -411,6 +415,7 @@ void publishTelemetry() {
     tAvg, hAvg, luxText,
     tS[0], hS[0], tS[1], hS[1], tS[2], hS[2],
     static_cast<unsigned>(sht45::count()),
+    lxS[0], lxS[1], static_cast<unsigned>(light::count()),   // 조도 개별 1·2 + 값 있는 자리 수 (v2)
     chipText,
     rs485soil::ok() ? "true" : "false",
     sTemp, sVwc, sEc, sSal, sN, sP, sK, sPh,
@@ -427,7 +432,7 @@ void publishStatus() {
     "\"fan_fault\":%d,\"fan2_enabled\":%d,\"motor_fault\":%d,\"motor_min_duty\":%d,"
     "\"led_fault\":%d,\"led_mode\":%d,\"led_modes\":\"%s\",\"air\":%d,\"water\":%d,"
     "\"ads1115_ok\":%s,\"cal_pending\":%s,\"diag_mode\":%s,"
-    "\"sht45_count\":%u,\"sht45_mux\":%s,\"sht_model\":\"%s\",\"bh1750_ok\":%s,\"bh1750_addr\":%u,"
+    "\"sht45_count\":%u,\"sht45_mux\":%s,\"sht_model\":\"%s\",\"bh1750_ok\":%s,\"bh1750_addr\":%u,\"bh1750_count\":%u,"
     "\"soil_rs485_ok\":%s,\"soil_rs485_addr\":%d,\"co2_ok\":%s,"
     "\"ota\":\"%s\",\"console\":\"%s\"}",
     DEVICE_NAME, DEVICE_VENDOR, DEVICE_MODEL, DEVICE_SN, FW_VERSION,
@@ -451,7 +456,8 @@ void publishStatus() {
     sht45::viaMux() ? "true" : "false",
     sht45::modelSummary(),
     light::ok() ? "true" : "false",
-    static_cast<unsigned>(light::address()),
+    static_cast<unsigned>(light::address()),   // 자리 1 주소 (호환)
+    static_cast<unsigned>(light::count()),     // 값 있는 조도 자리 수 (v2)
     rs485soil::ok() ? "true" : "false",      // RS485 토양 7종 (2026-10-12)
     rs485soil::address(),                     // 응답해 고정된 주소. -1 = 아직 없음
     co2::ok() ? "true" : "false",             // CO2 HX-2000U (2026-10-13)
@@ -650,11 +656,11 @@ void printHelp() {
   Serial.println("          i : 네트워크 상태    r : Wi-Fi·MQTT 다시 접속");
   Serial.println(" [i2c]    x : 주소 스캔 (유휴 레벨 + 버스 + 멀티플렉서 채널별 0x08~0x77)");
   Serial.println("          xr : 버스 복구(SCL 9번 토글로 물린 슬레이브 풀기) 뒤 스캔");
-  Serial.println(" [pin]    g16 : 그 GPIO 를 3초 HIGH(3.3V) 로 — 배선/PWM 구분용 (2 4 5 13 14 16 17 18 19 23 25 26 32 33)");
+  Serial.println(" [pin]    g32 : 그 GPIO 를 3초 HIGH(3.3V) 로 — 배선/PWM 구분용 (2 4 5 13 14 16 17 18 19 23 25 26 27 32 33)");
   Serial.printf (" [rs485]  b : 토양 7종(RS485, TX%u/RX%u) 주소·값·마지막 프레임   b2 : 주소 지정(0~247)   bs : 주소 다시 탐색   br : 즉시 읽기\n",
                  static_cast<unsigned>(PIN_RS485_TX), static_cast<unsigned>(PIN_RS485_RX));
-  Serial.printf (" [co2]    co : CO2 센서(HX-2000U, TX%u/RX%u) 통계·값·Cal·마지막 프레임   cor : 즉시 읽기   ※ 첫 응답 뒤 15분은 예열(텔레메트리 null)\n",
-                 static_cast<unsigned>(PIN_CO2_TX), static_cast<unsigned>(PIN_CO2_RX));
+  Serial.printf (" [co2]    co : CO2 센서(HX-2000U, TX%u/RX%u) 통계·값·Cal·마지막 프레임   cor : 즉시 읽기   ※ 첫 응답 뒤 %lu분은 예열(텔레메트리 null)\n",
+                 static_cast<unsigned>(PIN_CO2_TX), static_cast<unsigned>(PIN_CO2_RX), static_cast<unsigned long>(CO2_WARMUP_MS / 60000UL));
 #if ENABLE_LAN_OTA
   Serial.println(" [ota]    LAN 업로드 켜짐: 같은 Wi-Fi 의 IDE 포트 목록에서 cube-<SN> 선택 → 업로드 (비밀번호 = secrets.h OTA_PASSWORD)");
 #endif
@@ -702,7 +708,7 @@ void printSoilPart() {
 void printEnvLine() {
   if (sht45::anyOk()) Serial.printf("  | T/RH %.1f°C %.1f%% (%u)", sht45::avgTemperature(), sht45::avgHumidity(), static_cast<unsigned>(sht45::count()));
   else                Serial.print("  | T/RH --");
-  if (light::ok()) Serial.printf("  | Lux %.0f", light::lux());
+  if (light::ok()) Serial.printf("  | Lux %.0f (%u)", light::lux(), static_cast<unsigned>(light::count()));
   else             Serial.print("  | Lux --");
   // RS485 토양 7종 (2026-10-12). 자세한 값(염분·N·P·K)은 s / b 로.
 #if ENABLE_RS485_SOIL
@@ -865,8 +871,8 @@ bool i2cRecover(bool verbose) {
 }
 
 // x — I2C 주소 스캔 (2026-09-29 추가, 배선 진단용). 버스에 직접 붙은 장치와, 멀티플렉서가 있으면
-//     config.h 의 SHT45_MUX_CHANNELS 채널마다 한 번씩 0x08~0x77 을 두드려 응답하는 주소를 나열합니다.
-//     ★ 채널 스캔 결과에는 버스 직결 장치(ADS1115·BH1750·멀티플렉서 자신)도 같이 보입니다 — 채널 뒤에만
+//     채널 0~7 마다 한 번씩 0x08~0x77 을 두드려 응답하는 주소를 나열합니다(v2: 센서가 전부 채널 뒤라 전 채널).
+//     ★ 채널 스캔 결과에는 버스 직결 장치(멀티플렉서 자신, 직결로 남긴 것이 있으면 그것도)가 같이 보입니다 — 채널 뒤에만
 //       있는 것은 "버스" 줄에는 없고 그 채널 줄에만 있는 주소입니다.
 //     버스가 물려 있으면(어느 장치가 SDA 를 LOW 로 잡고 있음) 주소마다 I2C 시간 초과(25ms)가 걸려
 //     한 줄에 3초쯤 걸리므로, 먼저 유휴 레벨을 보여 줍니다. SDA·SCL 둘 다 HIGH 여야 정상입니다.
@@ -922,8 +928,7 @@ void i2cScan() {
   else                         Serial.println("  → 한 선만 이어짐. 없음 쪽 선(보드 21/22 자리 또는 케이블)이 빠짐");
   i2cScanOnce("버스");
   if (mux::present()) {
-    for (uint8_t i = 0; i < SHT45_MAX; i++) {
-      const uint8_t ch = SHT45_MUX_CHANNELS[i];
+    for (uint8_t ch = 0; ch < 8; ch++) {   // v2: 센서가 전부 채널 뒤라 8채널 모두 (빈 채널은 빠르게 끝남)
       if (!mux::select(ch)) { Serial.printf("  채널 %u 선택 실패\n", static_cast<unsigned>(ch)); break; }
       char label[12];
       snprintf(label, sizeof(label), "채널 %u", static_cast<unsigned>(ch));
@@ -931,23 +936,23 @@ void i2cScan() {
     }
     mux::deselectAll();
   } else {
-    Serial.printf("  (PCA9548A 0x%02X 없음 — 채널 스캔 생략)\n", static_cast<unsigned>(I2C_MUX_ADDR));
+    Serial.printf("  (PCA9548A 0x%02X 없음 — 채널 스캔 생략. v2 는 센서가 전부 채널 뒤라 직결 모드에서만 버스 줄에 보임)\n", static_cast<unsigned>(I2C_MUX_ADDR));
   }
-  Serial.println("  기대값: 버스 0x48 ADS1115 · 0x23/0x5C BH1750 · 0x70 PCA9548A, 채널마다 0x44 SHT45 (직결이면 버스에 0x44)");
+  Serial.println("  기대값(v2): 버스 0x70 PCA9548A 만 · 채널 0·1·2 0x44 SHT45 · 채널 3 0x48 ADS1115 · 채널 4·5 0x23/0x5C BH1750 (버스 직결 장치는 모든 채널 줄에 같이 보임)");
   if (!sda) Serial.println("  → xr 로 버스 복구를 시도해 보세요. 그래도 LOW 면 SDA 선을 하나씩 빼 가며 x 로 어느 장치가 잡는지 찾습니다.");
 }
 
 // g<pin> — 핀 시험 (2026-09-29 추가). 그 GPIO 를 PWM 과 무관한 일반 출력으로 3초 HIGH(3.3V) 했다가 LOW 로 내리고,
 //          모터·LED·팬 핀이었으면 그 모듈을 다시 초기화합니다. LED 바가 안 켜질 때 "핀→게이트 배선" 과 "PWM 출력" 을 가릅니다:
-//          g16 에 LED 가 3초 켜지면 배선은 맞고 PWM 쪽 문제, 안 켜지면 GPIO16 → 게이트 선(또는 핀 자리) 문제.
-//          허용 핀: 2 4 5 13 14 16 17 18 19 23 25 26 32 33 (I2C 21/22 · 플래시 6~11 · 입력 전용 34~39(TACH 34 포함) · 부팅 0/12/15 제외.
-//          27 은 10-06 TACH 를 34 로 옮기며 비었지만 목록에는 아직 넣지 않음)
+//          g33 에 LED 가 3초 켜지면 배선은 맞고 PWM 쪽 문제, 안 켜지면 GPIO33 → 게이트 선(또는 핀 자리) 문제. (v2 핀)
+//          허용 핀: 2 4 5 13 14 16 17 18 19 23 25 26 27 32 33 (I2C 21/22 · 플래시 6~11 · 입력 전용 34~39(TACH 34·35 포함) · 부팅 0/12/15 제외.
+//          v2: 27(순환팬 릴레이) 추가. UART RX 핀(16·18)을 시험하면 그 UART 를 다시 초기화합니다)
 void pinTest(const String& in) {
   const int pin = in.substring(1).toInt();
-  static const uint8_t allowed[] = { 2, 4, 5, 13, 14, 16, 17, 18, 19, 23, 25, 26, 32, 33 };
+  static const uint8_t allowed[] = { 2, 4, 5, 13, 14, 16, 17, 18, 19, 23, 25, 26, 27, 32, 33 };
   bool okPin = false;
   for (uint8_t a : allowed) if (pin == a) okPin = true;
-  if (!okPin) { Serial.println("Invalid. g<pin>: 2 4 5 13 14 16 17 18 19 23 25 26 32 33 만"); return; }
+  if (!okPin) { Serial.println("Invalid. g<pin>: 2 4 5 13 14 16 17 18 19 23 25 26 27 32 33 만"); return; }
   const uint8_t p = static_cast<uint8_t>(pin);
   const bool isLed = (p == PIN_LED_PWM), isMotor = (p == PIN_MOTOR_PWM),
              isFan = (p == PIN_FAN_PWM || p == PIN_FAN_RELAY || p == PIN_FAN2_PWM || p == PIN_FAN2_RELAY);   // 순환팬 핀 포함 (2026-10-13)
@@ -963,8 +968,8 @@ void pinTest(const String& in) {
   if (isLed)        { led::begin();   Serial.println("LED 모듈 다시 초기화(0%)"); }
   else if (isMotor) { motor::begin(); Serial.println("모터 모듈 다시 초기화(0%)"); }
   else if (isFan)   { fan::begin(); fan::setPercent(fan1Percent()); Serial.println("팬 모듈 다시 초기화"); }
-  else if (p == PIN_RS485_TX) { rs485soil::begin(); Serial.println("RS485 UART2 다시 초기화"); }   // 2026-10-12
-  else if (p == PIN_CO2_TX)   { co2::begin();       Serial.println("CO2 UART1 다시 초기화"); }     // 2026-10-13
+  else if (p == PIN_RS485_TX || p == PIN_RS485_RX) { rs485soil::begin(); Serial.println("RS485 UART2 다시 초기화"); }   // 2026-10-12, v2 RX 포함
+  else if (p == PIN_CO2_TX || p == PIN_CO2_RX)     { co2::begin();       Serial.println("CO2 UART1 다시 초기화"); }     // 2026-10-13, v2 RX 포함
   else              { Serial.println("끝"); }
 }
 
@@ -1219,7 +1224,7 @@ void setup() {
                 static_cast<unsigned long>(LEASE_MS), static_cast<unsigned long>(PUMP_MAX_MS),
                 static_cast<unsigned long>(PUMP_COOLDOWN_MS));
 
-  // I2C 버스는 여기서 한 번만. 네 장치(ADS1115 · PCA9548A · SHT45 · BH1750)가 공유합니다.
+  // I2C 버스는 여기서 한 번만. v2: 버스에는 PCA9548A 만 직결, 센서(SHT45 ×3 · ADS1115 · BH1750 ×2)는 채널 뒤.
   // 버스를 열기 전에 SDA 가 LOW 로 잡혀 있으면(리셋 중 물린 슬레이브) 먼저 풀어 봅니다.
   pinMode(PIN_I2C_SDA, INPUT_PULLUP);
   pinMode(PIN_I2C_SCL, INPUT_PULLUP);
@@ -1231,21 +1236,22 @@ void setup() {
     Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL, I2C_HZ);
     Wire.setTimeOut(I2C_TIMEOUT_MS);
   }
-  Serial.printf("I2C SDA%u/SCL%u %lukHz: ADS1115 0x%02X · PCA9548A 0x%02X → SHT45 0x%02X ×%u(ch %u·%u·%u) · BH1750 0x%02X/0x%02X\n",
+  Serial.printf("I2C SDA%u/SCL%u %lukHz (v2: 센서 전부 채널 뒤): PCA9548A 0x%02X → ch%u·%u·%u SHT45 0x%02X · ch%u ADS1115 0x%02X · ch%u·%u BH1750 0x%02X/0x%02X\n",
                 static_cast<unsigned>(PIN_I2C_SDA), static_cast<unsigned>(PIN_I2C_SCL), static_cast<unsigned long>(I2C_HZ / 1000),
-                static_cast<unsigned>(ADS1115_ADDR), static_cast<unsigned>(I2C_MUX_ADDR), static_cast<unsigned>(SHT45_ADDR),
-                static_cast<unsigned>(SHT45_MAX), static_cast<unsigned>(SHT45_MUX_CHANNELS[0]), static_cast<unsigned>(SHT45_MUX_CHANNELS[1]),
-                static_cast<unsigned>(SHT45_MUX_CHANNELS[2]), static_cast<unsigned>(BH1750_ADDRS[0]), static_cast<unsigned>(BH1750_ADDRS[1]));
+                static_cast<unsigned>(I2C_MUX_ADDR), static_cast<unsigned>(SHT45_MUX_CHANNELS[0]), static_cast<unsigned>(SHT45_MUX_CHANNELS[1]),
+                static_cast<unsigned>(SHT45_MUX_CHANNELS[2]), static_cast<unsigned>(SHT45_ADDR), static_cast<unsigned>(ADS1115_MUX_CHANNEL),
+                static_cast<unsigned>(ADS1115_ADDR), static_cast<unsigned>(BH1750_MUX_CHANNELS[0]), static_cast<unsigned>(BH1750_MUX_CHANNELS[1]),
+                static_cast<unsigned>(BH1750_ADDRS[0]), static_cast<unsigned>(BH1750_ADDRS[1]));
 
   fan::begin();
   motor::begin();
   led::begin();
-  mux::begin();      // 멀티플렉서 먼저 (SHT45 가 경유 여부를 물음)
-  soil::begin();
-  sht45::begin();
-  light::begin();
-  rs485soil::begin();   // UART2 TX17/RX27, 주소 2 → 1 → 0 자동 탐색 (2026-10-12)
-  co2::begin();         // UART1 TX32/RX33, 5초마다 요청-응답, 첫 응답 뒤 15분 예열 (2026-10-13)
+  mux::begin();      // 멀티플렉서 먼저 (v2: SHT45·ADS1115·BH1750 모두 경유 여부를 물음)
+  soil::begin();     // ADS1115 (채널 3)
+  sht45::begin();    // SHT45 ×3 (채널 0·1·2)
+  light::begin();    // BH1750 ×2 (채널 4·5)
+  rs485soil::begin();   // UART2 TX17/RX16 (v2), 주소 2 → 1 → 0 자동 탐색 (2026-10-12)
+  co2::begin();         // UART1 TX19/RX18 (v2), 5초마다 요청-응답, 첫 응답 뒤 3분 예열
   outputsSafe("부팅");
 
   comm::Callbacks callbacks = { applyControl, onConfig, publishTelemetry, publishStatus };
@@ -1265,7 +1271,7 @@ void loop() {
   soil::tick();      // ADS1115 샘플링 (10ms 간격, 10회 평균, 논블로킹)
   mux::tick();       // PCA9548A 재탐색 (없을 때만)
   sht45::tick();     // 온습도: 2초마다 한 바퀴, 센서마다 명령 → 10ms 뒤 읽기
-  light::tick();     // 조도: 1초마다 2바이트 읽기
+  light::tick();     // 조도 ×2: 자리마다 채널 선택 → 2바이트 읽기, 1초 주기 (v2)
   rs485soil::tick(); // RS485 토양 7종: 5초마다 Modbus 요청 → 응답 대기(0.5초 시간 초과), 논블로킹 (2026-10-12)
   co2::tick();       // CO2 HX-2000U: 5초마다 요청 7바이트 → 응답 12바이트 대기(0.5초 시간 초과), 논블로킹 (2026-10-13)
   if (soil::pollCalibrationDone()) {   // 측정 보정(ca/cw/cal_air/cal_water)이 끝남 → 서버에 결과

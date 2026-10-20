@@ -1,64 +1,72 @@
 /*
- * ESP32 DevKitC(WROOM-32D) 통합판 — 핀 배정 · 상수 · 기능 플래그 (2026-09-29)
+ * ESP32 DevKitC(WROOM-32D) 통합판 v2 — 핀 배정 · 상수 · 기능 플래그 (2026-10-16)
  * ------------------------------------------------------------------
- * esp32_cam_node(ESP32-CAM 단독 통합판 1.0.2)를 새 ESP32 DevKitC WROOM-32D 로 옮긴 판입니다.
- * 09-23 에 죽은 DevKitC 와 같은 모델이 09-29 에 도착해 다시 프로젝트 보드로 씁니다.
- * 제어 규칙·안전 상수·서버 통신·원격 보정은 ESP32-CAM 판 그대로이고, 핀과 보드 종류가 바뀌었으며
- * 핀이 넉넉해져 09-22 병합본(esp32_cube_node)의 배기팬 모듈을 다시 넣었습니다.
+ * 시험 폴더(esp32_devkit_node_test, cube-devkit-1.5.1)를 복사해 만든 새 판입니다(사용자 지시 2026-10-16 "코드는 새 폴더에").
+ * 제어 규칙·안전 상수·서버 통신·원격 보정·모듈 구조는 그대로이고, 두 가지가 바뀌었습니다(사용자 결정 2026-10-16):
+ *   1) 핀을 헤더 열로 모음 — 설비(모터·LED·팬)는 3V3·5V 가 있는 열(J2), 센서(I2C·RS485·CO2)는 TX·RX 가 있는 열(J3).
+ *   2) I2C 센서는 전부 PCA9548A 멀티플렉서 경유 — SHT45 ch0·1·2, ADS1115 ch3, BH1750 ×2 ch4·5. 조도는 2개(lux = 평균 + lux_1·lux_2).
+ * 배경(ESP32-CAM 판 이식·09-22 병합본 팬 모듈·09-29~10-16 변경 이력)은 시험 폴더 config.h 머리말과 README 참조.
  *
- *   젯슨 서버 --Wi-Fi/TLS MQTT--> ESP32 DevKitC --GPIO18 PWM--> 모터(펌프) MOSFET
- *                                               --GPIO16 PWM--> LED MOSFET
+ *   젯슨 서버 --Wi-Fi/TLS MQTT--> ESP32 DevKitC --GPIO32 PWM--> 모터(펌프) MOSFET
+ *                                               --GPIO33 PWM--> LED MOSFET
  *                                               --GPIO25/26/34--> 배기팬(릴레이 · PWM · TACH)
- *                                               --GPIO19/23/35--> 순환팬(릴레이 · PWM · TACH) (2026-10-13 추가)
- *                                               --I2C 21/22--> ADS1115 --> 토양 센서 AOUT
- *                                               --UART2 TX17/RX27--> RS485 변환기 --> 토양 7종 센서 (2026-10-12 추가)
- *                                               --UART1 TX32/RX33--> CO2 센서 HX-2000U (2026-10-13 추가)
+ *                                               --GPIO27/13/35--> 순환팬(릴레이 · PWM · TACH)
+ *                                               --I2C 21/22--> PCA9548A 0x70 --ch0·1·2--> SHT45 ×3
+ *                                                                           --ch3------> ADS1115 --> 토양 센서 AOUT
+ *                                                                           --ch4·5----> BH1750 ×2
+ *                                               --UART2 TX17/RX16--> RS485 변환기 --> 토양 7종 센서
+ *                                               --UART1 TX19/RX18--> CO2 센서 HX-2000U
  *
- * ── 핀 배정 (사용자 결정 2026-09-29, TACH 만 2026-10-06 변경, RS485 2026-10-12 추가, CO2 2026-10-13 추가) ─────────
- *   GPIO18 → 모터(펌프) MOSFET 게이트 PWM. 09-22 팀 병합본과 같은 핀. 부팅 스트래핑 핀이 아님.
- *   GPIO16 → LED MOSFET 게이트 PWM. 09-22 팀 병합본과 같은 핀. WROOM-32D 에서는 비어 있음
- *            (★ WROVER 계열은 GPIO16/17 이 PSRAM 에 물려 있어 못 씁니다. 이 보드는 WROOM 이라 무관).
- *   GPIO25 → 배기팬 12V 릴레이, GPIO26 → 배기팬 PWM (fan_control.ino 실기 확인 배선)
- *   GPIO34 → 배기팬 TACH. 입력 전용 핀 (사용자 결정 2026-10-06, 이전 GPIO27). 내부 풀업이 없어 외부 10kΩ 풀업 필요.
- *   GPIO19 → 순환팬 12V 릴레이, GPIO23 → 순환팬 PWM, GPIO35 ← 순환팬 TACH (입력 전용, 외부 10kΩ 풀업 3.3V).
- *            사용자 결정 2026-10-13: 순환팬도 4핀 PWM 팬, 배기팬과 같은 방식(fan 모듈 두 대).
- *   GPIO21 → I2C SDA, GPIO22 → I2C SCL (ADS1115). DevKitC 기본 I2C 핀. 09-22 병합본이 예약해 둔 자리.
- *   GPIO17 → RS485 변환기 RXD (UART2 TX), GPIO27 ← RS485 변환기 TXD (UART2 RX, 분압 거침). 사용자 결정 2026-10-12.
- *            09-09 전장 설계가 RS485 용으로 예약한 16/17 중 16 은 09-29 부터 LED 핀이라 RX 를 27 로 잡았습니다.
- *   GPIO32 → CO2 센서 Rx (UART1 TX), GPIO33 ← CO2 센서 Tx (UART1 RX). 사용자 결정 2026-10-13.
- *            UART0 은 콘솔, UART2 는 RS485 라 남은 UART1 을 자유 핀에 재배정(UART1 기본 핀 9/10 은 플래시 핀).
+ * ── 헤더 열 (ESP32-DevKitC V4 사용자 안내서 J2/J3 표, 2026-10-16 확인) ──
+ *   J2 (3V3·5V 쪽): 3V3 EN 36 39 34 35 32 33 25 26 27 14 12 GND 13 (9 10 11 플래시) 5V
+ *   J3 (TX·RX 쪽) : GND 23 22 TX(1) RX(3) 21 GND 19 18 5 17 16 4 0 2 15 (8 7 6 플래시)
  *
- *   비워 둔 핀: 0·2·5·12·15 = 부팅 스트래핑 핀, 1·3 = USB 시리얼(UART0), 6~11 = 플래시.
- *   36·39 = 입력 전용 ADC1 (센서 확장용으로 남김). 27 = TACH 를 34 로 옮기며 비움(2026-10-06) → 2026-10-12 RS485 RX 로 사용.
- *   35 = 2026-10-13 순환팬 TACH 로 사용. 32·33 = 2026-10-13 CO2 센서 UART1. 남은 자유 출력 핀: 4·13·14.
+ * ── 핀 배정 (사용자 결정 2026-10-16, A안: 배기팬 유지·나머지 이동) ─────────
+ *   [설비 = J2]
+ *   GPIO32 → 모터(펌프) MOSFET 게이트 PWM (이전 18). 부팅 때 신호 없는 깨끗한 핀.
+ *   GPIO33 → LED MOSFET 게이트 PWM (이전 16).
+ *   GPIO25 → 배기팬 12V 릴레이, GPIO26 → 배기팬 PWM, GPIO34 ← 배기팬 TACH (그대로. 34 는 입력 전용·외부 10kΩ 풀업 3.3V).
+ *   GPIO27 → 순환팬 12V 릴레이 (이전 19), GPIO13 → 순환팬 PWM (이전 23), GPIO35 ← 순환팬 TACH (그대로, 입력 전용·외부 10kΩ 풀업).
+ *   GPIO14 = 설비 예비 1개 (부팅 때 짧은 신호가 나오므로 릴레이보다 PWM 용). 36·39 = 입력 전용 ADC1 예비(아날로그 센서는 이 열에만 가능).
+ *   [센서 = J3]
+ *   GPIO21 → I2C SDA, GPIO22 → I2C SCL (PCA9548A 만 직결, 센서는 전부 채널 뒤).
+ *   GPIO17 → RS485 변환기 RXD (UART2 TX), GPIO16 ← RS485 변환기 TXD (UART2 RX, 10k/20k 분압 거침). 09-09 전장 설계의 예약(17/16)으로 복귀.
+ *            (★ WROVER 계열은 GPIO16/17 이 PSRAM 에 물려 있어 못 씁니다. 이 보드는 WROOM 이라 무관.)
+ *   GPIO19 → CO2 센서 4 Rx (UART1 TX, 3.3V 직결), GPIO18 ← CO2 센서 3 Tx (UART1 RX, 실측 5V → 10k/20k 분압). UART1 기본 핀 9/10 은 플래시라 재배정.
+ *   GPIO23 · GPIO4 = 센서 예비. 5·2·15·0 은 부팅 조건 핀이라 조건부.
+ *
+ *   쓰지 않는 핀: 0·2·5·12·15 = 부팅 스트래핑 핀, 1·3 = USB 시리얼(UART0), 6~11 = 플래시.
+ *   시험 폴더(1.x)에서 옮긴 선 7가닥: 모터 18→32, LED 16→33, 순환팬 릴레이 19→27, 순환팬 PWM 23→13, RS485 RX 27→16, CO2 TX 32→19, CO2 RX 33→18.
  *
  * ── 토양 센서는 왜 여전히 ADS1115 인가 ───────────────────────────
  *   이 보드는 ADC1(GPIO32~39)이 있어 내부 ADC 로도 읽을 수 있지만, ESP32-CAM 판의 코드·눈금
  *   (0~32767, 0.125mV)·서버 원격 보정·초기 보정값을 그대로 쓰기 위해 ADS1115 를 유지합니다
  *   (사용자 결정 2026-09-29). 팀 하드웨어 구성도에도 ADS1115 + SEN0193 이 들어 있습니다.
  *
- * ── 배선 ─────────────────────────────────────────────────────────
- *   모터  : GPIO18 → 100Ω → 로직레벨 N-MOSFET 게이트, 게이트↔GND 10kΩ 풀다운(필수),
+ * ── 배선 (v2) ────────────────────────────────────────────────────
+ *   모터  : GPIO32 → 100Ω → 로직레벨 N-MOSFET 게이트, 게이트↔GND 10kΩ 풀다운(필수),
  *           드레인 → 모터(-), 소스 → GND, 모터(+) → 12V(+), 쇼트키 다이오드(1N5819)
  *           캐소드 → 12V(+), 애노드 → 드레인. 12V 전원 GND 와 보드 GND 공통.
- *   LED   : GPIO16 → 100Ω → 로직레벨 N-MOSFET 게이트, 풀다운 10kΩ. 소형 LED 라면
- *           GPIO16 → 220Ω → LED 애노드, 캐소드 → GND 직결도 됩니다(우노 D10 배선과 동일).
+ *   LED   : GPIO33 → 100Ω → 로직레벨 N-MOSFET 게이트, 풀다운 10kΩ. 소형 LED 라면
+ *           GPIO33 → 220Ω → LED 애노드, 캐소드 → GND 직결도 됩니다.
  *   배기팬: 4핀 PC 팬. GPIO25 → 릴레이 IN(12V 차단), GPIO26 → 팬 PWM(파랑), GPIO34 ← 팬 TACH(노랑).
  *           GPIO34 는 내부 풀업이 없으므로 TACH 선 ↔ 보드 3.3V 사이에 10kΩ 풀업을 반드시 답니다.
  *           ★ 풀업은 3.3V 에만. 5V/12V 로 풀업하면 입력을 태웁니다.
- *   순환팬: 4핀 PC 팬, 배기팬과 같은 배선. GPIO19 → 릴레이 IN(12V 차단), GPIO23 → 팬 PWM(파랑),
- *           GPIO35 ← 팬 TACH(노랑) + TACH 선 ↔ 보드 3.3V 사이 10kΩ 풀업(입력 전용 핀). (2026-10-13)
- *   ADS1115: VDD → 3.3V, GND → GND, SDA → GPIO21, SCL → GPIO22, ADDR → GND(0x48).
- *           모듈에 풀업이 없으면 SDA·SCL 에 4.7kΩ 풀업. 토양 센서 AOUT → A0, VCC → 3.3V 권장.
+ *   순환팬: 4핀 PC 팬, 배기팬과 같은 배선. GPIO27 → 릴레이 IN(12V 차단), GPIO13 → 팬 PWM(파랑),
+ *           GPIO35 ← 팬 TACH(노랑) + TACH 선 ↔ 보드 3.3V 사이 10kΩ 풀업(입력 전용 핀).
+ *   I2C   : 보드 SDA GPIO21 / SCL GPIO22 → PCA9548A(0x70, A0~A2 → GND, VCC 3.3V) 만 직결. 버스 풀업 4.7kΩ 한 벌(3.3V).
+ *           채널 0·1·2 → SHT45(Qwiic), 채널 3 → ADS1115(VDD 3.3V, ADDR → GND, A0 ← 토양 센서 AOUT, 센서 VCC 3.3V),
+ *           채널 4·5 → BH1750 GY-302 ×2 (각 3.3V. 채널이 다르니 ADDR 는 어느 쪽이든, 둘 다 0x23 이어도 됨).
+ *           채널마다 버스가 따로이지만, 우리가 쓰는 I2C 센서 모듈(SHT45 Qwiic·ADS1115·BH1750 GY-302)은 전부 풀업 내장
+ *           (사용자 확인 2026-10-16) → 채널 뒤 추가 풀업 불필요.
  *   전원  : USB 5V 또는 12V→5V 컨버터 → 보드 5V(VIN) 핀. 3V3 핀에 5V 를 넣지 말 것.
  *   RS485 : [SMG-A] TTL to RS485 자동 흐름제어 모듈(SZH-CVBE-010, MAX13487E). 모듈 VCC → 5V, GND 공통,
- *           모듈 RXD ← GPIO17 직결, 모듈 TXD → 2.2kΩ → GPIO27, GPIO27–GND 3.3kΩ (5V 출력을 약 3.1V 로).
+ *           모듈 RXD ← GPIO17 직결, 모듈 TXD → 10kΩ → GPIO16, GPIO16–GND 20kΩ (5V 출력을 약 3.3V 로, 10-12 실물 저항).
  *           모듈 A/B → 센서 A/B (응답 없으면 두 선 교체). 센서 전원 5V, GND 공통. 120Ω 종단(R16)은 열어 둠.
- *           ★ 모듈을 5V 로 돌리면 TXD 출력이 5V 라 분압 없이 GPIO 에 직결하면 안 됩니다. (2026-10-12)
+ *           ★ 모듈을 5V 로 돌리면 TXD 출력이 5V 라 분압 없이 GPIO 에 직결하면 안 됩니다.
  *   CO2   : EXSEN HX-2000U(7핀 2.0mm 피치, 커넥터 미장착 → 2.0mm 핀헤더 또는 전선 직접 납땜). 1 VCC → 보드 5V(VIN),
- *           2 GND 공통, 4 Rx ← GPIO32 직결, 3 Tx → GPIO33. 5 RST 미연결(극성 미기재, GND 에 묶지 말 것), 6·7 NC.
- *           ★ 시트에 UART 전압이 없음. 센서에 5V 만 넣고 Tx–GND 를 재서 약 3.3V 면 직결, 약 5V 면 RS485 처럼
- *             분압(10kΩ 직렬 + 20kΩ 접지). 예열 중 0.15A 라 5V 레일 여유 확인. 팬 바람 직접 닿는 곳·펠티어 옆은 피함. (2026-10-13)
+ *           2 GND 공통, 4 Rx ← GPIO19 직결, 3 Tx → 10kΩ → GPIO18, GPIO18–GND 20kΩ (Tx 실측 5V, 2026-10-16 실기 통과).
+ *           5 RST 미연결(극성 미기재, GND 에 묶지 말 것), 6·7 NC. 예열 중 0.15A. 팬 바람 직접 닿는 곳·펠티어 옆은 피함.
  *
  *   ★ 우노는 게이트를 5V 로 밀었지만 이 보드는 3.3V 입니다. 로직레벨 MOSFET(IRLZ44N·IRLB8721 등)이어야
  *     합니다. 게이트 풀다운 10kΩ 은 부팅·모드 전환 중 핀이 뜨는 순간을 막는 마지막 안전장치라 빼면 안 됩니다.
@@ -73,19 +81,19 @@
 
 #include <Arduino.h>
 
-#define FW_VERSION "cube-devkit-1.5.0"   // 1.0.0 = 09-29 이식판, 1.1.0 = SHT45·BH1750, 1.1.1 = x/xr/g 진단, 1.2.0 = LAN 원격 업로드, 1.2.1 = 무선 콘솔, 1.2.2 = 칩 온도(09-30), 1.2.3 = 팬 TACH 27→34(10-06), 1.3.0 = RS485 토양 7종 센서(10-12), 1.4.0 = 순환팬 fan2 실제 출력(10-13), 1.5.0 = CO2 센서 HX-2000U(10-13)
+#define FW_VERSION "cube-devkit-1.6.0"   // 1.6.0 = v2 폴더(10-16): 핀 열 정리(설비 J2·센서 J3) + I2C 전부 멀티플렉서 경유 + 조도 2개. 계보(시험 폴더): 1.0.0 09-29 이식판 … 1.3.0 RS485(10-12), 1.4.0 순환팬(10-13), 1.5.0 CO2(10-13), 1.5.1 CO2 예열 3분(10-16)
 
 // ──────────────────────────────────────────────────── 기능 플래그
 // 0 이면 컴파일은 되지만 동작하지 않고, 그 항목을 바꾸는 제어 명령은 denied 로 회신합니다.
-#define ENABLE_MOTOR  1   // GPIO18 (펌프)
-#define ENABLE_LED    1   // GPIO16
-#define ENABLE_SOIL   1   // ADS1115 (I2C 21/22)
+#define ENABLE_MOTOR  1   // GPIO32 (펌프) — v2
+#define ENABLE_LED    1   // GPIO33 — v2
+#define ENABLE_SOIL   1   // ADS1115 (PCA9548A 채널 3 뒤) — v2
 #define ENABLE_FAN    1   // 배기팬 fan1 (릴레이 25 · PWM 26 · TACH 34) — 09-22 병합본 모듈
-#define ENABLE_FAN2   1   // 순환팬 fan2 (릴레이 19 · PWM 23 · TACH 35) — 2026-10-13 실제 출력 (fan 모듈 두 대). 0 이면 예전처럼 가상값
-#define ENABLE_SHT45  1   // 온습도 SHT45 (I2C 0x44, PCA9548A 채널 경유 최대 3개) — 2026-09-29 추가
-#define ENABLE_BH1750 1   // 조도 BH1750/GY-302 (I2C 0x23 또는 0x5C, 버스 직결) — 2026-09-29 추가
-#define ENABLE_RS485_SOIL 1   // 토양 7종(온도·수분·EC·염분·N·P·K·pH) RS485 Modbus 센서 (UART2 TX17/RX27) — 2026-10-12 추가
-#define ENABLE_CO2    1   // CO2 센서 EXSEN HX-2000U (UART1 TX32/RX33) — 2026-10-13 추가
+#define ENABLE_FAN2   1   // 순환팬 fan2 (릴레이 27 · PWM 13 · TACH 35) — v2 핀. 0 이면 예전처럼 가상값
+#define ENABLE_SHT45  1   // 온습도 SHT45 (I2C 0x44, PCA9548A 채널 0·1·2 경유 최대 3개) — 2026-09-29 추가
+#define ENABLE_BH1750 1   // 조도 BH1750/GY-302 ×2 (I2C 0x23 또는 0x5C, PCA9548A 채널 4·5 경유, lux = 평균 + lux_1·lux_2) — v2 2개
+#define ENABLE_RS485_SOIL 1   // 토양 7종(온도·수분·EC·염분·N·P·K·pH) RS485 Modbus 센서 (UART2 TX17/RX16) — v2 RX 16
+#define ENABLE_CO2    1   // CO2 센서 EXSEN HX-2000U (UART1 TX19/RX18) — v2 핀
 // LAN 원격 업로드(ArduinoOTA, 코어 내장) — 2026-09-30 추가 (사용자 결정 J86)
 //   1 = 벤치: 같은 Wi-Fi 의 아두이노 IDE 네트워크 포트로 업로드 가능(secrets.h OTA_PASSWORD 필요)
 //   0 = 현장 큐브: 같은 망의 누구나 시도할 수 있으므로 끈다. 원격 갱신은 젯슨 경유(별도 계획)로
@@ -108,10 +116,8 @@ static const char     OTA_HOSTNAME_PREFIX[] = "cube-";  // IDE 포트 목록에 
 // 펌프는 시작 즉시 정지, 서버 제어는 ota_busy 로 거부, 센서 읽기·텔레메트리는 전송이 끝날 때까지 멈춤.
 
 // ──────────────────────────────────────────────────── 핀
-static const uint8_t PIN_MOTOR_PWM = 18;
-// LED 16 유지 (2026-09-30 실기): g18 로 LED 바 점등, g16 로 펌프 구동 → 핀 16·LED 채널 모두 정상.
-// LED 선을 16 자리에 꽂았을 때만 안 켜진 것은 그 선 끝과 16 소켓의 접촉 문제(선 교체·재삽입으로 해결).
-static const uint8_t PIN_LED_PWM   = 16;
+static const uint8_t PIN_MOTOR_PWM = 32;   // v2: 18 → 32 (설비 열 J2, 사용자 결정 2026-10-16)
+static const uint8_t PIN_LED_PWM   = 33;   // v2: 16 → 33 (설비 열 J2). 16 은 RS485 RX 로 돌아감
 static const uint8_t PIN_I2C_SDA   = 21;
 static const uint8_t PIN_I2C_SCL   = 22;
 static const uint32_t I2C_HZ       = 100000;
@@ -125,8 +131,8 @@ static const uint8_t PIN_FAN_TACH  = 34;  // 회전수 피드백 (오픈 컬렉�
 
 // ── 순환팬 fan2 (사용자 결정 2026-10-13: 4핀 PWM 팬, 배기팬과 같은 방식) ──
 // 주파수·분해능·TACH 필터·스톨 판정 상수는 배기팬과 공유합니다(FAN_*). 두 팬은 LEDC 타이머도 공유합니다.
-static const uint8_t PIN_FAN2_RELAY = 19;  // 12V 전원 차단용 릴레이
-static const uint8_t PIN_FAN2_PWM   = 23;  // 속도 제어
+static const uint8_t PIN_FAN2_RELAY = 27;  // 12V 전원 차단용 릴레이. v2: 19 → 27 (설비 열 J2)
+static const uint8_t PIN_FAN2_PWM   = 13;  // 속도 제어. v2: 23 → 13 (설비 열 J2, 부팅 때 신호 없는 핀)
 static const uint8_t PIN_FAN2_TACH  = 35;  // 회전수 피드백. 입력 전용·내부 풀업 없음 → 외부 10kΩ 풀업(3.3V) 필수
 
 // 25kHz 는 4핀 팬 표준입니다. 가청 주파수 밖이라 PWM 소음이 나지 않습니다.
@@ -157,6 +163,7 @@ static const uint32_t FAN_STALL_TIMEOUT_MS = 3000;
 // ADDR 핀을 GND 에 두면 0x48. (VDD 0x49 · SDA 0x4A · SCL 0x4B)
 static const uint8_t  ADS1115_ADDR    = 0x48;
 static const uint8_t  ADS1115_CHANNEL = 0;        // AIN0 ↔ GND 단극
+static const uint8_t  ADS1115_MUX_CHANNEL = 3;    // v2: PCA9548A 채널 3 뒤. 멀티플렉서가 없으면 버스 직결로 찾음
 // 설정 레지스터 비트. PGA ±4.096V → 1 LSB = 0.125 mV, 양의 값 0~32767.
 // 팀 중계기 시험 발행기(fake_device.py)가 같은 눈금(raw × 0.000125 = V)을 씁니다.
 static const uint16_t ADS1115_PGA_BITS = 0x0200;  // 001 = ±4.096V
@@ -185,11 +192,13 @@ static const int SOIL_MIN_SPAN = 2000;
 // ★ ESP32-CAM 판과 같은 이름이지만 NVS 는 보드마다 따로이므로, 새 보드는 초기값에서 시작합니다.
 static const char SOIL_NVS_NAMESPACE[] = "soil";
 
-// ──────────────────────────────────────────────────── I2C 버스 공유 (2026-09-29, 사용자 지시)
-// 한 버스(GPIO21/22, 100kHz)에 넷이 붙습니다. 주소가 서로 다르므로 겹치지 않습니다.
-//   ADS1115  0x48        토양 (버스 직결)
-//   BH1750   0x23/0x5C   조도 (버스 직결, ADDR 핀에 따라 둘 중 하나 — 펌웨어가 둘 다 찾음)
-//   PCA9548A 0x70        멀티플렉서 (A0~A2 → GND). 뒤에 SHT45 0x44 가 채널마다 하나
+// ──────────────────────────────────────────────────── I2C 버스 (v2 2026-10-16: 센서 전부 멀티플렉서 경유, 사용자 결정)
+// 버스(GPIO21/22, 100kHz)에 직결된 것은 PCA9548A 0x70(A0~A2 → GND) 하나뿐이고, 센서는 전부 채널 뒤에 있습니다.
+//   ch0·1·2  SHT45 0x44 (자리 1~3)
+//   ch3      ADS1115 0x48 (토양)
+//   ch4·5    BH1750 0x23/0x5C (조도 자리 1·2. 채널이 다르니 둘 다 0x23 이어도 됨)
+// 각 모듈은 매 트랜잭션 앞에 자기 채널을 고릅니다(같은 채널이면 생략되어 부담 없음). 멀티플렉서가 없으면
+// 모든 모듈이 버스 직결로 동작하고(벤치용, 조도는 0x23·0x5C 로 2개까지), 나중에 나타나면 경유로 전환합니다.
 // Wire.begin 은 .ino 의 setup() 에서 한 번만 합니다.
 static const uint32_t I2C_TIMEOUT_MS = 25;
 
@@ -215,8 +224,10 @@ static const uint32_t SHT45_PERIOD_MS       = 2000;   // 전체 한 바퀴 주�
 static const uint32_t SHT45_RETRY_MS        = 5000;   // 없는 자리를 다시 찾는 간격
 static const uint8_t  SHT45_MAX_FAILS       = 3;      // 연속 실패 → 없음 처리
 
-// ── BH1750 조도 (근거: 2026-09-29_BH1750_GY-302_한국어설명서_Codex.html) ──
-static const uint8_t  BH1750_ADDRS[]        = { 0x23, 0x5C };   // ADDR LOW / HIGH
+// ── BH1750 조도 ×2 (근거: 2026-09-29_BH1750_GY-302_한국어설명서_Codex.html · v2 2026-10-16 사용자 결정: 2개, lux = 평균 + lux_1·lux_2) ──
+static const uint8_t  BH1750_MAX            = 2;
+static const uint8_t  BH1750_MUX_CHANNELS[BH1750_MAX] = { 4, 5 };   // 자리 i 의 센서는 이 채널 뒤. 배선이 다르면 이 표만 고침
+static const uint8_t  BH1750_ADDRS[]        = { 0x23, 0x5C };   // ADDR LOW / HIGH (자리마다 둘 다 찾음)
 static const uint8_t  BH1750_ADDR_COUNT     = 2;
 static const uint8_t  BH1750_CMD_POWER_ON   = 0x01;
 static const uint8_t  BH1750_CMD_CONT_HRES  = 0x10;   // 연속 H-Resolution, 1 lx, 대표 120ms
@@ -226,11 +237,11 @@ static const uint32_t BH1750_RETRY_MS       = 5000;
 static const uint8_t  BH1750_MAX_FAILS      = 3;
 static const float    BH1750_COUNTS_PER_LUX = 1.2f;   // lux = raw ÷ 1.2 (MTreg 기본 69). 투명창 보정은 현장 실측으로
 
-// ──────────────────────────────────────────────────── RS485 토양 7종 센서 (2026-10-12, 사용자 결정: TX17/RX27 · 주소 2 기본 + 자동 탐색)
+// ──────────────────────────────────────────────────── RS485 토양 7종 센서 (2026-10-12 사용자 결정: 주소 2 기본 + 자동 탐색 · v2 2026-10-16: TX17/RX16)
 // 센서 설명서: Modbus-RTU, 기본 주소 2, 9600 bps 8N1. 기능 0x03 으로 레지스터 0x0000~0x0007 (온도·수분·EC·염분·N·P·K·pH) 를 한 번에 읽음.
 // 변환기(SZH-CVBE-010)는 자동 방향 전환이라 DE/RE 핀이 없습니다. 상세는 rs485_soil.h 머리말.
 static const uint8_t  PIN_RS485_TX = 17;   // → 변환기 RXD
-static const uint8_t  PIN_RS485_RX = 27;   // ← 변환기 TXD (2.2k/3.3k 분압 뒤). 10-06 TACH 이동으로 비어 있던 핀
+static const uint8_t  PIN_RS485_RX = 16;   // ← 변환기 TXD (10k/20k 분압 뒤). v2: 27 → 16 (09-09 예약 복귀, 센서 열 J3)
 static const uint32_t RS485_SOIL_BAUD         = 9600;
 static const uint8_t  RS485_SOIL_ADDR_DEFAULT = 2;        // 설명서 기본 주소
 // 자동 탐색 순서. 응답한 주소에 고정하고, 잃으면 다음부터 다시. 0 = 브로드캐스트(슬레이브 하나일 때만 유효).
@@ -244,18 +255,18 @@ static const uint32_t RS485_SOIL_TIMEOUT_MS     = 500;    // 요청 뒤 응답 �
 static const uint8_t  RS485_SOIL_MAX_FAILS      = 3;      // 고정된 주소에서 연속 실패 → 없음 처리
 static const uint8_t  RS485_SOIL_SCAN_FAILS     = 2;      // 탐색 중 한 주소를 포기하기까지
 
-// ──────────────────────────────────────────────────── CO2 센서 EXSEN HX-2000U (2026-10-13, 사용자 결정: UART1 TX32/RX33 · 5초 주기 · 예열 중 null)
+// ──────────────────────────────────────────────────── CO2 센서 EXSEN HX-2000U (2026-10-13 사용자 결정: 5초 주기 · 예열 중 null · v2 2026-10-16: UART1 TX19/RX18)
 // 시트(Preliminary Rev.1, 2020-08): 5V 전원, UART 9600 8N1, 요청 7바이트 → 응답 12바이트, 400~5,000 ppm, 시작 15분 뒤 정확도 보장.
 // 상세(프로토콜·체크섬·배선)는 co2_hx2000u.h 머리말.
-static const uint8_t  PIN_CO2_TX = 32;   // → 센서 4 Rx (3.3V 직결)
-static const uint8_t  PIN_CO2_RX = 33;   // ← 센서 3 Tx (Tx 가 5V 로 나오면 분압 뒤)
+static const uint8_t  PIN_CO2_TX = 19;   // → 센서 4 Rx (3.3V 직결). v2: 32 → 19 (센서 열 J3)
+static const uint8_t  PIN_CO2_RX = 18;   // ← 센서 3 Tx (실측 5V → 10k/20k 분압 뒤, 10-16 실기). v2: 33 → 18
 static const uint32_t CO2_BAUD       = 9600;
 static const uint32_t CO2_PERIOD_MS  = 5000;     // 읽기 주기 (텔레메트리 5초와 같음). 센서 샘플링은 1Hz
 static const uint32_t CO2_TIMEOUT_MS = 500;      // 요청 뒤 응답 대기 (9600bps 에서 12바이트 ≈ 13ms + 센서 처리)
 static const uint8_t  CO2_MAX_FAILS  = 3;        // 연속 실패 → 없음 처리(계속 재시도)
-static const uint32_t CO2_WARMUP_MS  = 900000;   // 첫 응답 뒤 15분은 예열 → co2_ppm null (시트 "After Starting 15 min")
+static const uint32_t CO2_WARMUP_MS  = 180000;   // 첫 응답 뒤 3분은 예열 → co2_ppm null. 시트 대표 예열 3분(이때 오차 ±100ppm±10%, 정식 사양 ±40ppm±3% 는 15분). 15분 → 3분 (사용자 결정 2026-10-16)
 
-// ──────────────────────────────────────────────────── 모터 = 급수 펌프 (GPIO18)
+// ──────────────────────────────────────────────────── 모터 = 급수 펌프 (GPIO32, v2)
 // 우노와 같은 25kHz. 분해능은 우노의 640단계 대신 10bit(1024단계).
 static const uint32_t MOTOR_PWM_HZ   = 25000;
 static const uint8_t  MOTOR_PWM_BITS = 10;
@@ -272,7 +283,7 @@ static const uint32_t MOTOR_RAMP_STEP_MS = 5;
 static const uint8_t PUMP_MOTOR_PERCENT = 1;
 
 // ──────────────────────────────────────────────────── 진단 모드 (우노 d 명령)
-// 모터 핀(GPIO18)을 보정·램프 없는 raw duty 로 구동하며 주파수를 바꿔 봅니다.
+// 모터 핀(GPIO32, v2)을 보정·램프 없는 raw duty 로 구동하며 주파수를 바꿔 봅니다.
 // 우노 f0~f5 와 같은 순서·같은 주파수. LEDC 제약으로 30Hz 만 12bit 가 필요합니다
 // (freq = 80MHz / (분주 × 2^bits), 분주 ≤ 1023.996 → 25kHz 는 최대 11bit, 30Hz 는 최소 12bit).
 struct DiagPwmMode {
@@ -290,7 +301,7 @@ static const DiagPwmMode DIAG_PWM_MODES[] = {
 };
 static const uint8_t DIAG_PWM_MODE_COUNT = sizeof(DIAG_PWM_MODES) / sizeof(DIAG_PWM_MODES[0]);
 
-// ──────────────────────────────────────────────────── LED (GPIO16)
+// ──────────────────────────────────────────────────── LED (GPIO33, v2)
 // 우노 일반 모드와 동일: 25kHz 고정, 감마 보정(밝기 = 입력²), 1%/5ms 램프.
 static const uint32_t LED_PWM_HZ   = 25000;
 static const uint8_t  LED_PWM_BITS = 10;
@@ -332,6 +343,7 @@ static const uint16_t MQTT_SOCKET_S     = 10;
 // 온습도·조도 필드가 붙어 최악 텔레메트리 ≈ 880B(머리 포함)라 1024 → 1280 으로 늘림 (2026-09-29).
 // RS485 토양 7종 필드 9개(≈ +190B)가 붙어 최악 ≈ 1,070B → 여유를 두어 1536 (2026-10-12).
 // CO2 필드 2개(co2_ok·co2_ppm ≈ +30B)가 붙어 최악 ≈ 1,100B. 1536 유지 (2026-10-13).
+// v2: 조도 lux_1·lux_2·bh1750_count(≈ +45B) 가 붙어 최악 ≈ 1,145B. 1536 유지 (2026-10-16).
 static const uint16_t COMM_FRAME_BUF    = 1536;
 // 시각이 이 값을 넘어야 인증서 유효기간 검사를 통과합니다(1970년이면 거부됨).
 static const long     TIME_OK_EPOCH     = 1700000000L;

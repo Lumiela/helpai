@@ -16,6 +16,7 @@
 
 #include "soil.h"
 #include "config.h"
+#include "i2c_mux.h"   // v2: PCA9548A 채널 경유
 
 #include <Wire.h>
 #include <Preferences.h>
@@ -31,6 +32,7 @@ int waterVal = SOIL_WATER_VALUE;
 
 bool     adsOk = false;
 uint32_t lastProbeMs = 0;
+bool     useMux = false;        // v2: PCA9548A 채널 경유 여부 (없으면 버스 직결)
 
 Phase    phase = PH_IDLE;
 uint32_t phaseMs = 0;
@@ -48,7 +50,14 @@ Preferences prefs;
 
 // ── ADS1115 레지스터 접근 ──
 
+// v2: 멀티플렉서 경유면 매 트랜잭션 앞에 ADS1115 채널을 켭니다(같은 채널이면 생략됨). 직결이면 할 일 없음.
+bool route() {
+  if (!useMux) return true;
+  return mux::select(ADS1115_MUX_CHANNEL);
+}
+
 bool writeReg(uint8_t reg, uint16_t value) {
+  if (!route()) return false;
   Wire.beginTransmission(ADS1115_ADDR);
   Wire.write(reg);
   Wire.write(static_cast<uint8_t>(value >> 8));
@@ -57,6 +66,7 @@ bool writeReg(uint8_t reg, uint16_t value) {
 }
 
 bool readReg(uint8_t reg, uint16_t* out) {
+  if (!route()) return false;
   Wire.beginTransmission(ADS1115_ADDR);
   Wire.write(reg);
   if (Wire.endTransmission() != 0) return false;
@@ -68,6 +78,7 @@ bool readReg(uint8_t reg, uint16_t* out) {
 }
 
 bool probe() {
+  if (!route()) return false;
   Wire.beginTransmission(ADS1115_ADDR);
   return Wire.endTransmission() == 0;
 }
@@ -152,11 +163,13 @@ void begin() {
   }
 
 #if ENABLE_SOIL
-  // I2C 버스는 .ino 의 setup() 이 한 번 엽니다(ADS1115·PCA9548A·SHT45·BH1750 공유, 2026-09-29).
+  // I2C 버스는 .ino 의 setup() 이 한 번 엽니다. v2: 멀티플렉서(mux::begin)가 먼저 준비된 뒤 불립니다.
+  useMux = mux::present();
   adsOk = probe();
-  Serial.printf("[SOIL] ADS1115 0x%02X (SDA GPIO%u / SCL GPIO%u) %s | AIN%u, ±4.096V(0.125mV), 250SPS, %u회 평균\n",
+  Serial.printf("[SOIL] ADS1115 0x%02X (SDA GPIO%u / SCL GPIO%u, %s) %s | AIN%u, ±4.096V(0.125mV), 250SPS, %u회 평균\n",
                 static_cast<unsigned>(ADS1115_ADDR),
                 static_cast<unsigned>(PIN_I2C_SDA), static_cast<unsigned>(PIN_I2C_SCL),
+                useMux ? "PCA9548A 채널 3 경유" : "버스 직결 — 멀티플렉서 없음",
                 adsOk ? "응답" : "응답 없음 — 5초마다 다시 찾음",
                 static_cast<unsigned>(ADS1115_CHANNEL), static_cast<unsigned>(SOIL_SAMPLE_COUNT));
   if (adsOk) restartSampling();
@@ -173,6 +186,17 @@ bool tick() {
   return false;
 #else
   const uint32_t now = millis();
+
+  // v2: 멀티플렉서가 나중에 나타나면(재탐색 성공) 채널 경유로 전환하고 ADS1115 를 다시 찾습니다
+  if (!useMux && mux::present()) {
+    useMux = true;
+    Serial.printf("[SOIL] 멀티플렉서 발견 — 채널 %u 경유로 전환, ADS1115 다시 찾음\n", static_cast<unsigned>(ADS1115_MUX_CHANNEL));
+    adsOk = false;
+    phase = PH_IDLE;
+    accum = 0;
+    sampleIndex = 0;
+    lastProbeMs = now - ADS1115_RETRY_MS;
+  }
 
   if (!adsOk) {
     if (now - lastProbeMs < ADS1115_RETRY_MS) return false;

@@ -82,7 +82,7 @@ void onSuccess(uint32_t now) {
   okCount++;
   lastError[0] = '\0';
   if (first) {
-    warmStartMs = now;   // 첫 응답(또는 잃었다가 다시 받음)부터 예열 15분
+    warmStartMs = now;   // 첫 응답(또는 잃었다가 다시 받음)부터 예열 CO2_WARMUP_MS (3분, 2026-10-16)
     Serial.printf("[CO2] 응답 시작 — %d ppm (Cal_A %u · Cal_B %u.%02u). 예열 %lu분 동안은 텔레메트리 null\n",
                   lastPpm, static_cast<unsigned>(calA), static_cast<unsigned>(calBHigh), static_cast<unsigned>(calBLow),
                   static_cast<unsigned long>(CO2_WARMUP_MS / 60000UL));
@@ -114,7 +114,7 @@ void begin() {
 #if !ENABLE_CO2
   Serial.println("[CO2] ENABLE_CO2=0 — CO2 센서 기능이 꺼져 있습니다");
 #else
-  if (started) Serial1.end();                   // g32 핀 시험 뒤 다시 초기화하는 경우. 예열 시계·통계는 유지
+  if (started) Serial1.end();                   // g19/g18 핀 시험 뒤 다시 초기화하는 경우. 예열 시계·통계는 유지
   Serial1.begin(CO2_BAUD, SERIAL_8N1, PIN_CO2_RX, PIN_CO2_TX);
   started = true;
   readNowFlag = true;
