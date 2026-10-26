@@ -55,7 +55,7 @@ void saveFrame(const uint8_t* d, uint8_t n) {
 }
 
 void sendRequest() {
-  while (Serial2.available()) Serial2.read();     // 묵은 바이트(에코·잡음) 비움
+  while (Serial1.available()) Serial1.read();     // 묵은 바이트(에코·잡음) 비움
   uint8_t req[8] = {
     curAddr, 0x03,
     static_cast<uint8_t>(RS485_SOIL_REG_START >> 8), static_cast<uint8_t>(RS485_SOIL_REG_START & 0xFF),
@@ -64,7 +64,7 @@ void sendRequest() {
   const uint16_t crc = crc16(req, 6);
   req[6] = static_cast<uint8_t>(crc & 0xFF);
   req[7] = static_cast<uint8_t>(crc >> 8);
-  Serial2.write(req, sizeof(req));
+  Serial1.write(req, sizeof(req));
   rxLen = 0;
   sentMs = millis();
   lastRequestMs = sentMs;
@@ -172,11 +172,11 @@ void begin() {
 #if !ENABLE_RS485_SOIL
   Serial.println("[RS485] ENABLE_RS485_SOIL=0 — 토양 7종 센서 기능이 꺼져 있습니다");
 #else
-  if (started) Serial2.end();                   // g17 핀 시험 뒤 다시 초기화하는 경우
-  Serial2.begin(RS485_SOIL_BAUD, SERIAL_8N1, PIN_RS485_RX, PIN_RS485_TX);
+  if (started) Serial1.end();                   // g19/g18 핀 시험 뒤 다시 초기화하는 경우
+  Serial1.begin(RS485_SOIL_BAUD, SERIAL_8N1, PIN_RS485_RX, PIN_RS485_TX);
   started = true;
   resetSearch(manual);
-  Serial.printf("[RS485] UART2 TX=GPIO%u RX=GPIO%u %lu bps 8N1 | 주소 %u 부터 탐색(%u → %u → %u), 고정 뒤 %lu ms 마다 8레지스터 읽기\n",
+  Serial.printf("[RS485] UART1 TX=GPIO%u RX=GPIO%u %lu bps 8N1 | 주소 %u 부터 탐색(%u → %u → %u), 고정 뒤 %lu ms 마다 8레지스터 읽기\n",
                 static_cast<unsigned>(PIN_RS485_TX), static_cast<unsigned>(PIN_RS485_RX), static_cast<unsigned long>(RS485_SOIL_BAUD),
                 static_cast<unsigned>(curAddr), static_cast<unsigned>(RS485_SOIL_SCAN_ADDRS[0]), static_cast<unsigned>(RS485_SOIL_SCAN_ADDRS[1]),
                 static_cast<unsigned>(RS485_SOIL_SCAN_ADDRS[2]), static_cast<unsigned long>(RS485_SOIL_PERIOD_MS));
@@ -198,7 +198,7 @@ void tick() {
   }
 
   // 응답 대기: 들어온 바이트를 모으고 프레임을 찾습니다
-  while (Serial2.available() && rxLen < sizeof(rxBuf)) rxBuf[rxLen++] = static_cast<uint8_t>(Serial2.read());
+  while (Serial1.available() && rxLen < sizeof(rxBuf)) rxBuf[rxLen++] = static_cast<uint8_t>(Serial1.read());
   const int r = tryParse();
   if (r == 1)  { onSuccess(now); return; }
   if (r == -1) { onFail(nullptr); return; }
@@ -246,7 +246,7 @@ void readNow() {
 void reportSerial() {
 #if ENABLE_RS485_SOIL
   if (!started) { Serial.println("[RS485] 시작 안 됨"); return; }
-  Serial.printf("[RS485] 토양 7종 | UART2 TX%u/RX%u %lu bps | 주소 ",
+  Serial.printf("[RS485] 토양 7종 | UART1 TX%u/RX%u %lu bps | 주소 ",
                 static_cast<unsigned>(PIN_RS485_TX), static_cast<unsigned>(PIN_RS485_RX), static_cast<unsigned long>(RS485_SOIL_BAUD));
   if (manual)               Serial.printf("%u 수동", static_cast<unsigned>(curAddr));
   else if (lockedAddr >= 0) Serial.printf("%d 고정", lockedAddr);

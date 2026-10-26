@@ -5,7 +5,7 @@
  * 원격 보정을 그대로 쓰기 위해 ADS1115 를 유지합니다(사용자 결정 2026-09-29, config.h 머리말).
  * I2C 핀만 14/15 → 21/22 로 바뀌었습니다(config.h PIN_I2C_SDA/SCL).
  * 라이브러리 없이 레지스터 두 개(설정 0x01 · 변환 0x00)만 직접 다룹니다.
- * v2(2026-10-16, 사용자 결정): PCA9548A 채널 ADS1115_MUX_CHANNEL(3) 뒤에 둡니다. 매 트랜잭션 앞에 채널을 고르고,
+ * v2(2026-10-16, 사용자 결정): PCA9548A 채널 ADS1115_MUX_CHANNEL 뒤에 둡니다(2026-10-21부터 채널 1 · 입력 AIN3, 이전 채널 3 · AIN0). 매 트랜잭션 앞에 채널을 고르고,
  * 멀티플렉서가 없으면 버스 직결로 찾습니다(나타나면 경유로 전환).
  *
  * ── 샘플링 (우노 updateSoilSampler 와 동일한 개수·간격, 논블로킹) ──
@@ -33,6 +33,11 @@
  * ── 연결 끊김 ──
  *   ADS1115 가 응답하지 않으면 ok() 가 false, raw()/moisture() 가 -1 이 되고 5초마다
  *   다시 찾습니다. 텔레메트리는 ads1115_ok=false, 값 null 로 나갑니다.
+ *
+ * ── 센서 미연결 판정 (1.7.0, 사용자 결정 2026-10-23) ──
+ *   ADS1115 는 응답하는데 센서가 안 꽂혀 있으면 A3 가 떠서 0V 근처가 읽히고 보정식이 100% 로 보이던 오류.
+ *   10회 평균 전압이 config.h SOIL_SENSOR_MIN_MV(0.70V, 1.7.1. 처음 0.564V) 이하면 sensorOk() 가 false 이고 raw()/millivolts()/moisture() 는 -1
+ *   (텔레메트리 moisture_raw/v/pct null, soil_sensor_ok false). rawAny() 는 판정과 무관하게 마지막 평균을 돌려줍니다(진단 표시용).
  */
 
 #ifndef SOIL_H
@@ -49,7 +54,9 @@ void begin();
 bool tick();
 
 bool ok();            // ADS1115 가 응답하는지
-int  raw();           // 10회 평균 원시값(0~32767). -1 = 아직 없음 / ADS1115 없음
+bool sensorOk();      // ADS1115 응답 + 토양 센서가 꽂혀 있다고 판정(평균 전압 > SOIL_SENSOR_MIN_MV) (1.7.0)
+int  rawAny();        // 판정과 무관한 마지막 10회 평균 원시값. -1 = 아직 없음 / ADS1115 없음 (진단 표시용)
+int  raw();           // 10회 평균 원시값(0~32767). -1 = 아직 없음 / ADS1115 없음 / 센서 미연결 판정
 int  millivolts();    // raw × 0.125 (정수 mV). -1 = 없음
 int  moisture();      // 0~100 상대 지표. -1 = 없음 / 미보정(air == water)
 bool calibrated();    // air != water

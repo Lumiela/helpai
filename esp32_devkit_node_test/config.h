@@ -4,39 +4,48 @@
  * 시험 폴더(esp32_devkit_node_test, cube-devkit-1.5.1)를 복사해 만든 새 판입니다(사용자 지시 2026-10-16 "코드는 새 폴더에").
  * 제어 규칙·안전 상수·서버 통신·원격 보정·모듈 구조는 그대로이고, 두 가지가 바뀌었습니다(사용자 결정 2026-10-16):
  *   1) 핀을 헤더 열로 모음 — 설비(모터·LED·팬)는 3V3·5V 가 있는 열(J2), 센서(I2C·RS485·CO2)는 TX·RX 가 있는 열(J3).
- *   2) I2C 센서는 전부 PCA9548A 멀티플렉서 경유 — SHT45 ch0·1·2, ADS1115 ch3, BH1750 ×2 ch4·5. 조도는 2개(lux = 평균 + lux_1·lux_2).
+ *   2) I2C 센서는 전부 PCA9548A 멀티플렉서 경유 — 조도는 2개(lux = 평균 + lux_1·lux_2).
+ *   3) 1.6.2 (2026-10-23, 사용자 결정): 온습도·조도의 멀티플렉서 채널을 고정하지 않고 자동 탐색. 부팅 때 8채널(0~7)을 훑어
+ *      0x44 가 응답하는 채널을 온습도 자리 1·2·3 에, 0x23/0x5C 가 응답하는 채널을 조도 자리 1·2 에 채널 낮은 순으로 배정한다.
+ *      토양 ADS1115 만 채널 1 · AIN3 고정(사용자 지시). 어느 채널에 어느 센서를 꽂아도 되고, 같은 종류 둘을 한 채널에 두는 것만 안 된다(주소 같음).
+ *   4) 1.7.0 (2026-10-23, 사용자 지시): 핀 재배열(아래 핀 배정) + INA226 전압·전류 모듈(멀티플렉서 채널 자동 탐색, 1개) +
+ *      팬 모듈마다 TACH 2개(팬 2대씩, 순환팬은 릴레이 없음) + 토양 센서 미연결 판정(ADS1115 A3 전압이 SOIL_SENSOR_MIN_MV 이하면 센서 없음).
  * 배경(ESP32-CAM 판 이식·09-22 병합본 팬 모듈·09-29~10-16 변경 이력)은 시험 폴더 config.h 머리말과 README 참조.
  *
- *   젯슨 서버 --Wi-Fi/TLS MQTT--> ESP32 DevKitC --GPIO32 PWM--> 모터(펌프) MOSFET
- *                                               --GPIO33 PWM--> LED MOSFET
- *                                               --GPIO25/26/34--> 배기팬(릴레이 · PWM · TACH)
- *                                               --GPIO27/13/35--> 순환팬(릴레이 · PWM · TACH)
- *                                               --I2C 21/22--> PCA9548A 0x70 --ch0·1·2--> SHT45 ×3
- *                                                                           --ch3------> ADS1115 --> 토양 센서 AOUT
- *                                                                           --ch4·5----> BH1750 ×2
- *                                               --UART2 TX17/RX16--> RS485 변환기 --> 토양 7종 센서
- *                                               --UART1 TX19/RX18--> CO2 센서 HX-2000U
+ *   젯슨 서버 --Wi-Fi/TLS MQTT--> ESP32 DevKitC --GPIO25 PWM--> 모터(펌프) MOSFET
+ *                                               --GPIO26 PWM--> LED MOSFET
+ *                                               --GPIO33/32/34·35--> 배기팬 모듈(릴레이 · PWM · TACH ×2)
+ *                                               --GPIO13/14·27--> 순환팬 모듈(PWM · TACH ×2, 릴레이 없음)
+ *                                               --I2C 21/22--> PCA9548A 0x70 --ch?(자동 탐색)--> SHT45 ×1~3 (0x44)
+ *                                                                           --ch1(고정)------> ADS1115 AIN3 --> 토양 센서 AOUT (10-21 사용자 지시)
+ *                                                                           --ch?(자동 탐색)--> BH1750 ×1~2 (0x23/0x5C)
+ *                                                                           --ch?(자동 탐색)--> INA226 ×1 (0x40~0x4F, 12V 입력부 전압·전류, 1.7.0)
+ *                                               --UART1 TX19/RX18--> RS485 변환기 --> pH·EC(토양 7종) 센서
+ *                                               --UART2 TX17/RX16--> CO2 센서 HX-2000U
  *
  * ── 헤더 열 (ESP32-DevKitC V4 사용자 안내서 J2/J3 표, 2026-10-16 확인) ──
  *   J2 (3V3·5V 쪽): 3V3 EN 36 39 34 35 32 33 25 26 27 14 12 GND 13 (9 10 11 플래시) 5V
  *   J3 (TX·RX 쪽) : GND 23 22 TX(1) RX(3) 21 GND 19 18 5 17 16 4 0 2 15 (8 7 6 플래시)
  *
- * ── 핀 배정 (사용자 결정 2026-10-16, A안: 배기팬 유지·나머지 이동) ─────────
- *   [설비 = J2]
- *   GPIO32 → 모터(펌프) MOSFET 게이트 PWM (이전 18). 부팅 때 신호 없는 깨끗한 핀.
- *   GPIO33 → LED MOSFET 게이트 PWM (이전 16).
- *   GPIO25 → 배기팬 12V 릴레이, GPIO26 → 배기팬 PWM, GPIO34 ← 배기팬 TACH (그대로. 34 는 입력 전용·외부 10kΩ 풀업 3.3V).
- *   GPIO27 → 순환팬 12V 릴레이 (이전 19), GPIO13 → 순환팬 PWM (이전 23), GPIO35 ← 순환팬 TACH (그대로, 입력 전용·외부 10kΩ 풀업).
- *   GPIO14 = 설비 예비 1개 (부팅 때 짧은 신호가 나오므로 릴레이보다 PWM 용). 36·39 = 입력 전용 ADC1 예비(아날로그 센서는 이 열에만 가능).
- *   [센서 = J3]
- *   GPIO21 → I2C SDA, GPIO22 → I2C SCL (PCA9548A 만 직결, 센서는 전부 채널 뒤).
- *   GPIO17 → RS485 변환기 RXD (UART2 TX), GPIO16 ← RS485 변환기 TXD (UART2 RX, 10k/20k 분압 거침). 09-09 전장 설계의 예약(17/16)으로 복귀.
+ * ── 핀 배정 (1.7.0, 사용자 지시 2026-10-23 — 10-16 배정을 대체) ─────────
+ *   [팬 모듈 1 = 내부 순환팬 fan2 — 팬 2대, 릴레이 없음(무중단)]
+ *   GPIO13 → 순환팬 PWM (두 팬 공통), GPIO14 ← 순환팬 1 TACH, GPIO27 ← 순환팬 2 TACH (14·27 은 내부 풀업 사용, 외부 저항 불필요).
+ *   [팬 모듈 2 = 배기/환기팬 fan1 — 팬 2대, 릴레이]
+ *   GPIO33 → 배기팬 12V 릴레이, GPIO32 → 배기팬 PWM (두 팬 공통), GPIO34 ← 배기팬 1 TACH, GPIO35 ← 배기팬 2 TACH
+ *            (34·35 는 입력 전용·내부 풀업 없음 → TACH 선 ↔ 3.3V 외부 10kΩ 풀업 필수).
+ *   [MOSFET]
+ *   GPIO25 → 모터(펌프) MOSFET 게이트 PWM, GPIO26 → LED MOSFET 게이트 PWM.
+ *   [센서 통신]
+ *   GPIO21 → I2C SDA, GPIO22 → I2C SCL (PCA9548A 만 직결, 채널 뒤에 ADS1115 · SHT45 · BH1750 · INA226).
+ *   GPIO19 → RS485 변환기 RXD (UART1 TX), GPIO18 ← RS485 변환기 TXD (UART1 RX, 10k/20k 분압 거침). pH·EC(토양 7종) 센서.
+ *            (사용자 지시 "UART1 : RX, TX" 의 실제 핀은 10-23 확인으로 18/19 — CO2 가 쓰던 자리를 이어받음)
+ *   GPIO17 → CO2 센서 4 Rx (UART2 TX, 3.3V 직결), GPIO16 ← CO2 센서 3 Tx (UART2 RX, 실측 5V → 10k/20k 분압).
  *            (★ WROVER 계열은 GPIO16/17 이 PSRAM 에 물려 있어 못 씁니다. 이 보드는 WROOM 이라 무관.)
- *   GPIO19 → CO2 센서 4 Rx (UART1 TX, 3.3V 직결), GPIO18 ← CO2 센서 3 Tx (UART1 RX, 실측 5V → 10k/20k 분압). UART1 기본 핀 9/10 은 플래시라 재배정.
- *   GPIO23 · GPIO4 = 센서 예비. 5·2·15·0 은 부팅 조건 핀이라 조건부.
+ *   예비: GPIO23 · GPIO4, 36·39(입력 전용 ADC1). 5·2·15·0 은 부팅 조건 핀이라 조건부.
  *
  *   쓰지 않는 핀: 0·2·5·12·15 = 부팅 스트래핑 핀, 1·3 = USB 시리얼(UART0), 6~11 = 플래시.
- *   시험 폴더(1.x)에서 옮긴 선 7가닥: 모터 18→32, LED 16→33, 순환팬 릴레이 19→27, 순환팬 PWM 23→13, RS485 RX 27→16, CO2 TX 32→19, CO2 RX 33→18.
+ *   10-16 배정(1.6.x)에서 옮긴 선: 모터 32→25, LED 33→26, 배기팬 릴레이 25→33, 배기팬 PWM 26→32, 배기팬 TACH 34 유지 + 35 추가,
+ *   순환팬 릴레이 27→없음, 순환팬 PWM 13 유지, 순환팬 TACH 35→14 + 27 추가, RS485 TX 17→19 · RX 16→18, CO2 TX 19→17 · RX 18→16.
  *
  * ── 토양 센서는 왜 여전히 ADS1115 인가 ───────────────────────────
  *   이 보드는 ADC1(GPIO32~39)이 있어 내부 ADC 로도 읽을 수 있지만, ESP32-CAM 판의 코드·눈금
@@ -44,19 +53,22 @@
  *   (사용자 결정 2026-09-29). 팀 하드웨어 구성도에도 ADS1115 + SEN0193 이 들어 있습니다.
  *
  * ── 배선 (v2) ────────────────────────────────────────────────────
- *   모터  : GPIO32 → 100Ω → 로직레벨 N-MOSFET 게이트, 게이트↔GND 10kΩ 풀다운(필수),
+ *   모터  : GPIO25 → 100Ω → 로직레벨 N-MOSFET 게이트, 게이트↔GND 10kΩ 풀다운(필수),
  *           드레인 → 모터(-), 소스 → GND, 모터(+) → 12V(+), 쇼트키 다이오드(1N5819)
  *           캐소드 → 12V(+), 애노드 → 드레인. 12V 전원 GND 와 보드 GND 공통.
- *   LED   : GPIO33 → 100Ω → 로직레벨 N-MOSFET 게이트, 풀다운 10kΩ. 소형 LED 라면
- *           GPIO33 → 220Ω → LED 애노드, 캐소드 → GND 직결도 됩니다.
- *   배기팬: 4핀 PC 팬. GPIO25 → 릴레이 IN(12V 차단), GPIO26 → 팬 PWM(파랑), GPIO34 ← 팬 TACH(노랑).
- *           GPIO34 는 내부 풀업이 없으므로 TACH 선 ↔ 보드 3.3V 사이에 10kΩ 풀업을 반드시 답니다.
+ *   LED   : GPIO26 → 100Ω → 로직레벨 N-MOSFET 게이트, 풀다운 10kΩ. 소형 LED 라면
+ *           GPIO26 → 220Ω → LED 애노드, 캐소드 → GND 직결도 됩니다.
+ *   배기팬: 4핀 PC 팬 2대(PWM 공통). GPIO33 → 릴레이 IN(12V 차단), GPIO32 → 두 팬 PWM(파랑), GPIO34 ← 팬 1 TACH(노랑), GPIO35 ← 팬 2 TACH.
+ *           GPIO34·35 는 내부 풀업이 없으므로 TACH 선마다 ↔ 보드 3.3V 사이에 10kΩ 풀업을 반드시 답니다.
  *           ★ 풀업은 3.3V 에만. 5V/12V 로 풀업하면 입력을 태웁니다.
- *   순환팬: 4핀 PC 팬, 배기팬과 같은 배선. GPIO27 → 릴레이 IN(12V 차단), GPIO13 → 팬 PWM(파랑),
- *           GPIO35 ← 팬 TACH(노랑) + TACH 선 ↔ 보드 3.3V 사이 10kΩ 풀업(입력 전용 핀).
+ *   순환팬: 4핀 PC 팬 2대(PWM 공통), 릴레이 없음(12V 상시). GPIO13 → 두 팬 PWM(파랑), GPIO14 ← 팬 1 TACH(노랑), GPIO27 ← 팬 2 TACH.
+ *           14·27 은 내부 풀업을 쓰므로 외부 저항 불필요. 0% 명령은 PWM 0 만(전원은 끊기지 않음).
+ *   INA226: 12V 입력부 직렬(IN+ ← 전원 12V(+), IN- → 부하 쪽 12V(+), VBUS = IN- 와 같이), VCC 3.3V, GND 공통, SDA/SCL → 멀티플렉서 빈 채널.
+ *           A0·A1 기본(GND) = 0x40. 0x44(SHT45)·0x48(ADS1115)이 되는 조합은 피할 것. 션트 R002(2mΩ) 가정 — 실물 표기 확인.
  *   I2C   : 보드 SDA GPIO21 / SCL GPIO22 → PCA9548A(0x70, A0~A2 → GND, VCC 3.3V) 만 직결. 버스 풀업 4.7kΩ 한 벌(3.3V).
- *           채널 0·1·2 → SHT45(Qwiic), 채널 3 → ADS1115(VDD 3.3V, ADDR → GND, A0 ← 토양 센서 AOUT, 센서 VCC 3.3V),
- *           채널 4·5 → BH1750 GY-302 ×2 (각 3.3V. 채널이 다르니 ADDR 는 어느 쪽이든, 둘 다 0x23 이어도 됨).
+ *           채널 1(고정) → ADS1115(VDD 3.3V, ADDR → GND, A3 ← 토양 센서 AOUT, 센서 VCC 3.3V. 10-21 사용자 지시: 이전 채널 3·A0),
+ *           SHT45(Qwiic) ×1~3 · BH1750 GY-302 ×1~2 → 비어 있는 채널 어디든(1.6.2 자동 탐색. 채널 1 에 같이 꽂아도 주소가 달라 공존).
+ *           같은 종류 둘을 한 채널에 두면 주소가 같아 구분이 안 되므로 종류별로 채널 하나에 하나(BH1750 만 ADDR 를 다르게 하면 한 채널에 둘 가능).
  *           채널마다 버스가 따로이지만, 우리가 쓰는 I2C 센서 모듈(SHT45 Qwiic·ADS1115·BH1750 GY-302)은 전부 풀업 내장
  *           (사용자 확인 2026-10-16) → 채널 뒤 추가 풀업 불필요.
  *   전원  : USB 5V 또는 12V→5V 컨버터 → 보드 5V(VIN) 핀. 3V3 핀에 5V 를 넣지 말 것.
@@ -81,19 +93,20 @@
 
 #include <Arduino.h>
 
-#define FW_VERSION "cube-devkit-1.6.0"   // 1.6.0 = v2 폴더(10-16): 핀 열 정리(설비 J2·센서 J3) + I2C 전부 멀티플렉서 경유 + 조도 2개. 계보(시험 폴더): 1.0.0 09-29 이식판 … 1.3.0 RS485(10-12), 1.4.0 순환팬(10-13), 1.5.0 CO2(10-13), 1.5.1 CO2 예열 3분(10-16)
+#define FW_VERSION "cube-devkit-1.7.1"   // 1.7.1 = 토양 미연결 기준 0.564V → 0.70V(10-23 실기: 떠 있는 A3 0.59V, 사용자 결정 "1번", 빌드는 사용자). 1.7.0 = 핀 재배열(10-23 사용자 지시: 모터 25·LED 26·배기팬 33/32/34·35·순환팬 13/14·27 릴레이 없음·RS485 UART1 19/18·CO2 UART2 17/16) + INA226 전압·전류(power_v·power_a·ina226_ok, 채널 자동 탐색) + 팬마다 TACH 2개(fan1_rpm2·fan2_rpm2·fan2_stall) + 토양 센서 미연결 판정(soil_sensor_ok, 기준 이하 = 없음). 1.6.2 = 온습도(SHT45)·조도(BH1750) 멀티플렉서 채널 자동 탐색(10-23 사용자 결정: 자리 = 채널 낮은 순, 빠진 자리는 번호 유지, 최대 수 초과는 무시, status 에 채널 배정 보고). 토양 ADS1115 는 채널 1·AIN3 고정 그대로. 1.6.1 = 토양 ADS1115 입력 AIN0→AIN3 · 멀티플렉서 채널 3→1 (10-21 사용자 지시 배선: 토양 센서 → ADS1115 A3 → PCA9548A SC1/SD1 → ESP32). 1.6.0 = v2 폴더(10-16): 핀 열 정리(설비 J2·센서 J3) + I2C 전부 멀티플렉서 경유 + 조도 2개. 계보(시험 폴더): 1.0.0 09-29 이식판 … 1.3.0 RS485(10-12), 1.4.0 순환팬(10-13), 1.5.0 CO2(10-13), 1.5.1 CO2 예열 3분(10-16)
 
 // ──────────────────────────────────────────────────── 기능 플래그
 // 0 이면 컴파일은 되지만 동작하지 않고, 그 항목을 바꾸는 제어 명령은 denied 로 회신합니다.
-#define ENABLE_MOTOR  1   // GPIO32 (펌프) — v2
-#define ENABLE_LED    1   // GPIO33 — v2
-#define ENABLE_SOIL   1   // ADS1115 (PCA9548A 채널 3 뒤) — v2
-#define ENABLE_FAN    1   // 배기팬 fan1 (릴레이 25 · PWM 26 · TACH 34) — 09-22 병합본 모듈
-#define ENABLE_FAN2   1   // 순환팬 fan2 (릴레이 27 · PWM 13 · TACH 35) — v2 핀. 0 이면 예전처럼 가상값
-#define ENABLE_SHT45  1   // 온습도 SHT45 (I2C 0x44, PCA9548A 채널 0·1·2 경유 최대 3개) — 2026-09-29 추가
-#define ENABLE_BH1750 1   // 조도 BH1750/GY-302 ×2 (I2C 0x23 또는 0x5C, PCA9548A 채널 4·5 경유, lux = 평균 + lux_1·lux_2) — v2 2개
-#define ENABLE_RS485_SOIL 1   // 토양 7종(온도·수분·EC·염분·N·P·K·pH) RS485 Modbus 센서 (UART2 TX17/RX16) — v2 RX 16
-#define ENABLE_CO2    1   // CO2 센서 EXSEN HX-2000U (UART1 TX19/RX18) — v2 핀
+#define ENABLE_MOTOR  1   // GPIO25 (펌프) — 1.7.0
+#define ENABLE_LED    1   // GPIO26 — 1.7.0
+#define ENABLE_SOIL   1   // ADS1115 AIN3 (PCA9548A 채널 1 뒤) — v2, 10-21 변경
+#define ENABLE_FAN    1   // 배기팬 fan1 (릴레이 33 · PWM 32 · TACH 34·35) — 09-22 병합본 모듈, 1.7.0 핀
+#define ENABLE_FAN2   1   // 순환팬 fan2 (릴레이 없음 · PWM 13 · TACH 14·27) — 1.7.0 핀. 0 이면 예전처럼 가상값
+#define ENABLE_SHT45  1   // 온습도 SHT45 (I2C 0x44, PCA9548A 채널 자동 탐색 최대 3개) — 2026-09-29 추가
+#define ENABLE_BH1750 1   // 조도 BH1750/GY-302 ×2 (I2C 0x23 또는 0x5C, PCA9548A 채널 자동 탐색, lux = 평균 + lux_1·lux_2) — v2 2개
+#define ENABLE_INA226 1   // 12V 입력부 전압·전류 INA226 (I2C 0x40~0x4F, PCA9548A 채널 자동 탐색, 1개) — 1.7.0 추가
+#define ENABLE_RS485_SOIL 1   // pH·EC(토양 7종: 온도·수분·EC·염분·N·P·K·pH) RS485 Modbus 센서 (UART1 TX19/RX18) — 1.7.0 핀
+#define ENABLE_CO2    1   // CO2 센서 EXSEN HX-2000U (UART2 TX17/RX16) — 1.7.0 핀
 // LAN 원격 업로드(ArduinoOTA, 코어 내장) — 2026-09-30 추가 (사용자 결정 J86)
 //   1 = 벤치: 같은 Wi-Fi 의 아두이노 IDE 네트워크 포트로 업로드 가능(secrets.h OTA_PASSWORD 필요)
 //   0 = 현장 큐브: 같은 망의 누구나 시도할 수 있으므로 끈다. 원격 갱신은 젯슨 경유(별도 계획)로
@@ -116,24 +129,28 @@ static const char     OTA_HOSTNAME_PREFIX[] = "cube-";  // IDE 포트 목록에 
 // 펌프는 시작 즉시 정지, 서버 제어는 ota_busy 로 거부, 센서 읽기·텔레메트리는 전송이 끝날 때까지 멈춤.
 
 // ──────────────────────────────────────────────────── 핀
-static const uint8_t PIN_MOTOR_PWM = 32;   // v2: 18 → 32 (설비 열 J2, 사용자 결정 2026-10-16)
-static const uint8_t PIN_LED_PWM   = 33;   // v2: 16 → 33 (설비 열 J2). 16 은 RS485 RX 로 돌아감
+static const uint8_t PIN_NONE      = 0xFF; // "핀 없음" (릴레이 없는 팬 모듈 등)
+static const uint8_t PIN_MOTOR_PWM = 25;   // 1.7.0: 32 → 25 (사용자 지시 2026-10-23)
+static const uint8_t PIN_LED_PWM   = 26;   // 1.7.0: 33 → 26
 static const uint8_t PIN_I2C_SDA   = 21;
 static const uint8_t PIN_I2C_SCL   = 22;
 static const uint32_t I2C_HZ       = 100000;
 
-// ──────────────────────────────────────────────────── 배기팬 fan1 (09-22 병합본 fan 모듈, 검증된 배선)
-// 4핀 PC 팬. 12V 전원은 릴레이로 끊고, 속도는 PWM 으로, 회전수는 TACH 로 읽습니다.
-static const uint8_t PIN_FAN_RELAY = 25;  // 12V 전원 차단용 릴레이
-static const uint8_t PIN_FAN_PWM   = 26;  // 속도 제어
-// TACH 27 → 34 (사용자 결정 2026-10-06). 34 는 입력 전용·내부 풀업 없음 → 외부 10kΩ 풀업(3.3V) 필수.
-static const uint8_t PIN_FAN_TACH  = 34;  // 회전수 피드백 (오픈 컬렉터)
+// ──────────────────────────────────────────────────── 배기팬 fan1 = 팬 모듈 2 (09-22 병합본 fan 모듈, 검증된 배선 · 1.7.0 핀)
+// 4핀 PC 팬 2대(PWM 공통, TACH 따로). 12V 전원은 릴레이로 끊고, 속도는 PWM 으로, 회전수는 TACH 두 줄로 읽습니다.
+static const uint8_t PIN_FAN_RELAY = 33;  // 12V 전원 차단용 릴레이. 1.7.0: 25 → 33
+static const uint8_t PIN_FAN_PWM   = 32;  // 속도 제어(두 팬 공통). 1.7.0: 26 → 32
+// 34·35 는 입력 전용·내부 풀업 없음 → TACH 선마다 외부 10kΩ 풀업(3.3V) 필수.
+static const uint8_t PIN_FAN_TACH1 = 34;  // 팬 1 회전수 피드백 (오픈 컬렉터)
+static const uint8_t PIN_FAN_TACH2 = 35;  // 팬 2 회전수 피드백. 1.7.0 추가
 
-// ── 순환팬 fan2 (사용자 결정 2026-10-13: 4핀 PWM 팬, 배기팬과 같은 방식) ──
-// 주파수·분해능·TACH 필터·스톨 판정 상수는 배기팬과 공유합니다(FAN_*). 두 팬은 LEDC 타이머도 공유합니다.
-static const uint8_t PIN_FAN2_RELAY = 27;  // 12V 전원 차단용 릴레이. v2: 19 → 27 (설비 열 J2)
-static const uint8_t PIN_FAN2_PWM   = 13;  // 속도 제어. v2: 23 → 13 (설비 열 J2, 부팅 때 신호 없는 핀)
-static const uint8_t PIN_FAN2_TACH  = 35;  // 회전수 피드백. 입력 전용·내부 풀업 없음 → 외부 10kΩ 풀업(3.3V) 필수
+// ── 순환팬 fan2 = 팬 모듈 1 (사용자 결정 2026-10-13: 4핀 PWM 팬 · 1.7.0: 팬 2대, 릴레이 없음 = 12V 상시) ──
+// 주파수·분해능·TACH 필터·스톨 판정 상수는 배기팬과 공유합니다(FAN_*). 두 모듈은 LEDC 타이머도 공유합니다.
+// 릴레이가 없으므로 0% 명령은 PWM 0 만이고 전원은 끊기지 않습니다. TACH 는 상시 셉니다(duty 0 이면 스톨 판정 안 함).
+static const uint8_t PIN_FAN2_RELAY = PIN_NONE;  // 1.7.0: 릴레이 없음 (이전 27)
+static const uint8_t PIN_FAN2_PWM   = 13;        // 속도 제어(두 팬 공통)
+static const uint8_t PIN_FAN2_TACH1 = 14;        // 팬 1 회전수 피드백. 1.7.0: 35 → 14 (내부 풀업 사용)
+static const uint8_t PIN_FAN2_TACH2 = 27;        // 팬 2 회전수 피드백. 1.7.0 추가 (내부 풀업 사용)
 
 // 25kHz 는 4핀 팬 표준입니다. 가청 주파수 밖이라 PWM 소음이 나지 않습니다.
 static const uint32_t FAN_PWM_HZ   = 25000;
@@ -143,7 +160,7 @@ static const uint8_t  FAN_PWM_BITS = 8;
 // 채널 번호로 타이머가 묶이지 않으므로 팬 duty 눈금은 깨지지 않는다. 채널 고정은 불필요.
 static const uint32_t FAN_PWM_MAX  = (1UL << FAN_PWM_BITS) - 1;
 
-// GPIO26 → 팬 PWM 직결은 신호를 반전하지 않습니다.
+// GPIO32/13 → 팬 PWM 직결은 신호를 반전하지 않습니다.
 // 외부 NPN 공통 이미터 회로로 한 번 반전할 때만 true 로 바꾸세요.
 static const bool FAN_PWM_INVERTED = false;
 
@@ -162,8 +179,8 @@ static const uint32_t FAN_STALL_TIMEOUT_MS = 3000;
 // ──────────────────────────────────────────────────── 토양 수분 센서 (ADS1115)
 // ADDR 핀을 GND 에 두면 0x48. (VDD 0x49 · SDA 0x4A · SCL 0x4B)
 static const uint8_t  ADS1115_ADDR    = 0x48;
-static const uint8_t  ADS1115_CHANNEL = 0;        // AIN0 ↔ GND 단극
-static const uint8_t  ADS1115_MUX_CHANNEL = 3;    // v2: PCA9548A 채널 3 뒤. 멀티플렉서가 없으면 버스 직결로 찾음
+static const uint8_t  ADS1115_CHANNEL = 3;        // AIN3 ↔ GND 단극 (2026-10-21 사용자 지시, 이전 AIN0). 토양 센서 AOUT → ADS1115 A3
+static const uint8_t  ADS1115_MUX_CHANNEL = 1;    // PCA9548A 채널 1(SC1/SD1) 뒤 (2026-10-21 사용자 지시, 이전 채널 3). SHT45 자리 2 와 채널 공유 — 주소 0x44/0x48 이 달라 공존. 멀티플렉서가 없으면 버스 직결로 찾음
 // 설정 레지스터 비트. PGA ±4.096V → 1 LSB = 0.125 mV, 양의 값 0~32767.
 // 팀 중계기 시험 발행기(fake_device.py)가 같은 눈금(raw × 0.000125 = V)을 씁니다.
 static const uint16_t ADS1115_PGA_BITS = 0x0200;  // 001 = ±4.096V
@@ -173,6 +190,11 @@ static const uint32_t ADS1115_CONV_TIMEOUT_MS = 50;   // 이 안에 안 끝나�
 static const uint32_t ADS1115_RETRY_MS        = 5000; // 응답 없을 때 다시 찾는 간격
 static const int      SOIL_RAW_MAX     = 32767;
 static const float    SOIL_MV_PER_LSB  = 0.125f;
+// 토양 센서 미연결 판정 (1.7.0, 사용자 결정 2026-10-23 "0.564v" → 같은 날 실기 뒤 0.70V): 10회 평균 전압이 이 값 이하이면 센서가 안 꽂힌 것으로 보고
+// moisture_raw/v/pct 를 null, soil_sensor_ok 를 false 로 보냅니다. ADS1115 가 응답해도 A3 가 떠 있으면 0V 근처가 읽혀 100% 로
+// 보이던 오류의 대책. 센서는 물속에서도 1.1V 이상(water 보정 초기값 1.39V)이라 정상 범위와 겹치지 않습니다.
+// ★ 떠 있는 입력이 이 값보다 높게 읽히면 A3–GND 에 100kΩ 풀다운을 달아 0V 로 확실히 떨어뜨리세요.
+static const int      SOIL_SENSOR_MIN_MV = 700;   // 1.7.1: 564 → 700 (10-23 실기: 센서 없이 떠 있는 A3 가 0.591~0.593V 로 읽혀 0.564V 기준을 넘음. 사용자 결정 "1번" — 기준만 올림. 물속 값은 3.3V 급전이라도 0.8V 이상이라 겹치지 않음)
 
 // 우노 스케치와 같은 개수·간격. 10회 평균 한 묶음이 약 0.1초.
 static const uint8_t  SOIL_SAMPLE_COUNT  = 10;
@@ -194,9 +216,11 @@ static const char SOIL_NVS_NAMESPACE[] = "soil";
 
 // ──────────────────────────────────────────────────── I2C 버스 (v2 2026-10-16: 센서 전부 멀티플렉서 경유, 사용자 결정)
 // 버스(GPIO21/22, 100kHz)에 직결된 것은 PCA9548A 0x70(A0~A2 → GND) 하나뿐이고, 센서는 전부 채널 뒤에 있습니다.
-//   ch0·1·2  SHT45 0x44 (자리 1~3)
-//   ch3      ADS1115 0x48 (토양)
-//   ch4·5    BH1750 0x23/0x5C (조도 자리 1·2. 채널이 다르니 둘 다 0x23 이어도 됨)
+//   ch1      ADS1115 0x48 (토양, AIN3. 10-21 사용자 지시 — 이전 ch3. 이 하나만 채널 고정)
+//   ch?      SHT45 0x44 ×1~3 · BH1750 0x23/0x5C ×1~2 — 1.6.2(10-23 사용자 결정): 채널을 고정하지 않고 부팅 때 8채널을 훑어
+//            응답한 주소로 종류를 가르고, 채널 낮은 순으로 자리(temp_1~3 · lux_1~2)를 배정. 빠진 자리는 번호를 당기지 않고 5초마다
+//            다시 찾으며, 새 채널에서 나타나면 빈 자리 중 첫째에 넣음. 최대 수(SHT45_MAX·BH1750_MAX)를 넘는 센서는 로그만 남기고 무시.
+//            status 의 sht45_channels · bh1750_channels(자리 순 "0,2,-" 꼴, '-' = 빈 자리)로 서버에서 배정 결과를 볼 수 있음.
 // 각 모듈은 매 트랜잭션 앞에 자기 채널을 고릅니다(같은 채널이면 생략되어 부담 없음). 멀티플렉서가 없으면
 // 모든 모듈이 버스 직결로 동작하고(벤치용, 조도는 0x23·0x5C 로 2개까지), 나중에 나타나면 경유로 전환합니다.
 // Wire.begin 은 .ino 의 setup() 에서 한 번만 합니다.
@@ -205,13 +229,14 @@ static const uint32_t I2C_TIMEOUT_MS = 25;
 // ── PCA9548A ──
 static const uint8_t  I2C_MUX_ADDR     = 0x70;
 static const uint32_t I2C_MUX_RETRY_MS = 5000;   // 없을 때 다시 찾는 간격
+static const uint8_t  I2C_MUX_CH_COUNT = 8;      // 채널 0~7 (자동 탐색 범위)
+static const uint8_t  I2C_MUX_CH_NONE  = 0xFF;   // "채널 없음" 표시 — 자동 탐색에서 아직 배정되지 않은 자리, 또는 버스 직결
 
-// ── SHT45 온습도 (사용자 결정 2026-09-29: 멀티플렉서 경유, 3개 기준·지금은 2개, 1~3개 모두 동작) ──
-// 자리(slot) i 의 센서는 멀티플렉서 채널 SHT45_MUX_CHANNELS[i] 에 있습니다. 채널 배선이 다르면 이 표만 고칩니다.
+// ── SHT45 온습도 (사용자 결정 2026-09-29: 멀티플렉서 경유, 3개 기준·지금은 2개, 1~3개 모두 동작 · 2026-10-23: 채널 자동 탐색) ──
+// 자리(slot)의 채널은 고정표가 아니라 부팅·재탐색 때 0x44 가 응답한 채널입니다(sht45.cpp 머리말). SHT45_MAX 개까지.
 // 멀티플렉서가 없으면 자리 0 하나를 버스 직결로 찾습니다.
 static const uint8_t  SHT45_ADDR            = 0x44;
-static const uint8_t  SHT45_MAX             = 3;
-static const uint8_t  SHT45_MUX_CHANNELS[SHT45_MAX] = { 0, 1, 2 };
+static const uint8_t  SHT45_MAX             = 3;      // 자리 수. 4개째부터는 무시(10-23 사용자 결정)
 static const uint8_t  SHT45_CMD_MEASURE     = 0xFD;   // SHT4x 고정밀 단발 측정 (최대 8.3ms). 0xF6 = 중간, 0xE0 = 저정밀
 static const uint32_t SHT45_MEAS_WAIT_MS    = 10;     // SHT4x 명령 뒤 결과를 읽기까지
 static const uint8_t  SHT4X_CMD_SERIAL      = 0x89;   // SHT4x 일련번호 읽기 (6바이트) — 모델 판별용
@@ -224,10 +249,10 @@ static const uint32_t SHT45_PERIOD_MS       = 2000;   // 전체 한 바퀴 주�
 static const uint32_t SHT45_RETRY_MS        = 5000;   // 없는 자리를 다시 찾는 간격
 static const uint8_t  SHT45_MAX_FAILS       = 3;      // 연속 실패 → 없음 처리
 
-// ── BH1750 조도 ×2 (근거: 2026-09-29_BH1750_GY-302_한국어설명서_Codex.html · v2 2026-10-16 사용자 결정: 2개, lux = 평균 + lux_1·lux_2) ──
-static const uint8_t  BH1750_MAX            = 2;
-static const uint8_t  BH1750_MUX_CHANNELS[BH1750_MAX] = { 4, 5 };   // 자리 i 의 센서는 이 채널 뒤. 배선이 다르면 이 표만 고침
-static const uint8_t  BH1750_ADDRS[]        = { 0x23, 0x5C };   // ADDR LOW / HIGH (자리마다 둘 다 찾음)
+// ── BH1750 조도 ×2 (근거: 2026-09-29_BH1750_GY-302_한국어설명서_Codex.html · v2 2026-10-16 사용자 결정: 2개, lux = 평균 + lux_1·lux_2 · 2026-10-23: 채널 자동 탐색) ──
+// 자리의 채널·주소는 고정표가 아니라 부팅·재탐색 때 0x23/0x5C 가 응답한 (채널, 주소) 짝입니다(bh1750.cpp 머리말). BH1750_MAX 개까지.
+static const uint8_t  BH1750_MAX            = 2;      // 자리 수. 3개째부터는 무시(10-23 사용자 결정)
+static const uint8_t  BH1750_ADDRS[]        = { 0x23, 0x5C };   // ADDR LOW / HIGH (채널마다 둘 다 찾음)
 static const uint8_t  BH1750_ADDR_COUNT     = 2;
 static const uint8_t  BH1750_CMD_POWER_ON   = 0x01;
 static const uint8_t  BH1750_CMD_CONT_HRES  = 0x10;   // 연속 H-Resolution, 1 lx, 대표 120ms
@@ -237,11 +262,33 @@ static const uint32_t BH1750_RETRY_MS       = 5000;
 static const uint8_t  BH1750_MAX_FAILS      = 3;
 static const float    BH1750_COUNTS_PER_LUX = 1.2f;   // lux = raw ÷ 1.2 (MTreg 기본 69). 투명창 보정은 현장 실측으로
 
-// ──────────────────────────────────────────────────── RS485 토양 7종 센서 (2026-10-12 사용자 결정: 주소 2 기본 + 자동 탐색 · v2 2026-10-16: TX17/RX16)
+// ──────────────────────────────────────────────────── INA226 12V 입력부 전압·전류 (1.7.0, 2026-10-23 사용자 지시 · 결정: power_v·power_a·ina226_ok, 1개)
+// 데이터시트 SBOS547C §7: 레지스터 0x00 설정(기본 0x4127) · 0x01 션트 전압(LSB 2.5µV, 부호 있음, ±81.92mV) · 0x02 버스 전압(LSB 1.25mV, 0~40.96V)
+//   · 0xFE 제조사 ID 0x5449 · 0xFF 칩 ID 0x2260/0x2261(상위 12비트 0x226). 전류 = 션트 전압 ÷ 션트 저항(펌웨어 계산, §6.5.3 "교정 없이 사용").
+// 주소는 A1·A0 조합으로 0x40~0x4F. 0x44(SHT45)·0x48(ADS1115)와 겹치는 조합은 탐색에서 제외 — 모듈 주소를 그렇게 두지 말 것.
+// 모듈(SZH-MIN057 후보): 0~36V · ±20A · 션트 R002(2mΩ) 표기 가정(★ 실물 저항 표기 확인. 2mΩ 이면 20A = 40mV).
+static const uint8_t  INA226_MAX         = 1;        // 자리 수 (사용자 결정 2026-10-01: 입력부 1개)
+static const uint8_t  INA226_ADDR_FIRST  = 0x40;
+static const uint8_t  INA226_ADDR_LAST   = 0x4F;
+static const uint8_t  INA226_ADDR_SKIP[] = { 0x44, 0x48 };   // SHT45 · ADS1115 주소
+static const uint8_t  INA226_ADDR_SKIP_COUNT = 2;
+static const uint16_t INA226_MFR_ID      = 0x5449;   // 'TI'
+static const uint16_t INA226_DIE_ID      = 0x2260;   // 상위 12비트 비교 (하위 4비트 = 리비전)
+static const uint16_t INA226_DIE_ID_MASK = 0xFFF0;
+static const uint16_t INA226_CONFIG      = 0x4527;   // 기본 0x4127 + AVG=16회(비트 11:9 = 010): 버스 1.1ms · 션트 1.1ms · 션트+버스 연속. 한 값 ≈ 35ms
+static const float    INA226_SHUNT_OHM   = 0.002f;   // 션트 저항 (★ 모듈 표기 R002 가정)
+static const float    INA226_BUS_LSB_V   = 0.00125f; // 1.25 mV
+static const float    INA226_SHUNT_LSB_V = 0.0000025f; // 2.5 µV
+static const uint32_t INA226_PERIOD_MS   = 1000;     // 읽기 주기
+static const uint32_t INA226_RETRY_MS    = 5000;     // 없을 때 다시 찾는 간격
+static const uint8_t  INA226_MAX_FAILS   = 3;        // 연속 실패 → 없음 처리
+
+// ──────────────────────────────────────────────────── RS485 pH·EC(토양 7종) 센서 (2026-10-12 사용자 결정: 주소 2 기본 + 자동 탐색 · 1.7.0: UART1 TX19/RX18)
 // 센서 설명서: Modbus-RTU, 기본 주소 2, 9600 bps 8N1. 기능 0x03 으로 레지스터 0x0000~0x0007 (온도·수분·EC·염분·N·P·K·pH) 를 한 번에 읽음.
 // 변환기(SZH-CVBE-010)는 자동 방향 전환이라 DE/RE 핀이 없습니다. 상세는 rs485_soil.h 머리말.
-static const uint8_t  PIN_RS485_TX = 17;   // → 변환기 RXD
-static const uint8_t  PIN_RS485_RX = 16;   // ← 변환기 TXD (10k/20k 분압 뒤). v2: 27 → 16 (09-09 예약 복귀, 센서 열 J3)
+// 1.7.0: 사용자 지시 "pH, EC센서(RS485) UART1" — 핀은 10-23 확인으로 19/18(CO2 가 쓰던 자리). 레지스터 배치는 10-12 토양 7종 그대로(다른 센서면 설명서 필요).
+static const uint8_t  PIN_RS485_TX = 19;   // → 변환기 RXD. 1.7.0: 17 → 19
+static const uint8_t  PIN_RS485_RX = 18;   // ← 변환기 TXD (10k/20k 분압 뒤). 1.7.0: 16 → 18
 static const uint32_t RS485_SOIL_BAUD         = 9600;
 static const uint8_t  RS485_SOIL_ADDR_DEFAULT = 2;        // 설명서 기본 주소
 // 자동 탐색 순서. 응답한 주소에 고정하고, 잃으면 다음부터 다시. 0 = 브로드캐스트(슬레이브 하나일 때만 유효).
@@ -255,18 +302,18 @@ static const uint32_t RS485_SOIL_TIMEOUT_MS     = 500;    // 요청 뒤 응답 �
 static const uint8_t  RS485_SOIL_MAX_FAILS      = 3;      // 고정된 주소에서 연속 실패 → 없음 처리
 static const uint8_t  RS485_SOIL_SCAN_FAILS     = 2;      // 탐색 중 한 주소를 포기하기까지
 
-// ──────────────────────────────────────────────────── CO2 센서 EXSEN HX-2000U (2026-10-13 사용자 결정: 5초 주기 · 예열 중 null · v2 2026-10-16: UART1 TX19/RX18)
+// ──────────────────────────────────────────────────── CO2 센서 EXSEN HX-2000U (2026-10-13 사용자 결정: 5초 주기 · 예열 중 null · 1.7.0: UART2 TX17/RX16)
 // 시트(Preliminary Rev.1, 2020-08): 5V 전원, UART 9600 8N1, 요청 7바이트 → 응답 12바이트, 400~5,000 ppm, 시작 15분 뒤 정확도 보장.
 // 상세(프로토콜·체크섬·배선)는 co2_hx2000u.h 머리말.
-static const uint8_t  PIN_CO2_TX = 19;   // → 센서 4 Rx (3.3V 직결). v2: 32 → 19 (센서 열 J3)
-static const uint8_t  PIN_CO2_RX = 18;   // ← 센서 3 Tx (실측 5V → 10k/20k 분압 뒤, 10-16 실기). v2: 33 → 18
+static const uint8_t  PIN_CO2_TX = 17;   // → 센서 4 Rx (3.3V 직결). 1.7.0: 19 → 17 (사용자 지시 "UART2 : 16(RX), 17(TX)")
+static const uint8_t  PIN_CO2_RX = 16;   // ← 센서 3 Tx (실측 5V → 10k/20k 분압 뒤, 10-16 실기). 1.7.0: 18 → 16
 static const uint32_t CO2_BAUD       = 9600;
 static const uint32_t CO2_PERIOD_MS  = 5000;     // 읽기 주기 (텔레메트리 5초와 같음). 센서 샘플링은 1Hz
 static const uint32_t CO2_TIMEOUT_MS = 500;      // 요청 뒤 응답 대기 (9600bps 에서 12바이트 ≈ 13ms + 센서 처리)
 static const uint8_t  CO2_MAX_FAILS  = 3;        // 연속 실패 → 없음 처리(계속 재시도)
 static const uint32_t CO2_WARMUP_MS  = 180000;   // 첫 응답 뒤 3분은 예열 → co2_ppm null. 시트 대표 예열 3분(이때 오차 ±100ppm±10%, 정식 사양 ±40ppm±3% 는 15분). 15분 → 3분 (사용자 결정 2026-10-16)
 
-// ──────────────────────────────────────────────────── 모터 = 급수 펌프 (GPIO32, v2)
+// ──────────────────────────────────────────────────── 모터 = 급수 펌프 (GPIO25, 1.7.0)
 // 우노와 같은 25kHz. 분해능은 우노의 640단계 대신 10bit(1024단계).
 static const uint32_t MOTOR_PWM_HZ   = 25000;
 static const uint8_t  MOTOR_PWM_BITS = 10;
@@ -283,7 +330,7 @@ static const uint32_t MOTOR_RAMP_STEP_MS = 5;
 static const uint8_t PUMP_MOTOR_PERCENT = 1;
 
 // ──────────────────────────────────────────────────── 진단 모드 (우노 d 명령)
-// 모터 핀(GPIO32, v2)을 보정·램프 없는 raw duty 로 구동하며 주파수를 바꿔 봅니다.
+// 모터 핀(GPIO25, 1.7.0)을 보정·램프 없는 raw duty 로 구동하며 주파수를 바꿔 봅니다.
 // 우노 f0~f5 와 같은 순서·같은 주파수. LEDC 제약으로 30Hz 만 12bit 가 필요합니다
 // (freq = 80MHz / (분주 × 2^bits), 분주 ≤ 1023.996 → 25kHz 는 최대 11bit, 30Hz 는 최소 12bit).
 struct DiagPwmMode {

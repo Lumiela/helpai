@@ -40,8 +40,11 @@ long     accum = 0;
 uint8_t  sampleIndex = 0;
 uint32_t lastSampleMs = 0;
 
-int lastRaw = -1;
+int lastRaw = -1;          // 마지막 10회 평균 (센서 미연결이어도 유지 — 진단 표시용 rawAny())
 int lastMoisture = -1;
+// 1.7.0 (사용자 결정 2026-10-23): 평균 전압이 SOIL_SENSOR_MIN_MV(0.70V — 1.7.1, 처음 0.564V 는 떠 있는 A3 0.59V 에 뚫림) 이하면 센서가 안 꽂힌 것으로 본다.
+// ADS1115 는 응답하지만(adsOk) A3 가 떠 있어 0V 근처가 읽히고, 그게 보정식에서 100% 로 보이던 오류의 대책.
+bool sensorPresent = false;
 
 CalTarget calPending = CAL_NONE;
 bool      calDoneLatch = false;
@@ -122,6 +125,7 @@ void markFault(const char* why) {
   sampleIndex = 0;
   lastRaw = -1;
   lastMoisture = -1;
+  sensorPresent = false;
   if (calPending != CAL_NONE) {
     Serial.println("[SOIL] 보정 측정 취소 (ADS1115 응답 없음)");
     calPending = CAL_NONE;
@@ -166,10 +170,13 @@ void begin() {
   // I2C 버스는 .ino 의 setup() 이 한 번 엽니다. v2: 멀티플렉서(mux::begin)가 먼저 준비된 뒤 불립니다.
   useMux = mux::present();
   adsOk = probe();
+  char via[48];   // 경유 표시. 채널 번호는 config.h ADS1115_MUX_CHANNEL 을 따릅니다(10-21: 채널 1)
+  if (useMux) snprintf(via, sizeof(via), "PCA9548A 채널 %u 경유", static_cast<unsigned>(ADS1115_MUX_CHANNEL));
+  else        snprintf(via, sizeof(via), "버스 직결 — 멀티플렉서 없음");
   Serial.printf("[SOIL] ADS1115 0x%02X (SDA GPIO%u / SCL GPIO%u, %s) %s | AIN%u, ±4.096V(0.125mV), 250SPS, %u회 평균\n",
                 static_cast<unsigned>(ADS1115_ADDR),
                 static_cast<unsigned>(PIN_I2C_SDA), static_cast<unsigned>(PIN_I2C_SCL),
-                useMux ? "PCA9548A 채널 3 경유" : "버스 직결 — 멀티플렉서 없음",
+                via,
                 adsOk ? "응답" : "응답 없음 — 5초마다 다시 찾음",
                 static_cast<unsigned>(ADS1115_CHANNEL), static_cast<unsigned>(SOIL_SAMPLE_COUNT));
   if (adsOk) restartSampling();
@@ -238,6 +245,21 @@ bool tick() {
   accum = 0;
   sampleIndex = 0;
   lastRaw = avg;
+
+  // 1.7.0: 센서 미연결 판정 (평균 전압 ≤ SOIL_SENSOR_MIN_MV). 바뀔 때만 로그.
+  {
+    const int mvNow = static_cast<int>(avg * SOIL_MV_PER_LSB + 0.5f);
+    const bool present = mvNow > SOIL_SENSOR_MIN_MV;
+    if (present != sensorPresent) {
+      if (present) Serial.printf("[SOIL] 토양 센서 감지 — A3 %d.%03dV (기준 %d.%03dV 초과)\n", mvNow / 1000, mvNow % 1000, SOIL_SENSOR_MIN_MV / 1000, SOIL_SENSOR_MIN_MV % 1000);
+      else         Serial.printf("[SOIL] 토양 센서 미연결로 판정 — A3 %d.%03dV ≤ 기준 %d.%03dV. moisture_* 는 null (A3–GND 100kΩ 풀다운을 달면 더 확실)\n",
+                                 mvNow / 1000, mvNow % 1000, SOIL_SENSOR_MIN_MV / 1000, SOIL_SENSOR_MIN_MV % 1000);
+      sensorPresent = present;
+    }
+    if (!present && calPending != CAL_NONE) {
+      Serial.println("[SOIL][경고] 센서 미연결 판정 상태에서 보정 측정 — 저장되는 값이 센서 값이 아닐 수 있음");
+    }
+  }
 
   // 보정 대기 중이었다면 이 평균을 저장 (우노 updateSoilSampler 와 동일)
   if (calPending == CAL_AIR) {
@@ -345,9 +367,11 @@ void resetCalibration() {
 }
 
 bool ok()         { return adsOk; }
-int  raw()        { return lastRaw; }
-int  millivolts() { return (lastRaw < 0) ? -1 : static_cast<int>(lastRaw * SOIL_MV_PER_LSB + 0.5f); }
-int  moisture()   { return lastMoisture; }
+bool sensorOk()   { return adsOk && sensorPresent; }
+int  rawAny()     { return lastRaw; }
+int  raw()        { return sensorPresent ? lastRaw : -1; }
+int  millivolts() { return (!sensorPresent || lastRaw < 0) ? -1 : static_cast<int>(lastRaw * SOIL_MV_PER_LSB + 0.5f); }
+int  moisture()   { return sensorPresent ? lastMoisture : -1; }
 bool calibrated() { return airVal != waterVal; }
 int  airValue()   { return airVal; }
 int  waterValue() { return waterVal; }
@@ -370,6 +394,10 @@ void reportSerial() {
     Serial.println("[SOIL] ADS1115 응답 없음");
   } else if (lastRaw < 0) {
     Serial.println("[SOIL] 측정 대기 중");
+  } else if (!sensorPresent) {
+    const int mvAny = static_cast<int>(lastRaw * SOIL_MV_PER_LSB + 0.5f);
+    Serial.printf("[SOIL] ADS1115 응답 | 토양 센서 미연결 판정 (A3 raw=%d, %d.%03dV ≤ 기준 %d.%03dV) | moisture_* null\n",
+                  lastRaw, mvAny / 1000, mvAny % 1000, SOIL_SENSOR_MIN_MV / 1000, SOIL_SENSOR_MIN_MV % 1000);
   } else {
     const int mv = millivolts();
     Serial.printf("[SOIL] raw=%d (%d.%03dV) | 상대 수분=", lastRaw, mv / 1000, mv % 1000);

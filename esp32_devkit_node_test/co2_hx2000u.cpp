@@ -42,8 +42,8 @@ void saveFrame(const uint8_t* d, uint8_t n) {
 }
 
 void sendRequest() {
-  while (Serial1.available()) Serial1.read();     // 묵은 바이트(센서 자체 송신·잡음) 비움
-  Serial1.write(REQUEST, sizeof(REQUEST));
+  while (Serial2.available()) Serial2.read();     // 묵은 바이트(센서 자체 송신·잡음) 비움
+  Serial2.write(REQUEST, sizeof(REQUEST));
   rxLen = 0;
   sentMs = millis();
   lastRequestMs = sentMs;
@@ -114,13 +114,13 @@ void begin() {
 #if !ENABLE_CO2
   Serial.println("[CO2] ENABLE_CO2=0 — CO2 센서 기능이 꺼져 있습니다");
 #else
-  if (started) Serial1.end();                   // g19/g18 핀 시험 뒤 다시 초기화하는 경우. 예열 시계·통계는 유지
-  Serial1.begin(CO2_BAUD, SERIAL_8N1, PIN_CO2_RX, PIN_CO2_TX);
+  if (started) Serial2.end();                   // g17/g16 핀 시험 뒤 다시 초기화하는 경우. 예열 시계·통계는 유지
+  Serial2.begin(CO2_BAUD, SERIAL_8N1, PIN_CO2_RX, PIN_CO2_TX);
   started = true;
   readNowFlag = true;
   rxLen = 0;
   state = State::Idle;
-  Serial.printf("[CO2] HX-2000U UART1 TX=GPIO%u RX=GPIO%u %lu bps 8N1 | %lu ms 마다 읽기, 예열 %lu분, 응답 대기 %lu ms\n",
+  Serial.printf("[CO2] HX-2000U UART2 TX=GPIO%u RX=GPIO%u %lu bps 8N1 | %lu ms 마다 읽기, 예열 %lu분, 응답 대기 %lu ms\n",
                 static_cast<unsigned>(PIN_CO2_TX), static_cast<unsigned>(PIN_CO2_RX), static_cast<unsigned long>(CO2_BAUD),
                 static_cast<unsigned long>(CO2_PERIOD_MS), static_cast<unsigned long>(CO2_WARMUP_MS / 60000UL),
                 static_cast<unsigned long>(CO2_TIMEOUT_MS));
@@ -141,7 +141,7 @@ void tick() {
   }
 
   // 응답 대기: 들어온 바이트를 모으고 프레임을 찾습니다
-  while (Serial1.available() && rxLen < sizeof(rxBuf)) rxBuf[rxLen++] = static_cast<uint8_t>(Serial1.read());
+  while (Serial2.available() && rxLen < sizeof(rxBuf)) rxBuf[rxLen++] = static_cast<uint8_t>(Serial2.read());
   if (tryParse() == 1) { onSuccess(now); return; }
   if (now - sentMs >= CO2_TIMEOUT_MS) {
     onFail(rxLen == 0 ? "응답 없음" : "유효 프레임 없음");
@@ -167,7 +167,7 @@ void readNow() {
 void reportSerial() {
 #if ENABLE_CO2
   if (!started) { Serial.println("[CO2] 시작 안 됨"); return; }
-  Serial.printf("[CO2] HX-2000U | UART1 TX%u/RX%u %lu bps | 성공 %lu · 실패 %lu · 연속 실패 %u\n",
+  Serial.printf("[CO2] HX-2000U | UART2 TX%u/RX%u %lu bps | 성공 %lu · 실패 %lu · 연속 실패 %u\n",
                 static_cast<unsigned>(PIN_CO2_TX), static_cast<unsigned>(PIN_CO2_RX), static_cast<unsigned long>(CO2_BAUD),
                 static_cast<unsigned long>(okCount), static_cast<unsigned long>(failCount), static_cast<unsigned>(fails));
   if (ok()) {

@@ -2,8 +2,9 @@
  * SHT45 온습도 센서 모듈 — I2C 0x44, PCA9548A 채널 경유 최대 3개 (2026-09-29)
  * ------------------------------------------------------------------
  * 사용자 결정(2026-09-29): 멀티플렉서를 거쳐 3개를 기준으로 하되 지금은 2개. 1·2·3개 어느
- * 경우든 동작해야 한다. → 부팅 때 config.h 의 SHT45_MUX_CHANNELS 각 채널을 찾아 응답하는 것만
- * 쓰고, 없는 자리는 5초마다 다시 찾는다. 멀티플렉서 자체가 없으면 버스 직결 1개로 동작한다.
+ * 경우든 동작해야 한다. → 부팅 때 응답하는 것만 쓰고, 없는 자리는 5초마다 다시 찾는다. 멀티플렉서 자체가 없으면 버스 직결 1개로 동작한다.
+ * 사용자 결정(2026-10-23, 1.6.2): 채널 고정표를 없애고 자동 탐색 — 부팅 때 8채널을 훑어 0x44 가 응답한 채널을 채널 낮은 순으로
+ * 자리 1·2·3 에 배정한다. 빠진 자리는 번호를 당기지 않고 그 채널을 먼저 다시 찾는다. 4개째부터는 무시. 자세한 규칙은 sht45.cpp 머리말.
  *
  * ── 측정 (데이터시트 §4.5) ──
  *   0xFD = 고정밀 단발 측정(최대 8.3ms). 명령 뒤 SHT45_MEAS_WAIT_MS 기다렸다가 6바이트를 읽는다:
@@ -28,21 +29,22 @@
 
 namespace sht45 {
 
-// 버스와 멀티플렉서(mux::begin)가 준비된 뒤 부릅니다. 각 채널을 찾습니다.
+// 버스와 멀티플렉서(mux::begin)가 준비된 뒤 부릅니다. 8채널을 훑어 자리를 배정합니다.
 void begin();
 
-// 루프마다 호출. 한 센서씩 명령·읽기를 진행합니다.
+// 루프마다 호출. 한 센서씩 명령·읽기를 진행하고, 빈 자리가 있으면 5초마다 다시 찾습니다.
 void tick();
 
 bool    viaMux();                 // 멀티플렉서 경유인지 (false = 버스 직결 1개)
 uint8_t count();                  // 지금 응답하는 센서 수 (0~SHT45_MAX)
-bool    ok(uint8_t slot);         // slot 0~SHT45_MAX-1 (= SHT45_MUX_CHANNELS 순서)
+bool    ok(uint8_t slot);         // slot 0~SHT45_MAX-1 (자리 = 부팅 때 채널 낮은 순 배정, 이후 유지)
 float   temperature(uint8_t slot);  // °C. 없으면 NAN
 float   humidity(uint8_t slot);     // %RH. 없으면 NAN
 bool    anyOk();
 float   avgTemperature();         // 응답하는 센서 평균. 없으면 NAN
 float   avgHumidity();
-uint8_t channelOf(uint8_t slot);  // 그 자리의 멀티플렉서 채널 번호
+uint8_t channelOf(uint8_t slot);  // 그 자리에 배정된 멀티플렉서 채널 번호. 없음·직결 = I2C_MUX_CH_NONE(0xFF)
+const char* channelListCsv();     // status sht45_channels 용: 자리 순 "0,2,-" (빈 자리 '-', 직결 'bus')
 // 판별된 모델: "SHT4x" / "SHT3x" / "?"(응답은 하나 판별 실패 → SHT4x 명령으로 시도) / ""(없음)
 // 2026-09-29 저녁 추가: 첫 실기에서 0x44 는 응답하는데 측정이 안 돼 SHT3x 가능성을 열어 둠.
 const char* model(uint8_t slot);
