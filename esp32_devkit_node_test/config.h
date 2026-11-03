@@ -327,7 +327,7 @@ static const uint8_t MOTOR_MIN_DUTY_PERCENT = 83;
 static const uint32_t MOTOR_RAMP_STEP_MS = 5;
 
 // 펌프를 켤 때 모터에 주는 속도 %. 1 = 최소 duty(83%) 로 가동 (사용자 결정 2026-09-23)
-static const uint8_t PUMP_MOTOR_PERCENT = 1;
+static const uint8_t PUMP_MOTOR_PERCENT = 100;
 
 // ──────────────────────────────────────────────────── 진단 모드 (우노 d 명령)
 // 모터 핀(GPIO25, 1.7.0)을 보정·램프 없는 raw duty 로 구동하며 주파수를 바꿔 봅니다.
