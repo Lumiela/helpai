@@ -1,0 +1,2 @@
+# the classifier was trained with ultralytics 8.4.198 on Colab; torch, torchvision, opencv, pillow and numpy come with Colab
+ultralytics==8.4.198
