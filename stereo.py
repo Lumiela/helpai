@@ -145,6 +145,27 @@ def _distance_at(z_map, valid, x, y):
     return float(np.median(zs))
 
 
+def compute_disparity(sgbm, gl, gr):
+    """왼쪽 가장자리까지 시차 계산. 반환: (시차, 유효 마스크)
+
+    SGBM은 왼쪽 NUM_DISP 픽셀을 계산하지 않으므로(짝을 찾을 범위가 화면 밖),
+    왼쪽에 검은 여백을 붙여 계산한 뒤 잘라낸다.
+    """
+    pad = NUM_DISP
+    glp = cv2.copyMakeBorder(gl, 0, 0, pad, 0, cv2.BORDER_CONSTANT, value=0)
+    grp = cv2.copyMakeBorder(gr, 0, 0, pad, 0, cv2.BORDER_CONSTANT, value=0)
+    disp = sgbm.compute(glp, grp)[:, pad:].astype(np.float32) / 16.0
+    valid = disp > 0
+    # 짝이 오른쪽 사진 밖에 있으면(오른쪽 카메라에 안 보이는 영역) 제외
+    valid &= (np.arange(disp.shape[1])[None, :] - disp) >= 0
+    # 가장 먼 배경의 시차보다 왼쪽에 있는 열은 어떤 물체도 오른쪽 사진에 보일 수 없음 → 제외
+    # (배경 시차는 원래부터 계산되던 영역의 하위 1% 값으로 추정)
+    core = disp[:, NUM_DISP:][valid[:, NUM_DISP:]]
+    if core.size:
+        valid[:, :int(np.ceil(np.percentile(core, 1)))] = False
+    return disp, valid
+
+
 def _draw_marker(img, x, y, dist, color):
     cv2.drawMarker(img, (x, y), color, cv2.MARKER_CROSS, 20, 2)
     text = f"{dist / 10:.1f} cm" if dist is not None else "N/A"
@@ -200,10 +221,10 @@ def measure():
         gl = cv2.cvtColor(rl, cv2.COLOR_BGR2GRAY)
         gr = cv2.cvtColor(rr, cv2.COLOR_BGR2GRAY)
 
-        disp = sgbm.compute(gl, gr).astype(np.float32) / 16.0
+        disp, valid = compute_disparity(sgbm, gl, gr)
         pts = cv2.reprojectImageTo3D(disp, Q)
         z = pts[:, :, 2]
-        valid = (disp > 0) & np.isfinite(z) & (z > 0) & (z < MAX_DIST_MM)
+        valid &= np.isfinite(z) & (z > 0) & (z < MAX_DIST_MM)
 
         d = _distance_at(z, valid, target[0], target[1])
         if d is not None:

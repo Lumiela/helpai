@@ -5,8 +5,13 @@
 stereo/
 ├─ esp32_stereo_cam/esp32_stereo_cam.ino   # ESP32-CAM 펌웨어 (두 보드 공용)
 ├─ stereo.py                               # PC용 캘리브레이션 + 거리 측정
-├─ stereo_colab.ipynb                      # Colab용: 캘리브레이션 + 사진 2장 → 거리 맵
-├─ stereo_colab_v1.ipynb                   # Colab용: 사진 2장 → 거리 맵 (캘리브레이션 셀 없음)
+├─ stereo_colab.ipynb                      # Colab용 최신본: 캘리브레이션 + 사진 2장 → 거리 맵 (v3와 코드 같음, 기본 화각 81°)
+├─ stereo_colab_v1.ipynb                   # Colab v1: 사진 2장 → 거리 맵 (캘리브레이션 셀 없음)
+├─ stereo_colab_v2.ipynb                   # Colab v2: 캘리브레이션 셀 복원 + 시차 보정값(DISP_OFFSET_PX), 실행 결과 포함
+├─ stereo_colab_v3.ipynb                   # Colab v3: v2 + 왼쪽 가장자리까지 시차 계산, 실행 결과 포함
+├─ 사용한 파일/                             # 측정에 사용한 이미지와 npy 파일
+│   ├─ CL.jpg, CR.jpg                      #   사용한 왼쪽, 오른쪽 이미지
+│   └─ depth_cm.npy                        #   이 이미지로 계산한 거리 맵 (cm, v2·v3 실행 결과)
 ├─ 코드_설명.md                            # 코드 상세 설명서
 ├─ requirements.txt
 └─ README.md
@@ -49,7 +54,7 @@ pip install -r requirements.txt
 ### Colab 노트북 실행 순서
 노트북을 Colab에서 열고 셀을 위에서부터 순서대로 실행합니다.
 
-| 순서 | `stereo_colab.ipynb` | `stereo_colab_v1.ipynb` |
+| 순서 | `stereo_colab.ipynb`, `v2`, `v3` | `stereo_colab_v1.ipynb` |
 |---|---|---|
 | 1 | 셀 0: 준비 (라이브러리, 한글 폰트) | 셀 1: 설정값 입력 |
 | 2 | 셀 1: 설정값 입력 | 셀 2: 왼쪽, 오른쪽 사진 업로드 (+ 선택: `stereo_calib.npz`) |
@@ -60,7 +65,7 @@ pip install -r requirements.txt
 | 7 | 셀 7: 원하는 지점 거리 측정 | |
 | 8 | 셀 8 **(선택)**: 결과 다운로드 | |
 
-`stereo_colab.ipynb`에서 캘리브레이션을 하지 않으면 C1~C3 셀은 건너뛰세요.
+`stereo_colab.ipynb`, `v2`, `v3`에서 캘리브레이션을 하지 않으면 C1~C3 셀은 건너뛰세요. 버전별 차이는 `코드_설명.md`의 5-5를 참고하세요.
 
 ## 정확도 높이는 팁
 - 측정 가능 거리: 대략 30cm ~ 3m (baseline 6cm, VGA 기준). 멀수록 오차가 급격히 커짐
@@ -71,3 +76,4 @@ pip install -r requirements.txt
 - 해상도를 바꾸면(펌웨어 `FRAMESIZE_*`) 캘리브레이션을 다시 해야 함
 - 움직이는 물체는 두 카메라 촬영 시점 차이로 오차 발생 → 정지된 물체로 측정 권장
 - 실측 거리와 비교해 일정 비율로 틀리면 `SQUARE_MM` 값이 정확한지 확인
+- Colab 근사 측정에서 가까운 곳과 먼 곳의 오차 비율이 다르면 `DISP_OFFSET_PX`, `HFOV_DEG`를 실측 2지점으로 다시 계산 (`코드_설명.md` 7장)
