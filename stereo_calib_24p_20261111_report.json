@@ -1,0 +1,261 @@
+{
+ "method": "median-of-pairs",
+ "swapped_lr": false,
+ "pairs_used": [
+  "L_01",
+  "L_02",
+  "L_03",
+  "L_04",
+  "L_05",
+  "L_06",
+  "L_07",
+  "L_08",
+  "L_09",
+  "L_10",
+  "L_11",
+  "L_12",
+  "L_13",
+  "L_14",
+  "L_15",
+  "L_16",
+  "L_17",
+  "L_18",
+  "L_19",
+  "L_20",
+  "L_21",
+  "L_22",
+  "L_23",
+  "L_24"
+ ],
+ "dropped": [
+  [
+   "L_00",
+   32.32
+  ]
+ ],
+ "size": [
+  640,
+  480
+ ],
+ "square_mm": 24.2,
+ "board": [
+  9,
+  6
+ ],
+ "stereo_rms_px": 1.406,
+ "rect_dy_median_px": 0.681,
+ "rect_dy_per_pair": [
+  1.25,
+  0.68,
+  0.8,
+  1.19,
+  0.88,
+  1.0,
+  1.09,
+  1.4,
+  1.38,
+  1.21,
+  1.26,
+  0.96,
+  0.6,
+  0.57,
+  0.67,
+  0.68,
+  0.68,
+  0.21,
+  0.29,
+  0.25,
+  0.19,
+  0.18,
+  0.16,
+  0.17
+ ],
+ "disparity_per_pair": [
+  32.8,
+  51.3,
+  51.0,
+  48.2,
+  51.5,
+  51.4,
+  50.7,
+  39.7,
+  40.2,
+  39.9,
+  39.6,
+  39.9,
+  48.8,
+  49.0,
+  49.6,
+  48.9,
+  47.9,
+  62.0,
+  61.8,
+  62.2,
+  62.3,
+  62.0,
+  63.4,
+  62.3
+ ],
+ "err_left_px": 0.14,
+ "err_right_px": 0.139,
+ "baseline_mm": 31.09,
+ "T_mm": [
+  -30.61,
+  2.19,
+  -4.95
+ ],
+ "rot_deg": 3.555,
+ "fx_left": 592.5,
+ "fx_right": 585.3,
+ "hfov_left_deg": 56.74,
+ "hfov_right_deg": 57.33,
+ "rect_focal_px": 724.9,
+ "grade": "보통",
+ "npz": "/data/notebooks/height/stereo_calib_all.npz",
+ "pair_distances": [
+  {
+   "pair": "L_01",
+   "pnp_cm": 45.2,
+   "stereo_cm": 69.8,
+   "tilt_deg": 24.6
+  },
+  {
+   "pair": "L_02",
+   "pnp_cm": 43.4,
+   "stereo_cm": 43.9,
+   "tilt_deg": 3.0
+  },
+  {
+   "pair": "L_03",
+   "pnp_cm": 43.4,
+   "stereo_cm": 44.2,
+   "tilt_deg": 3.0
+  },
+  {
+   "pair": "L_04",
+   "pnp_cm": 45.1,
+   "stereo_cm": 46.9,
+   "tilt_deg": 28.6
+  },
+  {
+   "pair": "L_05",
+   "pnp_cm": 43.3,
+   "stereo_cm": 43.7,
+   "tilt_deg": 2.9
+  },
+  {
+   "pair": "L_06",
+   "pnp_cm": 43.2,
+   "stereo_cm": 43.8,
+   "tilt_deg": 2.7
+  },
+  {
+   "pair": "L_07",
+   "pnp_cm": 43.2,
+   "stereo_cm": 44.4,
+   "tilt_deg": 2.6
+  },
+  {
+   "pair": "L_08",
+   "pnp_cm": 57.0,
+   "stereo_cm": 56.8,
+   "tilt_deg": 2.8
+  },
+  {
+   "pair": "L_09",
+   "pnp_cm": 57.2,
+   "stereo_cm": 56.0,
+   "tilt_deg": 2.6
+  },
+  {
+   "pair": "L_10",
+   "pnp_cm": 56.9,
+   "stereo_cm": 56.4,
+   "tilt_deg": 2.7
+  },
+  {
+   "pair": "L_11",
+   "pnp_cm": 56.8,
+   "stereo_cm": 56.8,
+   "tilt_deg": 2.6
+  },
+  {
+   "pair": "L_12",
+   "pnp_cm": 56.7,
+   "stereo_cm": 56.5,
+   "tilt_deg": 2.8
+  },
+  {
+   "pair": "L_13",
+   "pnp_cm": 47.0,
+   "stereo_cm": 46.2,
+   "tilt_deg": 3.6
+  },
+  {
+   "pair": "L_14",
+   "pnp_cm": 47.0,
+   "stereo_cm": 46.0,
+   "tilt_deg": 2.1
+  },
+  {
+   "pair": "L_15",
+   "pnp_cm": 47.3,
+   "stereo_cm": 45.4,
+   "tilt_deg": 3.5
+  },
+  {
+   "pair": "L_16",
+   "pnp_cm": 47.0,
+   "stereo_cm": 46.1,
+   "tilt_deg": 2.6
+  },
+  {
+   "pair": "L_17",
+   "pnp_cm": 46.7,
+   "stereo_cm": 47.0,
+   "tilt_deg": 2.1
+  },
+  {
+   "pair": "L_18",
+   "pnp_cm": 37.0,
+   "stereo_cm": 36.3,
+   "tilt_deg": 2.2
+  },
+  {
+   "pair": "L_19",
+   "pnp_cm": 37.0,
+   "stereo_cm": 36.4,
+   "tilt_deg": 1.4
+  },
+  {
+   "pair": "L_20",
+   "pnp_cm": 37.0,
+   "stereo_cm": 36.2,
+   "tilt_deg": 2.2
+  },
+  {
+   "pair": "L_21",
+   "pnp_cm": 37.0,
+   "stereo_cm": 36.2,
+   "tilt_deg": 2.4
+  },
+  {
+   "pair": "L_22",
+   "pnp_cm": 37.0,
+   "stereo_cm": 36.3,
+   "tilt_deg": 2.3
+  },
+  {
+   "pair": "L_23",
+   "pnp_cm": 37.3,
+   "stereo_cm": 35.5,
+   "tilt_deg": 4.9
+  },
+  {
+   "pair": "L_24",
+   "pnp_cm": 37.1,
+   "stereo_cm": 36.1,
+   "tilt_deg": 2.3
+  }
+ ]
+}
