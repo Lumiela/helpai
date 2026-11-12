@@ -419,7 +419,7 @@ def _attempt_reason(job: dict, err: str) -> str:
 async def _write(job: dict, attempt: dict, clock: Callable[[], float]):
     """재료 → 그래프 → 결과 저장. 실패하면 예외."""
     if not rg.ready():
-        raise RuntimeError("LLM 서버 주소·키 미설정(REPORT_LLM_URL, HELPAI_LLM_KEY)")
+        raise RuntimeError("LLM 미설정(%s)" % rg.missing_env())
     data = await build_input(job)
     _d, _jp, rp, ip = _job_paths(job)
     _write_text(ip, data["text"])
@@ -552,7 +552,8 @@ async def run():
     _wake = asyncio.Event()
     stats["running"] = True
     _log("[report] 리포트 일정 루프 시작: 02:00 KST, 저장 %s, LLM %s, 그래프 %s" % (
-        REPORT_DIR, "설정됨" if rg.ready() else "미설정(REPORT_LLM_URL, HELPAI_LLM_KEY)", rg.GRAPH_NAME))
+        REPORT_DIR, rg.describe() + (" 설정됨" if rg.ready() else " — 키 미설정(%s)" % rg.missing_env()),
+        rg.GRAPH_NAME))
     try:
         while True:
             try:
@@ -579,7 +580,7 @@ def status():
     counts = {s: 0 for s in STATUSES}
     for j in _jobs.values():
         counts[j["status"]] = counts.get(j["status"], 0) + 1
-    return {"dir": REPORT_DIR, "llm_ready": rg.ready(), "graph": rg.GRAPH_NAME,
+    return {"dir": REPORT_DIR, "llm_ready": rg.ready(), "llm": rg.describe(), "graph": rg.GRAPH_NAME,
             "every": EVERY, "fields": FIELDS, "jobs": counts, **stats}
 
 

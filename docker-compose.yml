@@ -1,17 +1,16 @@
-# /data/docker-compose.yml — v3 (2026-09-28 개편, 랩탑 ClaudeCode)
+# /data/docker-compose.yml — 네이버 클라우드판 (2026-10-19, 랩탑 ClaudeCode)
 #
-# 바뀐 것 (사용자 결정 2026-09-28):
-#   · bridge · telegraf 제거 — api 가 원본 토픽을 받아 InfluxDB 에 직접 기록한다(app/writer.py)
-#   · influxdb 8086 은 호스트 로컬(127.0.0.1)에만. 관리자는 SSH 터널로
-#   · InfluxDB 토큰 분리: api 쓰기 INFLUX_WRITE_TOKEN, api 조회·Grafana 읽기 INFLUX_READ_TOKEN.
-#     전권 토큰(INFLUX_TOKEN)은 influxdb 초기화 값으로만 남는다
-#   · api 에 Supabase 인증(AUTH_MODE, SUPABASE_*) 과 시간대(TZ) 추가
-#   · grafana 유지
+# 젯슨 v3(config/docker-compose.v3.yml)에서 바뀐 것:
+#   · web 이 TLS 종단을 맡는다(Tailscale Funnel 대체): 80·443·8443 공개.
+#     /etc/letsencrypt(읽기 전용) · nginx.conf(stream 8443 → mosquitto:1883) · ACME 웹루트(/data/certbot-www) 마운트
+#   · api 의 BROKER_PUBLIC_HOST = smartcubens.duckdns.org (소유자 화면에 보여 줄 장치 접속 주소)
+#   · grafana 3000 은 호스트 로컬(127.0.0.1)만 — 공인 IP 노출 방지. 관리자는 SSH 터널: ssh -N -L 127.0.0.1:3000:127.0.0.1:3000 cloud
+#   · gpu-relay 제거 — GPU 서버(210.125.70.71) 접근 시험과 공개 방식이 정해지면 다시 넣는다
+#   · 그 밖(mosquitto · influxdb · api 의 볼륨·환경변수)은 젯슨과 같다
 #
-# .env 에 추가로 필요한 변수(이름만): INFLUX_WRITE_TOKEN, INFLUX_READ_TOKEN, AUTH_MODE,
-#   SUPABASE_URL, SUPABASE_SERVICE_KEY, SUPABASE_JWT_SECRET(구 프로젝트만, 없으면 빈 값)
-# 적용: 배포 스크립트(edgeserver-JS/deploy/deploy.sh compose) 또는
-#   cd /data && docker compose up -d --build --remove-orphans   (--remove-orphans 가 bridge·telegraf 컨테이너를 내린다)
+# .env 는 젯슨 것을 그대로 쓴다(변수 이름은 config/env.v3.example). 값에 $ 금지.
+# 적용: cd /data && docker compose up -d --build
+# 바인드 마운트 규칙(젯슨과 동일): 연결된 파일·폴더는 바꿔치기(install·mv)하지 말고 cp 로 덮어쓴다.
 
 services:
   mosquitto:
@@ -32,6 +31,7 @@ services:
     ports:
       - "127.0.0.1:8086:8086"
     environment:
+      # 젯슨에서 가져온 데이터 폴더가 이미 초기화돼 있어 아래 INIT 값은 무시된다(토큰 3종 그대로 유효)
       DOCKER_INFLUXDB_INIT_MODE: setup
       DOCKER_INFLUXDB_INIT_USERNAME: admin
       DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_PASSWORD}
@@ -47,7 +47,7 @@ services:
     container_name: grafana
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     depends_on:
       - influxdb
     environment:
@@ -59,15 +59,23 @@ services:
       - /data/grafana/data:/var/lib/grafana
       - /data/grafana/provisioning:/etc/grafana/provisioning:ro
 
+  # 공개 입구(Funnel 대체): 80(ACME 검증·https 리다이렉트) · 443(화면·api·카메라 업로드·InfluxDB 읽기 창구) · 8443(장치 MQTT TLS → mosquitto:1883)
   web:
     image: nginx:1.27-alpine
     container_name: web
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
+      - "8443:8443"
+    depends_on:
+      - mosquitto
     volumes:
       - /data/web:/usr/share/nginx/html:ro
+      - /data/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - /data/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /data/certbot-www:/var/www/certbot:ro
 
   api:
     build: /data/api
@@ -82,59 +90,37 @@ services:
       MQTT_USER: ${MQTT_USER}
       MQTT_PASSWORD: ${MQTT_PASSWORD}
       AG_APP: helpai.cube
-      # InfluxDB — 기록(쓰기 전용)과 조회(읽기 전용) 토큰 분리
       INFLUX_WRITE_TOKEN: ${INFLUX_WRITE_TOKEN}
       INFLUX_READ_TOKEN: ${INFLUX_READ_TOKEN}
       WRITER_ENABLED: "1"
-      # 인증 — required 가 운영값. 개발·병행 시험에서만 off
       AUTH_MODE: ${AUTH_MODE}
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
       SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
-      # 소유자 모델(2026-09-29): 운영자 마스터 키. 인스턴스·큐브 목록은 Supabase 표(instances·cubes)에서 기동 때 읽는다
-      #   (09-29 오후 다중 인스턴스: INSTANCE_ID 환경변수는 더 이상 쓰지 않는다. 경로 /i/<iid>/ 로 나눈다)
       OPERATOR_MASTER_KEY: ${OPERATOR_MASTER_KEY}
       OPERATOR_GRANT_MINUTES: "60"
       REGISTRY_RELOAD_SECONDS: "60"
-      # 브로커 계정 자동 관리(09-29 오후, mosquitto 동적 보안 플러그인). 장치에 보여 줄 공개 접속 주소(Funnel TLS 8443)
       BROKER_ADMIN: "1"
-      BROKER_PUBLIC_HOST: helphyai-jetson.tail3126a6.ts.net
+      # 장치에 보여 줄 공개 접속 주소 — 네이버 클라우드 공개 입구(web 의 stream 8443)
+      BROKER_PUBLIC_HOST: smartcubens.duckdns.org
       BROKER_PUBLIC_PORT: "8443"
-      # 카메라(09-29 오후): 스냅샷 저장 폴더(NVMe), 주기 촬영 시각(KST, 결정 대기 C1 — 기본값), 즉시 촬영 대기, 스트림 상한(결정 대기 C4)
       SNAPSHOT_DIR: /data/snapshots
-      SNAPSHOT_TIMES: "09:00,21:00"
-      SNAPSHOT_TIMEOUT: "60"    # 2026-10-12 사용자 결정 25 → 60(안정성 우선). 펌웨어 SNAP_REQ_WAIT_MS(zoom-3 부터 60초)와 같아야 함
+      SNAPSHOT_TIMES: "00:00,03:00,06:00,09:00,12:00,15:00,18:00,21:00"   # 2026-11-02 사용자 지시: 12시간 → 3시간 간격
+      SNAPSHOT_TIMEOUT: "60"
       STREAM_MAX_SECONDS: "300"
-      # AI 리포트(2026-10-07, 계획서 AI리포트 v4): 젯슨 api 안에서 LangGraph 로 작성, GPU 서버 llama-server 는 추론만.
-      #   결과 저장 폴더, LLM 서버 주소(OpenAI 호환 …/v1)·키(비면 작성하지 않음), 재료 집계 간격(지금 10분 평균, 나중에 조절),
-      #   외부 추적(LangSmith)은 끈 상태를 명시(사용자 결정 10-07)
+      # AI 리포트: 클라우드 api 안에서 LangGraph 로 작성. LLM 은 제공자 전환식(2026-11-04 사용자 지시):
+      #   지금 = gemini(구글 Gemini OpenAI 호환 창구, 키는 .env 의 GEMINI_API_KEY).
+      #   나중에 로컬 LLM 으로 바꿀 때 = .env 에 REPORT_LLM_PROVIDER=local 과 REPORT_LLM_URL·HELPAI_LLM_KEY 를 넣고
+      #   docker compose up -d api 만 하면 된다(코드·이미지 변경 없음).
       REPORT_DIR: /data/reports
+      REPORT_LLM_PROVIDER: ${REPORT_LLM_PROVIDER:-gemini}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      REPORT_LLM_MODEL: ${REPORT_LLM_MODEL:-}   # 비우면 gemini-3.8-flash(gemini) / local(local)
       REPORT_LLM_URL: ${REPORT_LLM_URL:-}
       HELPAI_LLM_KEY: ${HELPAI_LLM_KEY:-}
       REPORT_EVERY: "10m"
       LANGSMITH_TRACING: "false"
-      # 아래는 기본값이 코드에 있어 생략 가능
-      # BROKER_HOST: mosquitto
-      # INFLUX_URL: http://influxdb:8086
-      # INFLUX_ORG: smartcube
-      # INFLUX_BUCKET: sensors
-      # ACK_TIMEOUT: "5"
     volumes:
-      - /data/snapshots:/data/snapshots      # 카메라 스냅샷(09-29). 바인드 마운트 — 폴더 자체를 바꿔치기하지 말 것
-      - /data/reports:/data/reports          # AI 리포트 설정·회차·결과(10-06). 폴더 자체를 바꿔치기하지 말 것
+      - /data/snapshots:/data/snapshots
+      - /data/reports:/data/reports
     # ports: 는 일부러 없다. nginx(web) 뒤에서만 받는다.
-
-  # GPU 서버 JupyterLab 중계 (2026-10-01, 사용자 지시 "3번 방식 = 포트 분리 공개")
-  #   인터넷 → Funnel :10000 → 127.0.0.1:10080(이 컨테이너) → 210.125.70.71:31355(팀원 JupyterLab, 자체 로그인)
-  #   설정 = /data/nginx/gpu-relay.conf (원본 config/nginx/gpu-relay.conf). 젯슨 → GPU 서버는 Wi-Fi 경로로만 나간다.
-  #   Funnel 켜기(사용자 실행): sudo tailscale funnel --bg --https=10000 http://127.0.0.1:10080
-  #   적용: cd /data && docker compose up -d gpu-relay   (다른 컨테이너는 건드리지 않는다)
-  gpu-relay:
-    image: nginx:1.27-alpine
-    container_name: gpu-relay
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:10080:10080"
-    volumes:
-      - /data/nginx/gpu-relay.conf:/etc/nginx/conf.d/default.conf:ro
-      # (10-06 의 AI 리포트 결과 창구 인증 파일 연결 /data/nginx/report 는 10-07 창구를 닫으며 지웠다)

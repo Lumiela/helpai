@@ -67,7 +67,8 @@ from fastapi.responses import FileResponse
 
 from . import agframe, audit, auth, autoctl, broker_admin, camera, crops, registry, report, writer
 
-VERSION = "0.9.2"   # 2026-10-08: 즉시 촬영 배율(zoom) — 펌웨어 cube-cam-0.6-zoom 시험용 · 2026-10-12: 즉시 촬영 대기 기본 25 → 60초
+VERSION = "0.9.5"   # 2026-11-11: 동시 촬영(snapshot-pair, 스테레오 시험용) + 업로드의 촬영 시각(cap_at) 기록. 0.9.4: 리포트 LLM 제공자 전환(REPORT_LLM_PROVIDER)
+                    # 2026-10-23: 스트리밍 프레임을 MQTT(device/…/frame)로도 수신(펌웨어 cube-cam-0.7.2), 정지 로그에 장수·용량·fps
 
 # ══════════════════════════════════════════════ 설정 (환경변수, 젯슨 /data/.env 와 compose 에서)
 BROKER_HOST = os.environ.get("BROKER_HOST", "mosquitto")
@@ -117,7 +118,7 @@ _subs = {}               # SSE 구독자: sn -> set(Queue)
 _loop: Optional[asyncio.AbstractEventLoop] = None
 _mqtt: Optional[mqtt.Client] = None
 _mqtt_connected = False
-_rx_count = {"public": 0, "status": 0, "ack": 0, "bad": 0}
+_rx_count = {"public": 0, "status": 0, "ack": 0, "frame": 0, "bad": 0}
 
 
 def _cube(sn):
@@ -170,7 +171,7 @@ def _on_connect(client, userdata, flags, reason_code, properties=None):
         log("브로커 접속 실패:", reason_code)
         return
     _mqtt_connected = True
-    for kind in ("public", "status", "ack"):
+    for kind in ("public", "status", "ack", "frame"):      # frame: 카메라 스트리밍 JPEG (2026-10-23, cube-cam-0.7.2)
         t = "device/%s/+/%s" % (AG_APP, kind)
         client.subscribe(t, qos=0)
         log("구독:", t)
@@ -190,12 +191,17 @@ def _on_message(client, userdata, msg):
     if len(parts) != 4:
         return
     _, app, sn, kind = parts
+    if kind == "frame":                       # 2026-10-23: 스트리밍 JPEG 그대로(프레임 규격 없음). 해석하지 않는다
+        _on_frame(sn, msg.payload)
+        return
     try:
         obj, _opts = agframe.decode(msg.payload)
     except agframe.FrameError as e:
         _rx_count["bad"] += 1
         log("해석 실패 [%s] %s" % (msg.topic, e))
         return
+    if isinstance(obj.get("chip_temp"), (int, float)) and round(obj["chip_temp"], 1) == 53.3:
+        obj["chip_temp"] = None   # 53.3 = 내장 온도센서 없는 ESP32 의 고정 출력(원시 128°F) — null 로 받는다 (2026-11-06 사용자 지시)
     if kind in _rx_count:
         _rx_count[kind] += 1
 
@@ -409,10 +415,47 @@ def _cam_publish(cam: str, payload: dict) -> bool:
     return True
 
 
+_frame_note_at = {}   # 카메라 SN -> 마지막 안내 로그 시각. 프레임마다 로그를 남기지 않게 60초에 한 번
+
+
+def _on_frame(sn: str, data: bytes):
+    """스트리밍 프레임(MQTT, 2026-10-23, 펌웨어 cube-cam-0.7.2): device/<앱>/<카메라 SN>/frame 에 JPEG 본문 그대로(QoS 0).
+    POST /dev/frames 와 같은 검사(등록된 카메라 · JPEG 머리 · 크기 상한)를 거쳐 최신 한 장으로 둔다. 인증은 브로커 계정과
+    ACL(자기 SN 토픽만 발행 가능)이 대신한다. 응답이 없으므로 stop 을 돌려줄 수 없다 → 꺼진 스트림에 프레임이 오면
+    정지 명령을 보내고(60초에 한 번), 켜진 스트림의 시간·시청자 검사는 20초 주기 _camera_scheduler 가 한다.
+    paho 네트워크 스레드에서 불리므로 push_frame 은 이벤트 루프로 넘긴다."""
+    why = None
+    if not camera.cube_of(sn) or registry.camera(sn) is None:
+        why = "등록되지 않은 카메라"
+    elif len(data) < 100 or data[:2] != b"\xff\xd8":
+        why = "JPEG 가 아님(%d바이트)" % len(data)
+    elif len(data) > camera.FRAME_MAX_BYTES:
+        why = "프레임이 너무 큼(%d바이트, 상한 %d)" % (len(data), camera.FRAME_MAX_BYTES)
+    elif _loop is None:
+        why = "이벤트 루프 없음"
+    now = time.time()
+    if why:
+        _rx_count["bad"] += 1
+        if now - _frame_note_at.get(sn, 0) >= 60:
+            _frame_note_at[sn] = now
+            log("[camera] %s MQTT 프레임 버림: %s" % (sn, why))
+        return
+    _rx_count["frame"] += 1
+    asyncio.run_coroutine_threadsafe(camera.push_frame(sn, data), _loop)
+    if not camera.info(sn)["stream"]["on"] and now - _frame_note_at.get(sn, 0) >= 60:
+        _frame_note_at[sn] = now
+        _cam_publish(sn, {"stream": 0})
+        log("[camera] %s 꺼진 스트림에 프레임 수신 → 정지 명령" % sn)
+
+
 async def _stream_stop(cam: str, reason: str):
+    st = camera.info(cam)["stream"]
     camera.stream_mark(cam, False)
     _cam_publish(cam, {"stream": 0})
-    log("[camera] %s 스트리밍 정지 (%s)" % (cam, reason))
+    dur = (time.time() - st["since"]) if st.get("since") else 0.0
+    frames = st.get("frames", 0)
+    log("[camera] %s 스트리밍 정지 (%s) — %d장 %.1fKB %.0f초 ≈ %.1f fps" % (
+        cam, reason, frames, st.get("bytes", 0) / 1024, dur, (frames / dur) if dur > 0 else 0.0))
 
 
 async def _camera_scheduler():
@@ -1154,6 +1197,9 @@ async def dev_camera_hello(body: CameraHello, iid: str = Depends(device_auth)):
 async def dev_snapshot_upload(request: Request, cam: str = Query(...), trigger: str = Query("device"),
                               req: Optional[str] = Query(None),
                               zoom: Optional[int] = Query(None, ge=100, le=400, description="촬영 배율 %(1배면 생략). 사이드카에만 기록"),
+                              cap_at: Optional[int] = Query(None, ge=0, description="카메라 촬영 시각(NTP epoch ms, 펌웨어 0.7.1-captime 부터). 0 = 미동기"),
+                              cmd_ms: Optional[int] = Query(None, ge=0, description="명령 수신 → 촬영까지 ms"),
+                              cap_ms: Optional[int] = Query(None, ge=0, description="촬영 소요 ms"),
                               iid: str = Depends(device_auth)):
     """카메라가 찍은 JPEG 본문(image/jpeg). req 가 있으면 기다리던 즉시 촬영 요청을 깨운다."""
     cam = _check_camera_sn(cam)
@@ -1167,6 +1213,12 @@ async def dev_snapshot_upload(request: Request, cam: str = Query(...), trigger: 
             "request_id": req, "content_type": request.headers.get("content-type")}
     if zoom:
         meta["zoom_pct"] = zoom
+    if cap_at:                      # 0 은 NTP 미동기 → 기록하지 않음
+        meta["cap_at"] = cap_at
+    if cmd_ms is not None:
+        meta["cmd_ms"] = cmd_ms
+    if cap_ms is not None:
+        meta["cap_ms"] = cap_ms
     try:
         info = await asyncio.get_running_loop().run_in_executor(None, camera.store, iid, cam, data, trigger, meta)
     except Exception as e:   # noqa: BLE001
@@ -1292,6 +1344,71 @@ async def snapshot_request(iid: str, sn: str, body: SnapshotRequest = SnapshotRe
     finally:
         audit.fire(iid, user, cam, "snapshot_request", {"cube": sn, "req": req, "zoom": pct}, result)
     return {"camera": cam, **info}
+
+
+class SnapshotPairRequest(BaseModel):
+    cam_a: str = Field(..., min_length=1, max_length=32)
+    cam_b: str = Field(..., min_length=1, max_length=32)
+    zoom: Optional[float] = None      # 1·1.5·2·3 (배). 두 카메라에 같은 배율
+
+
+@app.post("/i/{iid}/cubes/{sn}/snapshot-pair")
+async def snapshot_pair_request(iid: str, sn: str, body: SnapshotPairRequest, user: auth.User = Depends(auth.owner)):
+    """동시 촬영(2026-11-11, 스테레오 거리 측정 시험용): 두 카메라에 snap 명령을 연달아 보내고 두 업로드를 함께 기다린다.
+    capture_skew_ms = 두 카메라가 보낸 촬영 시각(cap_at, 펌웨어 0.7.1-captime 부터)의 차이. 한쪽이라도 없으면 null.
+    arrival_skew_ms = 두 업로드가 서버에 도착한 시각의 차이(촬영+전송 시간이 섞인 값).
+    파일은 HHMMSS_pair.jpg 로 저장되고 사이드카 request_id 가 <pair_id>a / <pair_id>b 라 나중에 짝을 찾을 수 있다."""
+    _check_cube(iid, sn)
+    pct = 100
+    if body.zoom is not None:
+        pct = camera.zoom_pct(body.zoom)
+        if pct is None:
+            raise HTTPException(400, "zoom 은 1, 1.5, 2, 3 중 하나")
+    if body.cam_a == body.cam_b:
+        raise HTTPException(400, "같은 카메라를 두 번 지정함")
+    cams = []
+    for c in (body.cam_a, body.cam_b):
+        c = _check_camera(iid, c)
+        if camera.cube_of(c) != sn:
+            raise HTTPException(400, "이 큐브의 카메라가 아님: %s" % c)
+        cams.append(c)
+    pair_id = camera.new_request_id()
+    reqs = [pair_id + "a", pair_id + "b"]
+    loop = asyncio.get_running_loop()
+    futs = [camera.wait_for(r, loop) for r in reqs]
+    arrived = {}
+
+    async def _wait(i):
+        info = await futs[i]
+        arrived[i] = time.monotonic()
+        return info
+
+    result = "timeout"
+    try:
+        for c, r in zip(cams, reqs):          # 두 명령을 사이에 아무것도 기다리지 않고 연달아 발행
+            payload = {"snap": 1, "req": r, "trigger": "pair"}
+            if pct != 100:
+                payload["zoom"] = pct
+            if not _cam_publish(c, payload):
+                for r2 in reqs:
+                    camera.drop(r2)
+                raise HTTPException(503, "브로커 미접속")
+        try:
+            infos = await asyncio.wait_for(asyncio.gather(_wait(0), _wait(1)), camera.SNAPSHOT_TIMEOUT_S)
+            result = "ok"
+        except asyncio.TimeoutError:
+            for r2 in reqs:
+                camera.drop(r2)
+            missing = [cams[i] for i in (0, 1) if i not in arrived]
+            raise HTTPException(504, "%.0f초 안에 사진을 올리지 않은 카메라: %s" % (camera.SNAPSHOT_TIMEOUT_S, ", ".join(missing)))
+    finally:
+        audit.fire(iid, user, cams[0], "snapshot_pair", {"cube": sn, "pair_id": pair_id, "cams": cams, "zoom": pct}, result)
+    a, b = infos
+    cap_a, cap_b = a.get("cap_at"), b.get("cap_at")
+    skew = abs(cap_a - cap_b) if cap_a and cap_b else None
+    return {"pair_id": pair_id, "capture_skew_ms": skew,
+            "arrival_skew_ms": int(round(abs(arrived[0] - arrived[1]) * 1000)),
+            "a": {**a, "camera": cams[0]}, "b": {**b, "camera": cams[1]}}
 
 
 @app.post("/i/{iid}/cameras/{cam}/stream/start")

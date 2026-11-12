@@ -1,26 +1,21 @@
-# 비밀값 — 절대 커밋하지 않는다 (값은 젯슨 /data/.env 에만)
+# 비밀값
 .env
 .env.*
 !.env.example
-backup/
-mosquitto/config/dynamic-security.json
-mosquitto/config/passwd
-
-# 손 백업 사본 — 깃 이력이 대신한다
-*.bak
-*.bak-*
-*_backup_*
-web.bak*
-
-# 런타임 상태·데이터 — 젯슨 /data 에만 둔다 (InfluxDB 파일에는 토큰이 들어 있다)
+# 런타임 데이터
 influxdb/
 grafana/data/
 mosquitto/data/
 mosquitto/log/
+certbot-www/
 snapshots/
 reports/
-docker/
-lost+found/
-
-# 빌드 산출물 — 소스(fr/)에서 다시 빌드한다
+leafdx/
+# 빌드 산출물
 web/
+web.bak-*/
+# 백업 사본
+*.bak-*
+*.new-*
+*.jetson
+__pycache__/

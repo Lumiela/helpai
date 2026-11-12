@@ -35,16 +35,19 @@ KST = timezone(timedelta(hours=9))
 CAM_RE = re.compile(r"^(CUBE\d{3})-C(\d{1,2})$")     # 카메라 SN → (큐브 SN, 번호)
 # 2026-10-02: 카메라 status 중 InfluxDB 에 카메라별(cube=<카메라 SN>, kind=status)로 남길 값 (사용자 지시)
 HISTORY_FIELDS = ("chip_temp", "rssi_dbm")
-FILE_RE = re.compile(r"^\d{6}_(periodic|request|device)\.(jpg|json)$")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-TRIGGERS = ("periodic", "request", "device")
+TRIGGERS = ("periodic", "request", "device", "pair")   # pair: 동시 촬영(2026-11-11)
+# 파일명 = HHMMSS_<트리거>[-n].jpg|json — 트리거를 추가하면 여기와 file_path() 검사에 자동 반영된다(2026-11-11: pair 가 하드코딩 검사에 걸려 404 났던 사고)
+_TRIG_ALT = "|".join(TRIGGERS)
+FILE_RE = re.compile(r"^\d{6}_(%s)\.(jpg|json)$" % _TRIG_ALT)
+NAME_RE = re.compile(r"^\d{6}_(%s)(-\d+)?\.(jpg|json)$" % _TRIG_ALT)
 
 _log = print
 _state: Dict[str, dict] = {}          # cam sn -> {"seen", "status", "last_file", "last_taken", "stream": {...}}
 _pending: Dict[str, asyncio.Future] = {}   # req id -> Future(파일 정보)
 _frames: Dict[str, dict] = {}          # cam sn -> {"data": bytes, "t": float, "seq": int, "cond": asyncio.Condition}
 _viewers: Dict[str, int] = {}
-stats = {"snapshots": 0, "frames": 0, "bytes": 0, "last_error": None, "scheduled": 0}
+stats = {"snapshots": 0, "frames": 0, "bytes": 0, "frame_bytes": 0, "last_error": None, "scheduled": 0}   # bytes=스냅샷, frame_bytes=스트리밍(2026-10-23)
 
 
 def set_logger(fn):
@@ -64,7 +67,7 @@ def cam_number(cam_sn: str) -> Optional[int]:
 
 def _cam(sn: str) -> dict:
     return _state.setdefault(sn, {"seen": None, "status": None, "last_file": None, "last_taken": None,
-                                  "stream": {"on": False, "since": None, "until": None, "frames": 0, "last_frame": None}})
+                                  "stream": {"on": False, "since": None, "until": None, "frames": 0, "bytes": 0, "last_frame": None}})
 
 
 def touch(sn: str, status: Optional[dict] = None):
@@ -139,7 +142,9 @@ def store(iid: str, cam: str, data: bytes, trigger: str, meta: dict) -> dict:
     stats["snapshots"] += 1
     stats["bytes"] += len(data)
     return {"camera": cam, "cube": cube, "date": day, "file": name, "path": c["last_file"],
-            "taken_at": side["taken_at"], "trigger": trigger, "bytes": len(data), "zoom_pct": side.get("zoom_pct")}
+            "taken_at": side["taken_at"], "trigger": trigger, "bytes": len(data), "zoom_pct": side.get("zoom_pct"),
+            # 펌웨어 0.7.1-captime 부터: 카메라가 보낸 촬영 시각(NTP epoch ms)·명령→촬영 ms·촬영 소요 ms (2026-11-11)
+            "cap_at": side.get("cap_at"), "cmd_ms": side.get("cmd_ms"), "cap_ms": side.get("cap_ms")}
 
 
 def list_snapshots(iid: str, cube: str, cam: Optional[str] = None, limit: int = 50, date: Optional[str] = None) -> List[dict]:
@@ -164,6 +169,7 @@ def list_snapshots(iid: str, cube: str, cam: Optional[str] = None, limit: int = 
                 st = os.stat(os.path.join(ddir, name))
                 taken = None
                 zoom = None
+                cap_at = None
                 jp = os.path.join(ddir, name[:-4] + ".json")
                 if os.path.exists(jp):
                     try:
@@ -171,10 +177,11 @@ def list_snapshots(iid: str, cube: str, cam: Optional[str] = None, limit: int = 
                             side = json.load(f)
                         taken = side.get("taken_at")
                         zoom = side.get("zoom_pct")
+                        cap_at = side.get("cap_at")
                     except Exception:   # noqa: BLE001
                         taken = None
                 out.append({"camera": c, "cube": cube, "date": day, "file": name, "path": "%s/%s" % (day, name),
-                            "bytes": st.st_size, "taken_at": taken, "zoom_pct": zoom,
+                            "bytes": st.st_size, "taken_at": taken, "zoom_pct": zoom, "cap_at": cap_at,
                             "trigger": name.split("_", 1)[1].split(".")[0].split("-")[0] if "_" in name else None})
     out.sort(key=lambda r: (r["date"], r["file"]), reverse=True)
     return out[:limit]
@@ -184,7 +191,7 @@ def file_path(iid: str, cube: str, cam: str, day: str, name: str) -> Optional[st
     """경로 조작 방지: 조각 하나하나 모양을 검사한다."""
     if not (CAM_RE.match(cam) and cube_of(cam) == cube and DATE_RE.match(day)):
         return None
-    if not re.match(r"^\d{6}_(periodic|request|device)(-\d+)?\.(jpg|json)$", name):
+    if not NAME_RE.match(name):
         return None
     p = os.path.join(_dir(iid, cube, cam, day), name)
     return p if os.path.isfile(p) else None
@@ -236,8 +243,10 @@ async def push_frame(sn: str, data: bytes):
     c = _cam(sn)
     c["seen"] = h["t"]
     c["stream"]["frames"] += 1
+    c["stream"]["bytes"] = c["stream"].get("bytes", 0) + len(data)   # 세션 누적 용량(2026-10-23). nginx 로그 대신 여기서 센다
     c["stream"]["last_frame"] = h["t"]
     stats["frames"] += 1
+    stats["frame_bytes"] += len(data)
 
 
 async def next_frame(sn: str, after_seq: int, timeout: float = 10.0):
@@ -267,7 +276,7 @@ def stream_mark(sn: str, on: bool):
     s = _cam(sn)["stream"]
     now = time.time()
     if on:
-        s.update({"on": True, "since": now, "until": now + STREAM_MAX_S, "frames": 0})
+        s.update({"on": True, "since": now, "until": now + STREAM_MAX_S, "frames": 0, "bytes": 0})
     else:
         s.update({"on": False, "until": None})
 
