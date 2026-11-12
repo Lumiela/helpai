@@ -1,0 +1,116 @@
+# 미니 장미 생장 단계 파이프라인 설정
+# 경로는 프로젝트 루트(이 파일의 상위 폴더) 기준 상대 경로
+
+# ─────────────────────────────────────────────
+# 트레이 배치: 구멍 3행 × 4열
+#   coverage: 각 칸을 어느 카메라 결과로 판단할지 (범위표)
+#             2026-11-12 카메라 위치 변경 후 두 카메라가 모든 칸을 봄.
+#             (이전: 4열 = CR 만, R3C1 = CL 만)
+#   plants:   식물 위치 (O = 식물, X = 빈 구멍). presence.method 가 fixed 일 때만 사용
+# ─────────────────────────────────────────────
+layout:
+  rows: 3
+  cols: 4
+  coverage:
+    - ["CL,CR", "CL,CR", "CL,CR", "CL,CR"]
+    - ["CL,CR", "CL,CR", "CL,CR", "CL,CR"]
+    - ["CL,CR", "CL,CR", "CL,CR", "CL,CR"]
+  plants:
+    - [O, X, O, X]
+    - [X, O, X, O]
+    - [O, X, O, X]
+
+# ─────────────────────────────────────────────
+# 입력: 카메라별 이미지 소스
+#   type: file   → path 의 이미지 파일 (현재)
+#   type: camera → device (cv2.VideoCapture 인덱스 또는 RTSP URL) 에서 한 프레임 캡처 (향후)
+# ─────────────────────────────────────────────
+cameras:
+  CL:
+    source: {type: file, path: input/CL.jpg}
+  CR:
+    source: {type: file, path: input/CR.jpg}
+
+# 카메라별 구멍 중심 좌표는 tools/calibrate_holes.py 로 생성
+holes_file: configs/holes.yaml
+
+# 구멍 반지름(px) = 그 구멍에서 가장 가까운 다른 구멍까지 거리 × radius_ratio
+radius_ratio: 0.3
+
+# ─────────────────────────────────────────────
+# 1단계-1: 식물 유무 판단
+#   dark_cover : 사진에서 자동 판단. 빈 화분은 검은 덮개가 보임 → 구멍 중심 원 안의
+#                어두운 픽셀 비율이 높으면 빈 구멍
+#   fixed      : layout.plants 의 O/X 표를 그대로 사용. 사진 판단과 다르면 경고만 출력
+# ─────────────────────────────────────────────
+presence:
+  method: dark_cover
+  dark_v_max: 70       # HSV 명도(V)가 이 값 이하이면 "어두운 픽셀"
+  empty_ratio: 0.38    # 어두운 픽셀 비율이 이 값 이상이면 빈 구멍 (여러 카메라면 평균)
+
+# ─────────────────────────────────────────────
+# 1단계-2: 각각의 미니 장미 구분 (식물 세그멘테이션)
+# ─────────────────────────────────────────────
+segmentation:
+  method: nearest_pot  # 식물 색 픽셀을 가장 가까운 "식물 있는 구멍"에 배정 | 향후 sam 등 추가
+  max_reach: 1.6       # 구멍 간 거리 × 이 값보다 먼 픽셀은 어느 식물에도 배정 안 함 (다른 트레이 제외)
+  min_component_ratio: 0.02  # 구멍 원 면적 대비 이보다 작은 조각은 잡음으로 제거
+  morph_kernel: 5
+  work_max_side: 1280  # 계산 속도용 축소 크기 (긴 변 px)
+  # 식물로 볼 HSV 범위 (OpenCV 기준 H:0~179, S/V:0~255). 잎 + 꽃 색
+  hsv_ranges:
+    - {name: leaf_green, lower: [25, 50, 60],  upper: [95, 255, 255]}
+    - {name: red_low,    lower: [0, 80, 60],   upper: [12, 255, 255]}
+    - {name: red_high,   lower: [160, 80, 60], upper: [179, 255, 255]}
+    - {name: pink,       lower: [140, 40, 60], upper: [165, 255, 255]}
+    - {name: yellow,     lower: [12, 60, 80],  upper: [25, 255, 255]}
+
+# ─────────────────────────────────────────────
+# 2단계: 생장 단계 판단 (꽃봉오리 검출 → 식물별 최고 등급)
+# ─────────────────────────────────────────────
+grading:
+  # 낮은 → 높은 순서. 첫 번째가 기본 클래스(봉오리가 없을 때)
+  grades: [grade_zero, grade_one, grade_two, grade_three, grade_four]
+
+  # hybrid : 혼합형 (train_hybrid.py) — YOLO 1클래스로 위치 → FastSAM 으로 봉오리 마스크 → 분류 모델로 등급
+  # yolo   : 기존 방식 (train_detector.py) — YOLO 한 모델이 위치와 등급을 함께 판단
+  # none   : 검출 없음 → 모두 기본 클래스
+  detector:
+    type: hybrid
+    # ① 위치 검출 (봉오리 1클래스)
+    weights: runs/detect/rose_bud1/weights/best.pt
+    conf: 0.15           # 넓게 잡고 ③ 분류에서 거름 (yolo 방식으로 바꾸면 0.25 권장)
+    imgsz: 640
+    # ② 봉오리 마스크 (FastSAM). null 이면 생략하고 박스만 사용
+    sam_weights: FastSAM-s.pt   # 프로젝트 안에 없으면 ultralytics 가 자동으로 내려받음
+    sam_imgsz: 1024
+    sam_conf: 0.4
+    mask_iou: 0.3        # 박스와 조각의 IoU 가 이보다 작으면 마스크 없이 박스만 사용
+    mask_margin: 0.1     # 고른 조각을 박스보다 이만큼만 넓게 잘라 씀 (잎으로 번지는 것 방지)
+    # ③ 등급 분류 (not_bud / grade_one ~ grade_four)
+    cls_weights: runs/classify/rose_grade/weights/best.pt
+    cls_imgsz: 224
+    cls_conf: 0.5        # 분류 확신이 이보다 낮으면 버림
+    crop_pad: 0.15       # 분류 크롭 여백. tools/prepare_hybrid_data.py --pad 와 같게
+    # plant_crop: 식물 영역을 잘라 확대해서 검출 (작은 봉오리에 유리)
+    # full_image: 카메라 이미지 전체에서 한 번에 검출
+    detect_on: plant_crop
+    crop_padding: 0.1
+
+  # 봉오리 → 식물 할당 규칙 (rose_pipeline/assignment.py)
+  #   center_in_mask : 봉오리 박스 중심점이 식물 마스크 안에 있으면 그 식물
+  #   max_overlap    : 봉오리 박스와 가장 많이 겹치는 식물 마스크
+  #   mask_overlap   : 봉오리 마스크(혼합형)와 가장 많이 겹치는 식물. 마스크가 없으면 max_overlap
+  assignment: mask_overlap
+
+  # 여러 카메라 결과 합치기 (rose_pipeline/fusion.py)
+  #   max : 카메라별 등급 중 가장 높은 것
+  fusion: max
+
+# ─────────────────────────────────────────────
+# 출력
+# ─────────────────────────────────────────────
+output:
+  dir: output
+  save_visualization: true
+  save_masks: true

@@ -1,0 +1,6 @@
+numpy
+opencv-python-headless
+pyyaml
+pillow
+# 2단계 봉오리 검출(YOLOv11) 학습·추론용. torch 가 함께 설치됨 (GPU 사용 시 CUDA 버전 torch 를 먼저 설치 권장)
+ultralytics>=8.3.0

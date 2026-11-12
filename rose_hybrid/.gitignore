@@ -1,0 +1,9 @@
+# 학습 데이터셋 zip 은 GitHub 파일 크기 제한(100MB)을 넘어서 올리지 않음 (구글 드라이브에 따로 보관)
+dataset*.zip
+# 실행·학습 결과
+output/
+runs/
+hybrid_data/
+configs/rose_data.yaml
+__pycache__/
+*.pt
