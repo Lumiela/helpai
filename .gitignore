@@ -1,0 +1,21 @@
+# 비밀값
+.env
+.env.*
+!.env.example
+# 런타임 데이터
+influxdb/
+grafana/data/
+mosquitto/data/
+mosquitto/log/
+certbot-www/
+snapshots/
+reports/
+leafdx/
+# 빌드 산출물
+web/
+web.bak-*/
+# 백업 사본
+*.bak-*
+*.new-*
+*.jetson
+__pycache__/

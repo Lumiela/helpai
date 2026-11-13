@@ -1,0 +1,5454 @@
+{
+ "__inputs": [
+  {
+   "name": "DS_INFLUXDB",
+   "label": "InfluxDB",
+   "type": "datasource",
+   "pluginId": "influxdb"
+  }
+ ],
+ "uid": "smartcube-edge",
+ "title": "스마트큐브 관제 (엣지 서버)",
+ "tags": [
+  "smartcube",
+  "edge"
+ ],
+ "timezone": "browser",
+ "editable": true,
+ "graphTooltip": 1,
+ "schemaVersion": 39,
+ "version": 1,
+ "refresh": "10s",
+ "time": {
+  "from": "now-24h",
+  "to": "now"
+ },
+ "templating": {
+  "list": []
+ },
+ "annotations": {
+  "list": []
+ },
+ "links": [],
+ "panels": [
+  {
+   "id": 1,
+   "type": "row",
+   "title": "전체 개요 (큐브별 현재값)",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 2,
+   "type": "stat",
+   "title": "SC-01 온도",
+   "description": "허용 범위 20~26°C",
+   "gridPos": {
+    "x": 0,
+    "y": 1,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"data\" and r._field == \"temperature\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 20
+       },
+       {
+        "color": "red",
+        "value": 26
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "SC-01 온도 (°C)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 3,
+   "type": "stat",
+   "title": "SC-01 습도",
+   "description": "허용 범위 65~80%",
+   "gridPos": {
+    "x": 3,
+    "y": 1,
+    "w": 2,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"data\" and r._field == \"humidity\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 65
+       },
+       {
+        "color": "red",
+        "value": 80
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "SC-01 습도 (%)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 4,
+   "type": "stat",
+   "title": "SC-01 CO₂",
+   "description": "허용 범위 700~1000ppm",
+   "gridPos": {
+    "x": 5,
+    "y": 1,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"data\" and r._field == \"co2\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 0,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 700
+       },
+       {
+        "color": "red",
+        "value": 1000
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "SC-01 CO₂ (ppm)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 5,
+   "type": "stat",
+   "title": "SC-02 온도",
+   "description": "허용 범위 21~27°C",
+   "gridPos": {
+    "x": 8,
+    "y": 1,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"data\" and r._field == \"temperature\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 21
+       },
+       {
+        "color": "red",
+        "value": 27
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "SC-02 온도 (°C)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 6,
+   "type": "stat",
+   "title": "SC-02 습도",
+   "description": "허용 범위 60~75%",
+   "gridPos": {
+    "x": 11,
+    "y": 1,
+    "w": 2,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"data\" and r._field == \"humidity\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 60
+       },
+       {
+        "color": "red",
+        "value": 75
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "SC-02 습도 (%)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 7,
+   "type": "stat",
+   "title": "SC-02 CO₂",
+   "description": "허용 범위 800~1200ppm",
+   "gridPos": {
+    "x": 13,
+    "y": 1,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"data\" and r._field == \"co2\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 0,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 800
+       },
+       {
+        "color": "red",
+        "value": 1200
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "SC-02 CO₂ (ppm)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 8,
+   "type": "stat",
+   "title": "SC-03 온도",
+   "description": "허용 범위 16~22°C",
+   "gridPos": {
+    "x": 16,
+    "y": 1,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"data\" and r._field == \"temperature\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 16
+       },
+       {
+        "color": "red",
+        "value": 22
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "SC-03 온도 (°C)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 9,
+   "type": "stat",
+   "title": "SC-03 습도",
+   "description": "허용 범위 55~70%",
+   "gridPos": {
+    "x": 19,
+    "y": 1,
+    "w": 2,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"data\" and r._field == \"humidity\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 55
+       },
+       {
+        "color": "red",
+        "value": 70
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "SC-03 습도 (%)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 10,
+   "type": "stat",
+   "title": "SC-03 CO₂",
+   "description": "허용 범위 600~900ppm",
+   "gridPos": {
+    "x": 21,
+    "y": 1,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"data\" and r._field == \"co2\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 0,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 600
+       },
+       {
+        "color": "red",
+        "value": 900
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "SC-03 CO₂ (ppm)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 11,
+   "type": "row",
+   "title": "스마트큐브 SC-01 · 완숙 토마토 · 생식성장기, 정식 후 45일",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 5,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 12,
+   "type": "stat",
+   "title": "온도",
+   "description": "허용 범위 20~26°C",
+   "gridPos": {
+    "x": 0,
+    "y": 6,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"data\" and r._field == \"temperature\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 20
+       },
+       {
+        "color": "red",
+        "value": 26
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "온도 (°C)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 13,
+   "type": "stat",
+   "title": "습도",
+   "description": "허용 범위 65~80%",
+   "gridPos": {
+    "x": 3,
+    "y": 6,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"data\" and r._field == \"humidity\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 65
+       },
+       {
+        "color": "red",
+        "value": 80
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "습도 (%)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 14,
+   "type": "stat",
+   "title": "CO₂",
+   "description": "허용 범위 700~1000ppm",
+   "gridPos": {
+    "x": 6,
+    "y": 6,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"data\" and r._field == \"co2\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 0,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 700
+       },
+       {
+        "color": "red",
+        "value": 1000
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "CO₂ (ppm)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 15,
+   "type": "stat",
+   "title": "광량",
+   "description": "",
+   "gridPos": {
+    "x": 9,
+    "y": 6,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"data\" and r._field == \"ledIntensityKlx\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "text",
+        "value": null
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "광량 (klx)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 16,
+   "type": "stat",
+   "title": "양액 EC",
+   "description": "허용 범위 2.2~2.8dS/m",
+   "gridPos": {
+    "x": 12,
+    "y": 6,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"data\" and r._field == \"ec\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 2,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 2.2
+       },
+       {
+        "color": "red",
+        "value": 2.8
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "양액 EC (dS/m)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 17,
+   "type": "stat",
+   "title": "pH",
+   "description": "허용 범위 5.8~6.5",
+   "gridPos": {
+    "x": 15,
+    "y": 6,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"data\" and r._field == \"ph\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 5.8
+       },
+       {
+        "color": "red",
+        "value": 6.5
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "pH"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 18,
+   "type": "stat",
+   "title": "배지 수분",
+   "description": "",
+   "gridPos": {
+    "x": 18,
+    "y": 6,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"data\" and r._field == \"soilMoisture\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "text",
+        "value": null
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "배지 수분 (%)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 19,
+   "type": "stat",
+   "title": "배지 온도",
+   "description": "",
+   "gridPos": {
+    "x": 21,
+    "y": 6,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"data\" and r._field == \"soilTemp\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "text",
+        "value": null
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "배지 온도 (°C)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 20,
+   "type": "stat",
+   "title": "엽온",
+   "description": "",
+   "gridPos": {
+    "x": 0,
+    "y": 10,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"data\" and r._field == \"leafTemp\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "text",
+        "value": null
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "엽온 (°C)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 21,
+   "type": "stat",
+   "title": "VPD",
+   "description": "",
+   "gridPos": {
+    "x": 3,
+    "y": 10,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"data\" and r._field == \"vpd\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 2,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "text",
+        "value": null
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "VPD (kPa)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 22,
+   "type": "timeseries",
+   "title": "온도 (°C)",
+   "description": "최근 24시간, 허용 범위 20~26°C 를 하늘색 띠로 표시",
+   "gridPos": {
+    "x": 0,
+    "y": 14,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"data\" and r._field == \"temperature\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "legend": {
+     "displayMode": "hidden",
+     "showLegend": false
+    },
+    "tooltip": {
+     "mode": "single",
+     "sort": "none"
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "decimals": 1,
+     "displayName": "온도",
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "#1f2937"
+     },
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "fillOpacity": 0,
+      "showPoints": "never",
+      "spanNulls": true,
+      "thresholdsStyle": {
+       "mode": "area"
+      }
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "transparent",
+        "value": null
+       },
+       {
+        "color": "rgba(56, 189, 248, 0.28)",
+        "value": 20
+       },
+       {
+        "color": "transparent",
+        "value": 26
+       }
+      ]
+     }
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 23,
+   "type": "timeseries",
+   "title": "습도 (%)",
+   "description": "최근 24시간, 허용 범위 65~80% 를 하늘색 띠로 표시",
+   "gridPos": {
+    "x": 8,
+    "y": 14,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"data\" and r._field == \"humidity\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "legend": {
+     "displayMode": "hidden",
+     "showLegend": false
+    },
+    "tooltip": {
+     "mode": "single",
+     "sort": "none"
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "decimals": 1,
+     "displayName": "습도",
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "#1f2937"
+     },
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "fillOpacity": 0,
+      "showPoints": "never",
+      "spanNulls": true,
+      "thresholdsStyle": {
+       "mode": "area"
+      }
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "transparent",
+        "value": null
+       },
+       {
+        "color": "rgba(56, 189, 248, 0.28)",
+        "value": 65
+       },
+       {
+        "color": "transparent",
+        "value": 80
+       }
+      ]
+     }
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 24,
+   "type": "timeseries",
+   "title": "CO₂ (ppm)",
+   "description": "최근 24시간, 허용 범위 700~1000ppm 를 하늘색 띠로 표시",
+   "gridPos": {
+    "x": 16,
+    "y": 14,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"data\" and r._field == \"co2\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "legend": {
+     "displayMode": "hidden",
+     "showLegend": false
+    },
+    "tooltip": {
+     "mode": "single",
+     "sort": "none"
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "decimals": 0,
+     "displayName": "CO₂",
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "#1f2937"
+     },
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "fillOpacity": 0,
+      "showPoints": "never",
+      "spanNulls": true,
+      "thresholdsStyle": {
+       "mode": "area"
+      }
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "transparent",
+        "value": null
+       },
+       {
+        "color": "rgba(56, 189, 248, 0.28)",
+        "value": 700
+       },
+       {
+        "color": "transparent",
+        "value": 1000
+       }
+      ]
+     }
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 25,
+   "type": "timeseries",
+   "title": "광량 (klx)",
+   "description": "최근 24시간",
+   "gridPos": {
+    "x": 0,
+    "y": 22,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"data\" and r._field == \"ledIntensityKlx\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "legend": {
+     "displayMode": "hidden",
+     "showLegend": false
+    },
+    "tooltip": {
+     "mode": "single",
+     "sort": "none"
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "decimals": 1,
+     "displayName": "광량",
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "#1f2937"
+     },
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "fillOpacity": 0,
+      "showPoints": "never",
+      "spanNulls": true,
+      "thresholdsStyle": {
+       "mode": "off"
+      }
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "transparent",
+        "value": null
+       }
+      ]
+     }
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 26,
+   "type": "timeseries",
+   "title": "양액 EC (dS/m)",
+   "description": "최근 24시간, 허용 범위 2.2~2.8dS/m 를 하늘색 띠로 표시",
+   "gridPos": {
+    "x": 8,
+    "y": 22,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"data\" and r._field == \"ec\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "legend": {
+     "displayMode": "hidden",
+     "showLegend": false
+    },
+    "tooltip": {
+     "mode": "single",
+     "sort": "none"
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "decimals": 2,
+     "displayName": "양액 EC",
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "#1f2937"
+     },
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "fillOpacity": 0,
+      "showPoints": "never",
+      "spanNulls": true,
+      "thresholdsStyle": {
+       "mode": "area"
+      }
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "transparent",
+        "value": null
+       },
+       {
+        "color": "rgba(56, 189, 248, 0.28)",
+        "value": 2.2
+       },
+       {
+        "color": "transparent",
+        "value": 2.8
+       }
+      ]
+     }
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 27,
+   "type": "timeseries",
+   "title": "배지 수분 (%)",
+   "description": "최근 24시간",
+   "gridPos": {
+    "x": 16,
+    "y": 22,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"data\" and r._field == \"soilMoisture\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "legend": {
+     "displayMode": "hidden",
+     "showLegend": false
+    },
+    "tooltip": {
+     "mode": "single",
+     "sort": "none"
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "decimals": 1,
+     "displayName": "배지 수분",
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "#1f2937"
+     },
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "fillOpacity": 0,
+      "showPoints": "never",
+      "spanNulls": true,
+      "thresholdsStyle": {
+       "mode": "off"
+      }
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "transparent",
+        "value": null
+       }
+      ]
+     }
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 28,
+   "type": "stat",
+   "title": "구동기 상태 (topic .../ctrl/status)",
+   "gridPos": {
+    "x": 0,
+    "y": 30,
+    "w": 24,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"status\" and r._field == \"outerFan\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "B",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"status\" and r._field == \"outerFanSpeed\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "C",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"status\" and r._field == \"innerFan\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "D",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"status\" and r._field == \"innerFanSpeed\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "E",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"status\" and r._field == \"ledGrowLight\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "F",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"status\" and r._field == \"ledIntensity\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "G",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"status\" and r._field == \"irrigationPump\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "H",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"status\" and r._field == \"nutrientValve\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "I",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"status\" and r._field == \"co2Generator\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "J",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"status\" and r._field == \"coolingDamper\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "K",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"status\" and r._field == \"heatingDamper\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "L",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-01\" and r.kind == \"status\" and r._field == \"autoMode\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value_and_name",
+    "justifyMode": "center",
+    "orientation": "horizontal"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "text",
+        "value": null
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "noValue": "-"
+    },
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "A"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "배기팬"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지",
+            "color": "text"
+           },
+           "1": {
+            "text": "가동",
+            "color": "green"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "B"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "배기팬 단"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지"
+           },
+           "1": {
+            "text": "1단"
+           },
+           "2": {
+            "text": "2단"
+           },
+           "3": {
+            "text": "3단"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "C"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "순환팬"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지",
+            "color": "text"
+           },
+           "1": {
+            "text": "가동",
+            "color": "green"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "D"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "순환팬 단"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지"
+           },
+           "1": {
+            "text": "1단"
+           },
+           "2": {
+            "text": "2단"
+           },
+           "3": {
+            "text": "3단"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "E"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "LED"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지",
+            "color": "text"
+           },
+           "1": {
+            "text": "가동",
+            "color": "green"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "F"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "LED 밝기"
+       },
+       {
+        "id": "mappings",
+        "value": []
+       },
+       {
+        "id": "unit",
+        "value": "percent"
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "G"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "급수"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "대기",
+            "color": "text"
+           },
+           "1": {
+            "text": "급수 중",
+            "color": "blue"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "H"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "양액 밸브"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지",
+            "color": "text"
+           },
+           "1": {
+            "text": "가동",
+            "color": "green"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "I"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "CO₂ 공급"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지",
+            "color": "text"
+           },
+           "1": {
+            "text": "가동",
+            "color": "green"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "J"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "냉각 댐퍼"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지",
+            "color": "text"
+           },
+           "1": {
+            "text": "가동",
+            "color": "green"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "K"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "가온 댐퍼"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지",
+            "color": "text"
+           },
+           "1": {
+            "text": "가동",
+            "color": "green"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "L"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "제어 모드"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "수동",
+            "color": "orange"
+           },
+           "1": {
+            "text": "자동",
+            "color": "green"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": 29,
+   "type": "row",
+   "title": "스마트큐브 SC-02 · 레드 파프리카 · 착과기, 정식 후 60일",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 34,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 30,
+   "type": "stat",
+   "title": "온도",
+   "description": "허용 범위 21~27°C",
+   "gridPos": {
+    "x": 0,
+    "y": 35,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"data\" and r._field == \"temperature\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 21
+       },
+       {
+        "color": "red",
+        "value": 27
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "온도 (°C)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 31,
+   "type": "stat",
+   "title": "습도",
+   "description": "허용 범위 60~75%",
+   "gridPos": {
+    "x": 3,
+    "y": 35,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"data\" and r._field == \"humidity\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 60
+       },
+       {
+        "color": "red",
+        "value": 75
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "습도 (%)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 32,
+   "type": "stat",
+   "title": "CO₂",
+   "description": "허용 범위 800~1200ppm",
+   "gridPos": {
+    "x": 6,
+    "y": 35,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"data\" and r._field == \"co2\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 0,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 800
+       },
+       {
+        "color": "red",
+        "value": 1200
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "CO₂ (ppm)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 33,
+   "type": "stat",
+   "title": "광량",
+   "description": "",
+   "gridPos": {
+    "x": 9,
+    "y": 35,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"data\" and r._field == \"ledIntensityKlx\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "text",
+        "value": null
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "광량 (klx)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 34,
+   "type": "stat",
+   "title": "양액 EC",
+   "description": "허용 범위 2.5~3.2dS/m",
+   "gridPos": {
+    "x": 12,
+    "y": 35,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"data\" and r._field == \"ec\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 2,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 2.5
+       },
+       {
+        "color": "red",
+        "value": 3.2
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "양액 EC (dS/m)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 35,
+   "type": "stat",
+   "title": "pH",
+   "description": "허용 범위 5.5~6.2",
+   "gridPos": {
+    "x": 15,
+    "y": 35,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"data\" and r._field == \"ph\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 5.5
+       },
+       {
+        "color": "red",
+        "value": 6.2
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "pH"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 36,
+   "type": "stat",
+   "title": "배지 수분",
+   "description": "",
+   "gridPos": {
+    "x": 18,
+    "y": 35,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"data\" and r._field == \"soilMoisture\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "text",
+        "value": null
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "배지 수분 (%)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 37,
+   "type": "stat",
+   "title": "배지 온도",
+   "description": "",
+   "gridPos": {
+    "x": 21,
+    "y": 35,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"data\" and r._field == \"soilTemp\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "text",
+        "value": null
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "배지 온도 (°C)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 38,
+   "type": "stat",
+   "title": "엽온",
+   "description": "",
+   "gridPos": {
+    "x": 0,
+    "y": 39,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"data\" and r._field == \"leafTemp\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "text",
+        "value": null
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "엽온 (°C)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 39,
+   "type": "stat",
+   "title": "VPD",
+   "description": "",
+   "gridPos": {
+    "x": 3,
+    "y": 39,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"data\" and r._field == \"vpd\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 2,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "text",
+        "value": null
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "VPD (kPa)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 40,
+   "type": "timeseries",
+   "title": "온도 (°C)",
+   "description": "최근 24시간, 허용 범위 21~27°C 를 하늘색 띠로 표시",
+   "gridPos": {
+    "x": 0,
+    "y": 43,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"data\" and r._field == \"temperature\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "legend": {
+     "displayMode": "hidden",
+     "showLegend": false
+    },
+    "tooltip": {
+     "mode": "single",
+     "sort": "none"
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "decimals": 1,
+     "displayName": "온도",
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "#1f2937"
+     },
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "fillOpacity": 0,
+      "showPoints": "never",
+      "spanNulls": true,
+      "thresholdsStyle": {
+       "mode": "area"
+      }
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "transparent",
+        "value": null
+       },
+       {
+        "color": "rgba(56, 189, 248, 0.28)",
+        "value": 21
+       },
+       {
+        "color": "transparent",
+        "value": 27
+       }
+      ]
+     }
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 41,
+   "type": "timeseries",
+   "title": "습도 (%)",
+   "description": "최근 24시간, 허용 범위 60~75% 를 하늘색 띠로 표시",
+   "gridPos": {
+    "x": 8,
+    "y": 43,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"data\" and r._field == \"humidity\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "legend": {
+     "displayMode": "hidden",
+     "showLegend": false
+    },
+    "tooltip": {
+     "mode": "single",
+     "sort": "none"
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "decimals": 1,
+     "displayName": "습도",
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "#1f2937"
+     },
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "fillOpacity": 0,
+      "showPoints": "never",
+      "spanNulls": true,
+      "thresholdsStyle": {
+       "mode": "area"
+      }
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "transparent",
+        "value": null
+       },
+       {
+        "color": "rgba(56, 189, 248, 0.28)",
+        "value": 60
+       },
+       {
+        "color": "transparent",
+        "value": 75
+       }
+      ]
+     }
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 42,
+   "type": "timeseries",
+   "title": "CO₂ (ppm)",
+   "description": "최근 24시간, 허용 범위 800~1200ppm 를 하늘색 띠로 표시",
+   "gridPos": {
+    "x": 16,
+    "y": 43,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"data\" and r._field == \"co2\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "legend": {
+     "displayMode": "hidden",
+     "showLegend": false
+    },
+    "tooltip": {
+     "mode": "single",
+     "sort": "none"
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "decimals": 0,
+     "displayName": "CO₂",
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "#1f2937"
+     },
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "fillOpacity": 0,
+      "showPoints": "never",
+      "spanNulls": true,
+      "thresholdsStyle": {
+       "mode": "area"
+      }
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "transparent",
+        "value": null
+       },
+       {
+        "color": "rgba(56, 189, 248, 0.28)",
+        "value": 800
+       },
+       {
+        "color": "transparent",
+        "value": 1200
+       }
+      ]
+     }
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 43,
+   "type": "timeseries",
+   "title": "광량 (klx)",
+   "description": "최근 24시간",
+   "gridPos": {
+    "x": 0,
+    "y": 51,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"data\" and r._field == \"ledIntensityKlx\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "legend": {
+     "displayMode": "hidden",
+     "showLegend": false
+    },
+    "tooltip": {
+     "mode": "single",
+     "sort": "none"
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "decimals": 1,
+     "displayName": "광량",
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "#1f2937"
+     },
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "fillOpacity": 0,
+      "showPoints": "never",
+      "spanNulls": true,
+      "thresholdsStyle": {
+       "mode": "off"
+      }
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "transparent",
+        "value": null
+       }
+      ]
+     }
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 44,
+   "type": "timeseries",
+   "title": "양액 EC (dS/m)",
+   "description": "최근 24시간, 허용 범위 2.5~3.2dS/m 를 하늘색 띠로 표시",
+   "gridPos": {
+    "x": 8,
+    "y": 51,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"data\" and r._field == \"ec\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "legend": {
+     "displayMode": "hidden",
+     "showLegend": false
+    },
+    "tooltip": {
+     "mode": "single",
+     "sort": "none"
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "decimals": 2,
+     "displayName": "양액 EC",
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "#1f2937"
+     },
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "fillOpacity": 0,
+      "showPoints": "never",
+      "spanNulls": true,
+      "thresholdsStyle": {
+       "mode": "area"
+      }
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "transparent",
+        "value": null
+       },
+       {
+        "color": "rgba(56, 189, 248, 0.28)",
+        "value": 2.5
+       },
+       {
+        "color": "transparent",
+        "value": 3.2
+       }
+      ]
+     }
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 45,
+   "type": "timeseries",
+   "title": "배지 수분 (%)",
+   "description": "최근 24시간",
+   "gridPos": {
+    "x": 16,
+    "y": 51,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"data\" and r._field == \"soilMoisture\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "legend": {
+     "displayMode": "hidden",
+     "showLegend": false
+    },
+    "tooltip": {
+     "mode": "single",
+     "sort": "none"
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "decimals": 1,
+     "displayName": "배지 수분",
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "#1f2937"
+     },
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "fillOpacity": 0,
+      "showPoints": "never",
+      "spanNulls": true,
+      "thresholdsStyle": {
+       "mode": "off"
+      }
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "transparent",
+        "value": null
+       }
+      ]
+     }
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 46,
+   "type": "stat",
+   "title": "구동기 상태 (topic .../ctrl/status)",
+   "gridPos": {
+    "x": 0,
+    "y": 59,
+    "w": 24,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"status\" and r._field == \"outerFan\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "B",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"status\" and r._field == \"outerFanSpeed\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "C",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"status\" and r._field == \"innerFan\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "D",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"status\" and r._field == \"innerFanSpeed\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "E",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"status\" and r._field == \"ledGrowLight\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "F",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"status\" and r._field == \"ledIntensity\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "G",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"status\" and r._field == \"irrigationPump\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "H",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"status\" and r._field == \"nutrientValve\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "I",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"status\" and r._field == \"co2Generator\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "J",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"status\" and r._field == \"coolingDamper\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "K",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"status\" and r._field == \"heatingDamper\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "L",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-02\" and r.kind == \"status\" and r._field == \"autoMode\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value_and_name",
+    "justifyMode": "center",
+    "orientation": "horizontal"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "text",
+        "value": null
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "noValue": "-"
+    },
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "A"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "배기팬"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지",
+            "color": "text"
+           },
+           "1": {
+            "text": "가동",
+            "color": "green"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "B"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "배기팬 단"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지"
+           },
+           "1": {
+            "text": "1단"
+           },
+           "2": {
+            "text": "2단"
+           },
+           "3": {
+            "text": "3단"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "C"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "순환팬"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지",
+            "color": "text"
+           },
+           "1": {
+            "text": "가동",
+            "color": "green"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "D"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "순환팬 단"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지"
+           },
+           "1": {
+            "text": "1단"
+           },
+           "2": {
+            "text": "2단"
+           },
+           "3": {
+            "text": "3단"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "E"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "LED"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지",
+            "color": "text"
+           },
+           "1": {
+            "text": "가동",
+            "color": "green"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "F"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "LED 밝기"
+       },
+       {
+        "id": "mappings",
+        "value": []
+       },
+       {
+        "id": "unit",
+        "value": "percent"
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "G"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "급수"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "대기",
+            "color": "text"
+           },
+           "1": {
+            "text": "급수 중",
+            "color": "blue"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "H"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "양액 밸브"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지",
+            "color": "text"
+           },
+           "1": {
+            "text": "가동",
+            "color": "green"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "I"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "CO₂ 공급"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지",
+            "color": "text"
+           },
+           "1": {
+            "text": "가동",
+            "color": "green"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "J"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "냉각 댐퍼"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지",
+            "color": "text"
+           },
+           "1": {
+            "text": "가동",
+            "color": "green"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "K"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "가온 댐퍼"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지",
+            "color": "text"
+           },
+           "1": {
+            "text": "가동",
+            "color": "green"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "L"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "제어 모드"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "수동",
+            "color": "orange"
+           },
+           "1": {
+            "text": "자동",
+            "color": "green"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": 47,
+   "type": "row",
+   "title": "스마트큐브 SC-03 · 설향 딸기 · 수확기, 1화방 수확 중",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 63,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 48,
+   "type": "stat",
+   "title": "온도",
+   "description": "허용 범위 16~22°C",
+   "gridPos": {
+    "x": 0,
+    "y": 64,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"data\" and r._field == \"temperature\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 16
+       },
+       {
+        "color": "red",
+        "value": 22
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "온도 (°C)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 49,
+   "type": "stat",
+   "title": "습도",
+   "description": "허용 범위 55~70%",
+   "gridPos": {
+    "x": 3,
+    "y": 64,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"data\" and r._field == \"humidity\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 55
+       },
+       {
+        "color": "red",
+        "value": 70
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "습도 (%)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 50,
+   "type": "stat",
+   "title": "CO₂",
+   "description": "허용 범위 600~900ppm",
+   "gridPos": {
+    "x": 6,
+    "y": 64,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"data\" and r._field == \"co2\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 0,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 600
+       },
+       {
+        "color": "red",
+        "value": 900
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "CO₂ (ppm)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 51,
+   "type": "stat",
+   "title": "광량",
+   "description": "",
+   "gridPos": {
+    "x": 9,
+    "y": 64,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"data\" and r._field == \"ledIntensityKlx\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "text",
+        "value": null
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "광량 (klx)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 52,
+   "type": "stat",
+   "title": "양액 EC",
+   "description": "허용 범위 1.0~1.5dS/m",
+   "gridPos": {
+    "x": 12,
+    "y": 64,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"data\" and r._field == \"ec\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 2,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 1.0
+       },
+       {
+        "color": "red",
+        "value": 1.5
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "양액 EC (dS/m)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 53,
+   "type": "stat",
+   "title": "pH",
+   "description": "허용 범위 5.8~6.4",
+   "gridPos": {
+    "x": 15,
+    "y": 64,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"data\" and r._field == \"ph\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 5.8
+       },
+       {
+        "color": "red",
+        "value": 6.4
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "pH"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 54,
+   "type": "stat",
+   "title": "배지 수분",
+   "description": "",
+   "gridPos": {
+    "x": 18,
+    "y": 64,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"data\" and r._field == \"soilMoisture\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "text",
+        "value": null
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "배지 수분 (%)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 55,
+   "type": "stat",
+   "title": "배지 온도",
+   "description": "",
+   "gridPos": {
+    "x": 21,
+    "y": 64,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"data\" and r._field == \"soilTemp\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "text",
+        "value": null
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "배지 온도 (°C)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 56,
+   "type": "stat",
+   "title": "엽온",
+   "description": "",
+   "gridPos": {
+    "x": 0,
+    "y": 68,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"data\" and r._field == \"leafTemp\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 1,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "text",
+        "value": null
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "엽온 (°C)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 57,
+   "type": "stat",
+   "title": "VPD",
+   "description": "",
+   "gridPos": {
+    "x": 3,
+    "y": 68,
+    "w": 3,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"data\" and r._field == \"vpd\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center",
+    "orientation": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "",
+     "decimals": 2,
+     "custom": {},
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "text",
+        "value": null
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "displayName": "VPD (kPa)"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 58,
+   "type": "timeseries",
+   "title": "온도 (°C)",
+   "description": "최근 24시간, 허용 범위 16~22°C 를 하늘색 띠로 표시",
+   "gridPos": {
+    "x": 0,
+    "y": 72,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"data\" and r._field == \"temperature\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "legend": {
+     "displayMode": "hidden",
+     "showLegend": false
+    },
+    "tooltip": {
+     "mode": "single",
+     "sort": "none"
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "decimals": 1,
+     "displayName": "온도",
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "#1f2937"
+     },
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "fillOpacity": 0,
+      "showPoints": "never",
+      "spanNulls": true,
+      "thresholdsStyle": {
+       "mode": "area"
+      }
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "transparent",
+        "value": null
+       },
+       {
+        "color": "rgba(56, 189, 248, 0.28)",
+        "value": 16
+       },
+       {
+        "color": "transparent",
+        "value": 22
+       }
+      ]
+     }
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 59,
+   "type": "timeseries",
+   "title": "습도 (%)",
+   "description": "최근 24시간, 허용 범위 55~70% 를 하늘색 띠로 표시",
+   "gridPos": {
+    "x": 8,
+    "y": 72,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"data\" and r._field == \"humidity\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "legend": {
+     "displayMode": "hidden",
+     "showLegend": false
+    },
+    "tooltip": {
+     "mode": "single",
+     "sort": "none"
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "decimals": 1,
+     "displayName": "습도",
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "#1f2937"
+     },
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "fillOpacity": 0,
+      "showPoints": "never",
+      "spanNulls": true,
+      "thresholdsStyle": {
+       "mode": "area"
+      }
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "transparent",
+        "value": null
+       },
+       {
+        "color": "rgba(56, 189, 248, 0.28)",
+        "value": 55
+       },
+       {
+        "color": "transparent",
+        "value": 70
+       }
+      ]
+     }
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 60,
+   "type": "timeseries",
+   "title": "CO₂ (ppm)",
+   "description": "최근 24시간, 허용 범위 600~900ppm 를 하늘색 띠로 표시",
+   "gridPos": {
+    "x": 16,
+    "y": 72,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"data\" and r._field == \"co2\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "legend": {
+     "displayMode": "hidden",
+     "showLegend": false
+    },
+    "tooltip": {
+     "mode": "single",
+     "sort": "none"
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "decimals": 0,
+     "displayName": "CO₂",
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "#1f2937"
+     },
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "fillOpacity": 0,
+      "showPoints": "never",
+      "spanNulls": true,
+      "thresholdsStyle": {
+       "mode": "area"
+      }
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "transparent",
+        "value": null
+       },
+       {
+        "color": "rgba(56, 189, 248, 0.28)",
+        "value": 600
+       },
+       {
+        "color": "transparent",
+        "value": 900
+       }
+      ]
+     }
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 61,
+   "type": "timeseries",
+   "title": "광량 (klx)",
+   "description": "최근 24시간",
+   "gridPos": {
+    "x": 0,
+    "y": 80,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"data\" and r._field == \"ledIntensityKlx\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "legend": {
+     "displayMode": "hidden",
+     "showLegend": false
+    },
+    "tooltip": {
+     "mode": "single",
+     "sort": "none"
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "decimals": 1,
+     "displayName": "광량",
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "#1f2937"
+     },
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "fillOpacity": 0,
+      "showPoints": "never",
+      "spanNulls": true,
+      "thresholdsStyle": {
+       "mode": "off"
+      }
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "transparent",
+        "value": null
+       }
+      ]
+     }
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 62,
+   "type": "timeseries",
+   "title": "양액 EC (dS/m)",
+   "description": "최근 24시간, 허용 범위 1.0~1.5dS/m 를 하늘색 띠로 표시",
+   "gridPos": {
+    "x": 8,
+    "y": 80,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"data\" and r._field == \"ec\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "legend": {
+     "displayMode": "hidden",
+     "showLegend": false
+    },
+    "tooltip": {
+     "mode": "single",
+     "sort": "none"
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "decimals": 2,
+     "displayName": "양액 EC",
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "#1f2937"
+     },
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "fillOpacity": 0,
+      "showPoints": "never",
+      "spanNulls": true,
+      "thresholdsStyle": {
+       "mode": "area"
+      }
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "transparent",
+        "value": null
+       },
+       {
+        "color": "rgba(56, 189, 248, 0.28)",
+        "value": 1.0
+       },
+       {
+        "color": "transparent",
+        "value": 1.5
+       }
+      ]
+     }
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 63,
+   "type": "timeseries",
+   "title": "배지 수분 (%)",
+   "description": "최근 24시간",
+   "gridPos": {
+    "x": 16,
+    "y": 80,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"data\" and r._field == \"soilMoisture\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "legend": {
+     "displayMode": "hidden",
+     "showLegend": false
+    },
+    "tooltip": {
+     "mode": "single",
+     "sort": "none"
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "decimals": 1,
+     "displayName": "배지 수분",
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "#1f2937"
+     },
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "fillOpacity": 0,
+      "showPoints": "never",
+      "spanNulls": true,
+      "thresholdsStyle": {
+       "mode": "off"
+      }
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "transparent",
+        "value": null
+       }
+      ]
+     }
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 64,
+   "type": "stat",
+   "title": "구동기 상태 (topic .../ctrl/status)",
+   "gridPos": {
+    "x": 0,
+    "y": 88,
+    "w": 24,
+    "h": 4
+   },
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-main"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "A",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"status\" and r._field == \"outerFan\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "B",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"status\" and r._field == \"outerFanSpeed\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "C",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"status\" and r._field == \"innerFan\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "D",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"status\" and r._field == \"innerFanSpeed\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "E",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"status\" and r._field == \"ledGrowLight\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "F",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"status\" and r._field == \"ledIntensity\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "G",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"status\" and r._field == \"irrigationPump\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "H",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"status\" and r._field == \"nutrientValve\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "I",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"status\" and r._field == \"co2Generator\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "J",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"status\" and r._field == \"coolingDamper\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "K",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"status\" and r._field == \"heatingDamper\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    },
+    {
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-main"
+     },
+     "refId": "L",
+     "query": "from(bucket: \"sensors\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"mqtt\" and r.cube == \"SC-03\" and r.kind == \"status\" and r._field == \"autoMode\")\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value_and_name",
+    "justifyMode": "center",
+    "orientation": "horizontal"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "text",
+        "value": null
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "noValue": "-"
+    },
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "A"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "배기팬"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지",
+            "color": "text"
+           },
+           "1": {
+            "text": "가동",
+            "color": "green"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "B"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "배기팬 단"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지"
+           },
+           "1": {
+            "text": "1단"
+           },
+           "2": {
+            "text": "2단"
+           },
+           "3": {
+            "text": "3단"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "C"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "순환팬"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지",
+            "color": "text"
+           },
+           "1": {
+            "text": "가동",
+            "color": "green"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "D"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "순환팬 단"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지"
+           },
+           "1": {
+            "text": "1단"
+           },
+           "2": {
+            "text": "2단"
+           },
+           "3": {
+            "text": "3단"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "E"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "LED"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지",
+            "color": "text"
+           },
+           "1": {
+            "text": "가동",
+            "color": "green"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "F"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "LED 밝기"
+       },
+       {
+        "id": "mappings",
+        "value": []
+       },
+       {
+        "id": "unit",
+        "value": "percent"
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "G"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "급수"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "대기",
+            "color": "text"
+           },
+           "1": {
+            "text": "급수 중",
+            "color": "blue"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "H"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "양액 밸브"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지",
+            "color": "text"
+           },
+           "1": {
+            "text": "가동",
+            "color": "green"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "I"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "CO₂ 공급"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지",
+            "color": "text"
+           },
+           "1": {
+            "text": "가동",
+            "color": "green"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "J"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "냉각 댐퍼"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지",
+            "color": "text"
+           },
+           "1": {
+            "text": "가동",
+            "color": "green"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "K"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "가온 댐퍼"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "정지",
+            "color": "text"
+           },
+           "1": {
+            "text": "가동",
+            "color": "green"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byFrameRefID",
+       "options": "L"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "제어 모드"
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "0": {
+            "text": "수동",
+            "color": "orange"
+           },
+           "1": {
+            "text": "자동",
+            "color": "green"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

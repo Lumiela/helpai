@@ -1,0 +1,128 @@
+# /data/docker-compose.yml — 네이버 클라우드판 (2026-10-19, 랩탑 ClaudeCode)
+#
+# 젯슨 v3(config/docker-compose.v3.yml)에서 바뀐 것:
+#   · web 이 TLS 종단을 맡는다(Tailscale Funnel 대체): 80·443·8443 공개.
+#     /etc/letsencrypt(읽기 전용) · nginx.conf(stream 8443 → mosquitto:1883) · ACME 웹루트(/data/certbot-www) 마운트
+#   · api 의 BROKER_PUBLIC_HOST = smartcubens.duckdns.org (소유자 화면에 보여 줄 장치 접속 주소)
+#   · grafana 3000 은 호스트 로컬(127.0.0.1)만 — 공인 IP 노출 방지. 관리자는 SSH 터널: ssh -N -L 127.0.0.1:3000:127.0.0.1:3000 cloud
+#   · gpu-relay 제거 — GPU 서버(210.125.70.71) 접근 시험과 공개 방식이 정해지면 다시 넣는다
+#   · 그 밖(mosquitto · influxdb · api 의 볼륨·환경변수)은 젯슨과 같다
+#
+# .env 는 젯슨 것을 그대로 쓴다(변수 이름은 config/env.v3.example). 값에 $ 금지.
+# 적용: cd /data && docker compose up -d --build
+# 바인드 마운트 규칙(젯슨과 동일): 연결된 파일·폴더는 바꿔치기(install·mv)하지 말고 cp 로 덮어쓴다.
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: mosquitto
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1883:1883"
+    volumes:
+      - /data/mosquitto/config:/mosquitto/config
+      - /data/mosquitto/data:/mosquitto/data
+      - /data/mosquitto/log:/mosquitto/log
+
+  influxdb:
+    image: influxdb:2.7
+    container_name: influxdb
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8086:8086"
+    environment:
+      # 젯슨에서 가져온 데이터 폴더가 이미 초기화돼 있어 아래 INIT 값은 무시된다(토큰 3종 그대로 유효)
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_PASSWORD}
+      DOCKER_INFLUXDB_INIT_ORG: smartcube
+      DOCKER_INFLUXDB_INIT_BUCKET: sensors
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN}
+    volumes:
+      - /data/influxdb/data:/var/lib/influxdb2
+      - /data/influxdb/config:/etc/influxdb2
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - influxdb
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      # 프로비저닝 파일(datasource.yml)이 INFLUX_TOKEN 이름을 쓰므로 이름은 두고 값만 읽기 전용으로
+      INFLUX_TOKEN: ${INFLUX_READ_TOKEN}
+    volumes:
+      - /data/grafana/data:/var/lib/grafana
+      - /data/grafana/provisioning:/etc/grafana/provisioning:ro
+
+  # 공개 입구(Funnel 대체): 80(ACME 검증·https 리다이렉트) · 443(화면·api·카메라 업로드·InfluxDB 읽기 창구) · 8443(장치 MQTT TLS → mosquitto:1883)
+  web:
+    image: nginx:1.27-alpine
+    container_name: web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8443:8443"
+    depends_on:
+      - mosquitto
+    volumes:
+      - /data/web:/usr/share/nginx/html:ro
+      - /data/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /data/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /data/certbot-www:/var/www/certbot:ro
+
+  api:
+    build: /data/api
+    image: smartcube-api:2
+    container_name: api
+    restart: unless-stopped
+    depends_on:
+      - mosquitto
+      - influxdb
+    environment:
+      TZ: Asia/Seoul
+      MQTT_USER: ${MQTT_USER}
+      MQTT_PASSWORD: ${MQTT_PASSWORD}
+      AG_APP: helpai.cube
+      INFLUX_WRITE_TOKEN: ${INFLUX_WRITE_TOKEN}
+      INFLUX_READ_TOKEN: ${INFLUX_READ_TOKEN}
+      WRITER_ENABLED: "1"
+      AUTH_MODE: ${AUTH_MODE}
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
+      OPERATOR_MASTER_KEY: ${OPERATOR_MASTER_KEY}
+      OPERATOR_GRANT_MINUTES: "60"
+      REGISTRY_RELOAD_SECONDS: "60"
+      BROKER_ADMIN: "1"
+      # 장치에 보여 줄 공개 접속 주소 — 네이버 클라우드 공개 입구(web 의 stream 8443)
+      BROKER_PUBLIC_HOST: smartcubens.duckdns.org
+      BROKER_PUBLIC_PORT: "8443"
+      SNAPSHOT_DIR: /data/snapshots
+      SNAPSHOT_TIMES: "00:00,03:00,06:00,09:00,12:00,15:00,18:00,21:00"   # 2026-11-02 사용자 지시: 12시간 → 3시간 간격
+      SNAPSHOT_TIMEOUT: "60"
+      STREAM_MAX_SECONDS: "300"
+      # AI 리포트: 클라우드 api 안에서 LangGraph 로 작성. LLM 은 제공자 전환식(2026-11-04 사용자 지시):
+      #   지금 = gemini(구글 Gemini OpenAI 호환 창구, 키는 .env 의 GEMINI_API_KEY).
+      #   나중에 로컬 LLM 으로 바꿀 때 = .env 에 REPORT_LLM_PROVIDER=local 과 REPORT_LLM_URL·HELPAI_LLM_KEY 를 넣고
+      #   docker compose up -d api 만 하면 된다(코드·이미지 변경 없음).
+      REPORT_DIR: /data/reports
+      LEAFDX_DIR: /data/leafdx   # 이미지 처리 결과 — 리포트 기간 안에 있으면 재료에 넣음(2026-11-13)
+      REPORT_LLM_PROVIDER: ${REPORT_LLM_PROVIDER:-gemini}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      REPORT_LLM_MODEL: ${REPORT_LLM_MODEL:-}   # 비우면 gemini-3.8-flash(gemini) / local(local)
+      REPORT_LLM_URL: ${REPORT_LLM_URL:-}
+      HELPAI_LLM_KEY: ${HELPAI_LLM_KEY:-}
+      REPORT_EVERY: "10m"
+      LANGSMITH_TRACING: "false"
+    volumes:
+      - /data/snapshots:/data/snapshots
+      - /data/reports:/data/reports
+      - /data/leafdx:/data/leafdx:ro
+    # ports: 는 일부러 없다. nginx(web) 뒤에서만 받는다.
