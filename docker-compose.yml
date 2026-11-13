@@ -113,6 +113,7 @@ services:
       #   나중에 로컬 LLM 으로 바꿀 때 = .env 에 REPORT_LLM_PROVIDER=local 과 REPORT_LLM_URL·HELPAI_LLM_KEY 를 넣고
       #   docker compose up -d api 만 하면 된다(코드·이미지 변경 없음).
       REPORT_DIR: /data/reports
+      LEAFDX_DIR: /data/leafdx   # 이미지 처리 결과 — 리포트 기간 안에 있으면 재료에 넣음(2026-11-13)
       REPORT_LLM_PROVIDER: ${REPORT_LLM_PROVIDER:-gemini}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       REPORT_LLM_MODEL: ${REPORT_LLM_MODEL:-}   # 비우면 gemini-3.8-flash(gemini) / local(local)
@@ -123,4 +124,5 @@ services:
     volumes:
       - /data/snapshots:/data/snapshots
       - /data/reports:/data/reports
+      - /data/leafdx:/data/leafdx:ro
     # ports: 는 일부러 없다. nginx(web) 뒤에서만 받는다.

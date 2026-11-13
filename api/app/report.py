@@ -51,6 +51,7 @@ from . import report_material as rm
 KST = timezone(timedelta(hours=9))
 
 REPORT_DIR = os.environ.get("REPORT_DIR", "/data/reports")
+LEAFDX_DIR = os.environ.get("LEAFDX_DIR", "/data/leafdx")          # 이미지 처리 결과(tools/leafdx_request.py, 2026-11-13)
 EVERY = os.environ.get("REPORT_EVERY", "10m").strip() or "10m"     # 재료 집계 간격(R-8: 지금 10분 평균, 나중에 조절)
 FIELDS = [f.strip() for f in os.environ.get(
     "REPORT_FIELDS", "temperature,humidity,lux,moisture_pct,fan1,led1,pump").split(",") if f.strip()]
@@ -403,8 +404,14 @@ async def build_input(job: dict) -> dict:
             crop = _hooks["crop"](job["cube"])
         except Exception:   # noqa: BLE001
             crop = None
+    try:     # 이미지 처리 결과(2026-11-13). 없거나 읽기 실패면 센서 재료만으로 작성
+        images = await asyncio.to_thread(rm.load_images, LEAFDX_DIR, job["instance"], job["cube"],
+                                         job["period_start_ts"], job["period_end_ts"])
+    except Exception as e:   # noqa: BLE001
+        _log("[report] 이미지 결과 읽기 실패 %s: %s" % (jid, str(e)[:160]))
+        images = []
     data = rm.build(period_start=job["period_start_ts"], period_end=job["period_end_ts"], every=every, fields=fields,
-                    series=series, crop=crop, records=records, records_error=rec_error)
+                    series=series, crop=crop, records=records, records_error=rec_error, images=images)
     if rec_error is None:
         _inputs[jid] = data
     return data

@@ -15,6 +15,8 @@ AI 리포트 재료 텍스트 (2026-10-07, 계획서 edgeserver-JS/2026-10-07_AI
 import csv
 import io
 import json
+import os
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 
@@ -137,9 +139,110 @@ def records_csv(records: Optional[list]) -> str:
     return _rows(out)
 
 
+# ──────────────────────────────────────────────── 이미지 처리 결과 (2026-11-13)
+# /data/leafdx 의 잎 판정·높이 결과가 리포트 기간 안에 있으면 재료에 넣는다(사용자 지시 11-13: 잎 판정 + 높이,
+# 사진마다 한 줄). 잎마다의 값(한 장에 500개 안팎)은 컨텍스트 한도를 넘으므로 상태별 개수만 쓴다.
+#   LEAFDX_DIR/<iid>/<cube>/<cam>/<YYYY-MM-DD>/<HHMMSS>_<trigger>[-n].json          잎 판정(tools/leafdx_request.py)
+#   LEAFDX_DIR/<iid>/<cube>/<cam>/<YYYY-MM-DD>/<HHMMSS>_<trigger>[-n]_height.json   스테레오 높이
+# 사진 시각 = 날짜 폴더 + 파일 이름 앞 6자리(한국 시간, camera.store 와 같은 규칙).
+
+IMAGE_DESC = "\n".join([
+    "leaves: 판정한 잎 수",
+    "anomaly: 병해·이상 의심 잎 수(ANOMALY:* 합)",
+    "counts: 상태별 잎 수(FRESH 정상, HOLD_SHAPE 모양 보류, UNKNOWN 판정 불가, ANOMALY:<병해> 이상 의심)",
+    "top_cm: 식물 높이(cm, 중앙 영역 상위 지점, 잠정)",
+    "median_cm: 식물 높이 중앙값(cm, 잠정)",
+])
+
+
+def _int_counts(leaf) -> Dict[str, int]:
+    counts = leaf.get("counts") if isinstance(leaf, dict) else None
+    if not isinstance(counts, dict):
+        return {}
+    return {str(k): v for k, v in counts.items() if isinstance(v, int) and not isinstance(v, bool)}
+
+
+def _cm(d: dict, key: str) -> str:
+    v = d.get(key)
+    if isinstance(v, bool) or not isinstance(v, (int, float)):
+        return EMPTY
+    return "%.2f" % v
+
+
+def image_row(time_label: str, cam: str, leaf, height) -> List[str]:
+    """사진 한 장 → [time, cam, leaves, anomaly, counts, top_cm, median_cm]. (초안: 맥북 9b, 검토·수정: 랩탑 ClaudeCode)"""
+    counts = _int_counts(leaf)
+    if counts:
+        items = sorted(counts.items(), key=lambda kv_: (-kv_[1], kv_[0]))
+        leaves = str(sum(counts.values()))
+        anomaly = str(sum(v for k, v in counts.items() if k.startswith("ANOMALY:")))
+        counts_text = " ".join("%s=%d" % (k, v) for k, v in items)
+    else:
+        leaves = anomaly = counts_text = EMPTY
+    h = height.get("height") if isinstance(height, dict) else None
+    if isinstance(h, dict):
+        top, median = _cm(h, "top_cm"), _cm(h, "median_cm")
+    else:
+        top = median = EMPTY
+    return [str(time_label), str(cam), leaves, anomaly, counts_text, top, median]
+
+
+# 트리거 이름에는 밑줄이 없다(camera.TRIGGERS). _vis·_depth 같은 다른 산출물은 고르지 않는다.
+_IMG_NAME = re.compile(r"^(\d{6})_[a-z]+(?:-\d+)?(_height)?\.json$")
+
+
+def _read_json(path: str):
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:   # noqa: BLE001 — 깨진 파일 하나 때문에 리포트를 멈추지 않는다
+        return None
+
+
+def load_images(root: str, iid: str, cube: str, start_ts: float, end_ts: float) -> List[dict]:
+    """기간 [start, end) 안의 사진별 결과. [{"at", "cam", "leaf", "height"}] 시각순. 폴더가 없으면 빈 목록."""
+    base = os.path.join(root, iid, cube)
+    if not os.path.isdir(base):
+        return []
+    d0 = datetime.fromtimestamp(start_ts, KST).date()
+    d1 = datetime.fromtimestamp(end_ts, KST).date()
+    found: Dict[tuple, dict] = {}
+    for cam in sorted(os.listdir(base)):
+        cam_dir = os.path.join(base, cam)
+        if not os.path.isdir(cam_dir):
+            continue
+        for day in os.listdir(cam_dir):
+            try:
+                dd = datetime.strptime(day, "%Y-%m-%d").date()
+            except ValueError:
+                continue
+            if dd < d0 or dd > d1:
+                continue
+            day_dir = os.path.join(cam_dir, day)
+            for name in os.listdir(day_dir):
+                m = _IMG_NAME.match(name)
+                if not m:
+                    continue
+                at = datetime.strptime(day + m.group(1), "%Y-%m-%d%H%M%S").replace(tzinfo=KST)
+                if not (start_ts <= at.timestamp() < end_ts):
+                    continue
+                stem = name[:-len("_height.json")] if m.group(2) else name[:-len(".json")]
+                e = found.setdefault((cam, day, stem), {"at": at, "cam": cam, "leaf": None, "height": None})
+                e["height" if m.group(2) else "leaf"] = _read_json(os.path.join(day_dir, name))
+    return sorted(found.values(), key=lambda e: (e["at"], e["cam"]))
+
+
+def images_csv(images: List[dict]) -> str:
+    out = [["time", "cam", "leaves", "anomaly", "counts", "top_cm", "median_cm"]]
+    for e in images:
+        out.append(image_row(tlabel(e["at"]), e["cam"], e.get("leaf"), e.get("height")))
+    return _rows(out)
+
+
 def build(*, period_start: float, period_end: float, every: str, fields: List[str], series: Dict[str, list],
-          crop, records: Optional[list], records_error: Optional[str]) -> dict:
-    """재료 텍스트와 크기 정보. {"text", "rows", "records", "bytes"}"""
+          crop, records: Optional[list], records_error: Optional[str], images: Optional[list] = None) -> dict:
+    """재료 텍스트와 크기 정보. {"text", "rows", "records", "images", "bytes"}
+    images(load_images 결과)가 있으면 끝에 [이미지 판정] 을 붙인다. 없으면 이전과 같은 재료."""
     head = "기간 %s ~ %s (KST), %s 평균, 시각 = 집계 창 끝" % (
         datetime.fromtimestamp(period_start, KST).strftime("%Y-%m-%d %H:%M"),
         datetime.fromtimestamp(period_end, KST).strftime("%Y-%m-%d %H:%M"), every)
@@ -150,5 +253,9 @@ def build(*, period_start: float, period_end: float, every: str, fields: List[st
         rec_text = "자동 제어 기록을 가져오지 못함: %s" % records_error
     else:
         rec_text = records_csv(records)
-    text = "\n\n".join([head, desc, "[센서]\n" + table, "[작물]\n" + crop_text, "[자동 제어 기록]\n" + rec_text])
-    return {"text": text, "rows": nrows, "records": len(records or []), "bytes": len(text.encode("utf-8"))}
+    parts = [head, desc, "[센서]\n" + table, "[작물]\n" + crop_text, "[자동 제어 기록]\n" + rec_text]
+    if images:
+        parts.append("[이미지 판정]\n" + IMAGE_DESC + "\n" + images_csv(images))
+    text = "\n\n".join(parts)
+    return {"text": text, "rows": nrows, "records": len(records or []), "images": len(images or []),
+            "bytes": len(text.encode("utf-8"))}
