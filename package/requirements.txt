@@ -1,2 +1,4 @@
-# the classifier was trained with ultralytics 8.4.198 on Colab; torch, torchvision, opencv, pillow and numpy come with Colab
+# 8.4.198 reproduces the server leaf search (8.4.215 finds a few different leaves); all three classifiers give identical outputs on both; torch, torchvision, opencv, pillow and numpy come with Colab
 ultralytics==8.4.198
+# VLM check (verify.py): the Anthropic SDK for the claude backend; the qwen backend uses transformers + accelerate from Colab
+anthropic
