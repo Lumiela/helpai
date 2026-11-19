@@ -1,0 +1,5 @@
+# personal API key files: never commit
+ANTHROPIC_API_KEY
+ANTHROPIC_API_KEY.txt
+ANTHROPIC_API_KEY*
+__pycache__/
