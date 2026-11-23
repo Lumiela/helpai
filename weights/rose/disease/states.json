@@ -1,0 +1,9 @@
+{
+ "thresholds": {
+  "s_min": 0,
+  "d_max": 1.01,
+  "L_min": 0,
+  "t_anom": 0.5,
+  "t_fresh": 0.7
+ }
+}

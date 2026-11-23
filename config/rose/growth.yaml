@@ -1,0 +1,175 @@
+# 미니 장미 생장 단계 파이프라인 설정
+# 경로는 프로젝트 루트(Image_Langgraph) 기준 상대 경로
+# (crop_monitor 파이프라인에서는 이미지를 그래프 입력으로 넘기므로 cameras.source 는 단독 실행용)
+
+# ─────────────────────────────────────────────
+# 트레이 배치: 구멍 3행 × 4열
+#   coverage: 각 칸을 어느 카메라 결과로 판단할지 (범위표)
+#             2026-11-12 카메라 위치 변경 후 두 카메라가 모든 칸을 봄.
+#             (이전: 4열 = CR 만, R3C1 = CL 만)
+#   plants:   식물 위치 (O = 식물, X = 빈 구멍). presence.method 가 fixed 일 때만 사용
+# ─────────────────────────────────────────────
+layout:
+  rows: 3
+  cols: 4
+  coverage:
+    - ["CL,CR", "CL,CR", "CL,CR", "CL,CR"]
+    - ["CL,CR", "CL,CR", "CL,CR", "CL,CR"]
+    - ["CL,CR", "CL,CR", "CL,CR", "CL,CR"]
+  plants:
+    - [O, X, O, X]
+    - [X, O, X, O]
+    - [O, X, O, X]
+
+# ─────────────────────────────────────────────
+# 입력: 카메라별 이미지 소스
+#   type: file   → path 의 이미지 파일 (현재)
+#   type: camera → device (cv2.VideoCapture 인덱스 또는 RTSP URL) 에서 한 프레임 캡처 (향후)
+# ─────────────────────────────────────────────
+cameras:
+  CL:
+    source: {type: file, path: data/samples/rose_CL.jpg}
+  CR:
+    source: {type: file, path: data/samples/rose_CR.jpg}
+
+# 카메라별 구멍 중심 좌표는 tools/calibrate_holes.py 로 생성
+holes_file: config/rose/holes.yaml
+
+# 구멍 반지름(px) = 그 구멍에서 가장 가까운 다른 구멍까지 거리 × radius_ratio
+radius_ratio: 0.3
+
+# ─────────────────────────────────────────────
+# 1단계-1: 식물 유무 판단
+#   dark_cover : 사진에서 자동 판단. 빈 화분은 검은 덮개가 보임 → 구멍 중심 원 안의
+#                어두운 픽셀 비율이 높으면 빈 구멍
+#   fixed      : layout.plants 의 O/X 표를 그대로 사용. 사진 판단과 다르면 경고만 출력
+# ─────────────────────────────────────────────
+presence:
+  method: fixed
+  dark_v_max: 70       # HSV 명도(V)가 이 값 이하이면 "어두운 픽셀"
+  empty_ratio: 0.38    # 어두운 픽셀 비율이 이 값 이상이면 빈 구멍 (여러 카메라면 평균)
+
+# ─────────────────────────────────────────────
+# 1단계-2: 각각의 미니 장미 구분 (식물 세그멘테이션)
+# ─────────────────────────────────────────────
+segmentation:
+  method: nearest_pot  # 식물 색 픽셀을 가장 가까운 "식물 있는 구멍"에 배정 | 향후 sam 등 추가
+  max_reach: 1.6       # 구멍 간 거리 × 이 값보다 먼 픽셀은 어느 식물에도 배정 안 함 (다른 트레이 제외)
+  min_component_ratio: 0.02  # 구멍 원 면적 대비 이보다 작은 조각은 잡음으로 제거
+  morph_kernel: 5
+  work_max_side: 1280  # 계산 속도용 축소 크기 (긴 변 px)
+  # 식물로 볼 HSV 범위 (OpenCV 기준 H:0~179, S/V:0~255). 잎 + 꽃 색
+  hsv_ranges:
+    - {name: leaf_green, lower: [25, 50, 60],  upper: [95, 255, 255]}
+    - {name: red_low,    lower: [0, 80, 60],   upper: [12, 255, 255]}
+    - {name: red_high,   lower: [160, 80, 60], upper: [179, 255, 255]}
+    - {name: pink,       lower: [140, 40, 60], upper: [165, 255, 255]}
+    - {name: yellow,     lower: [12, 60, 80],  upper: [25, 255, 255]}
+
+# ─────────────────────────────────────────────
+# 2단계: 생장 단계 판단 (꽃봉오리 검출 → 식물별 최고 등급)
+# ─────────────────────────────────────────────
+grading:
+  # 낮은 → 높은 순서. 첫 번째가 기본 클래스(봉오리가 없을 때)
+  grades: [grade_zero, grade_one, grade_two, grade_three, grade_four]
+
+  # hybrid    : (현재) YOLO 로 후보 위치 → FastSAM 으로 봉오리 마스크 → 분류 모델로 등급 → (review) Claude 검수
+  #             지금 설정: 위치 = yolov8m_best.pt, 등급 = yolo26m-cls_best.pt (둘 다 장미 데이터로 학습한 모델),
+  #             검수·누락 추가 = Claude
+  # vlm_plant : 식물(화분)마다 Claude(VLM)에게 그 식물 사진을 보내 봉오리·꽃 위치와 등급을 직접 받음.
+  #             검출·분류 모델 불필요 (아래 ①②③ 설정은 쓰지 않고 vlm 설정만 씀). 요금·인터넷·API 키 필요
+  # yolo      : 기존 방식 (train_detector.py) — YOLO 한 모델이 위치와 등급을 함께 판단
+  # none      : 검출 없음 → 모두 기본 클래스
+  # 어느 방식이든 그 뒤(식물 등급 = 봉오리 중 최고 등급 → 카메라 합치기 → 표·결과판)는 같음
+  detector:
+    type: hybrid
+    # ① 봉오리 위치 검출: yolov8m_best.pt (yolov8m.pt 에서 장미 봉오리 1클래스 'bud' 로 학습, 30 epoch)
+    #    (학습 안 한 COCO 모델로 돌아가려면 weights/yolov8m.pt + conf 0.01)
+    weights: weights/rose/growth/yolov8m_best.pt
+    det_classes: null    # 쓸 클래스 번호 목록 (null = 전부)
+    agnostic_nms: true   # 클래스 상관없이 겹친 박스 정리
+    conf: 0.15           # 넓게 잡고 ③ 분류·④ 검수에서 거름
+    max_box_frac: 0.3    # 식물 크롭 넓이의 30% 보다 큰 박스(식물 전체 = potted plant)는 버림
+    max_box_px: 200      # 긴 변이 200px 보다 큰 박스도 버림 (카메라 2000x1500 기준. 봉오리 ~30px, 반쯤 핀 꽃 ~100px)
+                         # 식물 크롭이 크면 비율 기준만으로는 식물 일부를 크게 잡은 박스(209x576)가 남았음 (11/23)
+    imgsz: 640
+    # ② 봉오리 마스크 (FastSAM). null 이면 생략하고 박스만 사용
+    sam_weights: weights/rose/growth/FastSAM-s.pt   # 프로젝트 안에 없으면 ultralytics 가 자동으로 내려받음
+    sam_imgsz: 1024
+    sam_conf: 0.4
+    mask_iou: 0.3        # 박스와 조각의 IoU 가 이보다 작으면 마스크 없이 박스만 사용
+    mask_margin: 0.1     # 고른 조각을 박스보다 이만큼만 넓게 잘라 씀 (잎으로 번지는 것 방지)
+    # ③ 등급 분류 (not_bud / grade_one ~ grade_four)
+    cls_weights: weights/rose/growth/yolo26m-cls_best.pt   # yolo26m-cls.pt 에서 not_bud / grade_one~four 로 학습 (30 epoch)
+    cls_imgsz: 224
+    cls_conf: 0.5        # 분류 확신이 이보다 낮으면 버림 (embed: 이긴 등급의 득표 비율)
+    crop_pad: 0.15       # 분류 크롭 여백. tools/prepare_hybrid_data.py --pad 와 같게
+    # ③ 분류를 누가 하나
+    #   yolo    : (현재) cls_weights 가 우리 클래스로 학습된 YOLO 분류 모델일 때
+    #   embed   : 학습 안 한 cls_weights(yolo26m-cls.pt)를 특징 추출기로 쓰고, 참고 크롭 중 가장 비슷한 k장으로 판단
+    #   vlm     : Claude(VLM)가 등급 설명 + 예시 사진을 보고 판단. 학습 불필요, 요금 발생, 인터넷 필요
+    #   cascade : YOLO 로 먼저 판단하고 확신이 cascade_below 미만인 크롭만 VLM 에게 다시 물음
+    # 바꾸기 전에 tools/eval_classifier.py 로 val 크롭에서 비교하세요.
+    cls_backend: yolo
+    cascade_below: 0.8
+    embed:
+      reference_dir: weights/rose/growth/cls_reference   # <클래스>/*.jpg 참고 크롭 (tools/make_vlm_examples.py --out cls_reference)
+      per_class: 200       # 클래스마다 쓸 참고 크롭 수
+      k: 15                # 가장 비슷한 몇 장으로 투표할지
+    # ④ Claude 검수: ③ 에서 남은 크롭을 Claude 가 ③ 결과를 모른 채 다시 판단해 최종 등급으로 씀 (아래 vlm 설정 사용)
+    #    not_bud 이거나 확신 < review_conf 이면 버림. ③ 등급은 result.json 의 cls_class 에 남음. false = 검수 안 함
+    review: true
+    review_conf: 0.6   # 0.5 에서는 식물 일부를 크게 잡은 박스가 G1 0.50 으로 남은 적이 있음 (11/23)
+    # ⑤ 누락 추가: 식물마다 찾은 봉오리를 청록색 박스로 그린 사진을 Claude 에게 보내, 박스 밖에서 놓친 봉오리를 추가
+    #    (vlm 설정의 plant_image_size·dim_outside·min_conf·max_workers 사용). 식물 수 × 카메라 수만큼 요청이 늘어남
+    #    추가된 봉오리는 vis 에 '+VLM', result.json 에 added_by: claude. false = 추가 안 함
+    #    추가 뒤 중복 정리: 검수 봉오리의 등급 판단 크롭 안에 같은 등급 추가 봉오리가 있으면 검수 봉오리를 뺌
+    add_missed: true
+    # Claude API 설정. 사용법: 프로젝트 폴더에 ANTHROPIC_API_KEY.txt (키 sk-ant-... 한 줄)를 만들면 끝.
+    #   키 파일이 없으면 ANTHROPIC_API_KEY 환경 변수를 씀. review·add_missed 가 false 면 API 를 안 씀.
+    #   자세한 설명: rose_pipeline/api_key.py 맨 위
+    vlm:
+      model: claude-opus-5-5
+      api_key_file: secrets/ANTHROPIC_API_KEY   # Claude API 키 파일 (프로젝트 루트 기준, .txt 붙어도 됨). 공유·깃 업로드 금지
+      effort: low              # low | medium | high. 높을수록 신중하지만 느리고 비쌈
+      batch_size: 8            # 한 요청에 묶어 보낼 크롭 수
+      image_size: 256          # 크롭의 긴 변을 이 크기로 맞춰 보냄 (작은 봉오리는 확대)
+      max_tokens: 8000
+      fallbacks: default       # 안전 분류기가 거절하면 서버가 다른 모델로 다시 실행. 끄려면 null
+      examples_dir: weights/rose/growth/vlm_examples   # <클래스>/*.jpg 예시 사진 (tools/make_vlm_examples.py). 없으면 예시 없이
+      examples_per_class: 2
+      # vlm_plant 전용
+      plant_image_size: 1024   # 식물 사진의 긴 변 (크게 할수록 작은 봉오리가 잘 보이지만 비쌈)
+      dim_outside: 0.35        # 이웃 식물로 나뉜 픽셀의 밝기 배율 (이웃 봉오리를 헷갈리지 않게). 1 = 안 어둡게
+      min_conf: 0.5            # VLM 확신이 이보다 낮은 봉오리는 버림
+      max_workers: 4           # 식물 사진을 동시에 보내는 수
+      # 등급 기준 (작업자 4 분류 기준). VLM 은 이 설명대로 판단합니다.
+      # 등급은 품질·색이 아니라 꽃이 핀 정도(개화 단계)이며, 숫자가 클수록 많이 핀 꽃입니다.
+      grade_descriptions:
+        not_bud: 봉오리나 꽃이 아님 - 잎, 새순, 줄기, 가시, 흙, 화분, 트레이, 반사판, 케이블, 손 등
+        grade_one: 닫힌 봉오리 - 꽃잎이 꽉 말려 있고 끝이 뾰족하게 모여 있음. 초록 꽃받침이 아직 봉오리를 감싸고 있음. 꽃잎 색이 거의 보이지 않는 어린 초록 봉오리도 1등급
+        grade_two: 피기 시작 - 꽃받침이 아래로 젖혀졌고 바깥 꽃잎 1~2장이 벌어지기 시작함. 가운데는 아직 단단하게 말려 있음
+        grade_three: 반쯤 핌 - 바깥 꽃잎 여러 장이 컵 모양으로 벌어짐. 가운데에 소용돌이 모양의 심이 아직 남아 있음
+        grade_four: 만개 - 꽃잎이 납작하게 다 펼쳐져 겹꽃 모양. 가운데까지 벌어져 심이 거의 보이지 않음
+    # plant_crop: 식물 영역을 잘라 확대해서 검출 (작은 봉오리에 유리)
+    # full_image: 카메라 이미지 전체에서 한 번에 검출
+    detect_on: plant_crop
+    crop_padding: 0.1
+
+  # 봉오리 → 식물 할당 규칙 (rose_pipeline/assignment.py)
+  #   center_in_mask : 봉오리 박스 중심점이 식물 마스크 안에 있으면 그 식물
+  #   max_overlap    : 봉오리 박스와 가장 많이 겹치는 식물 마스크
+  #   mask_overlap   : 봉오리 마스크(혼합형)와 가장 많이 겹치는 식물. 마스크가 없으면 max_overlap
+  assignment: mask_overlap
+
+  # 여러 카메라 결과 합치기 (rose_pipeline/fusion.py)
+  #   max : 카메라별 등급 중 가장 높은 것
+  fusion: max
+
+# ─────────────────────────────────────────────
+# 출력
+# ─────────────────────────────────────────────
+output:
+  dir: out/rose_growth
+  save_visualization: true
+  save_masks: true

@@ -1,0 +1,75 @@
+# 파이프라인 설정
+# 경로는 프로젝트 루트(Image_Langgraph) 기준 상대 경로
+
+# ─────────────────────────────────────────────
+# 카메라: 천장 카메라 2대
+#   names        : 입력 이미지 이름. 생장 단계 모듈(config/rose/holes.yaml)의 카메라 이름과 같아야 함
+#   stereo_left  : stereo_calib.npz 의 왼쪽 카메라(C2)에 해당하는 이미지
+#   stereo_right : 오른쪽 카메라(C1)
+#   생장 단계 샘플(rose_CL/CR.jpg)로 확인한 결과, 생장 단계의 CR 이 스테레오 왼쪽이었음
+#   (CL 을 왼쪽으로 넣으면 정렬 후 세로 어긋남 49.8px, CR 을 왼쪽으로 넣으면 4.2px)
+# ─────────────────────────────────────────────
+cameras:
+  names: [CL, CR]
+  stereo_left: CR
+  stereo_right: CL
+
+# ─────────────────────────────────────────────
+# 작물 높이 공통 모듈 (helpai-Height / stereo_pair.py)
+# ─────────────────────────────────────────────
+height:
+  calib: config/stereo/stereo_calib.npz   # 없으면 근사 모드(y-align + 아래 화각·간격)로 계산
+  mode: auto            # auto | y-align | none
+  disp_offset: 0.0      # 시차 보정값 px (캘리브레이션 모드 v4 = 0)
+  block: 5
+  min_dist_cm: 20       # 이보다 가까운 건 안 잼 (시차 탐색 범위)
+  max_dist_cm: 500
+  baseline_mm: 33.3     # 근사 모드 전용
+  hfov_deg: 56.0        # 근사 모드 전용
+  # 기준면: ransac = 화면에서 가장 넓은 평면(트레이/바닥)을 자동으로 찾음
+  #         fixed  = reference_cm 에 카메라 → 기준면 거리(cm, 줄자 실측)를 넣음
+  reference: ransac
+  reference_cm: null
+  ransac_thresh_cm: 1.0
+  top_percentile: 5     # 식물 영역 높이 중 상위 5% 지점을 식물 높이로 사용 (잡음 제거)
+  min_valid_px: 30
+  max_rect_dy_px: 2.0   # 정렬 후 세로 어긋남(px)이 이보다 크면 보고서에 재보정 경고 (보정 당시 0.68px)
+
+# ─────────────────────────────────────────────
+# 작물 레지스트리
+#   module 은 src/crop_monitor/modules/<module>/adapter.py 를 가리킴
+#   작물 N 추가: 항목 + 규칙 파일 + (필요하면) 새 모듈 adapter.py. 그래프 코드는 그대로.
+# ─────────────────────────────────────────────
+crops:
+  A:
+    name: "미니 장미"
+    rules: config/rules/A.yaml
+
+    # 생장 단계 (helpai-Rose_Growth / rose_pipeline)
+    growth:
+      module: rose_growth
+      config: config/rose/growth.yaml     # 트레이 배치·검출·등급·Claude 검수 설정은 이 파일에서
+      on_missing_key: disable_vlm         # API 키가 없으면: disable_vlm = Claude 검수·누락 추가를 끄고 YOLO 만 | error
+
+    # 이상 상태 (helpai-Rose_Disease / leafdx)
+    disease:
+      module: rose_disease
+      models_dir: weights/rose/disease
+      config: config/rose/disease.json    # 잎 탐지·분류 설정 (원본 package/config.json)
+      cls_weights: leaf_cls_yolov8m.pt    # leaf_cls_yolov8m.pt | leaf_cls_yolov8m_du.pt | leaf_cls_yolo26m_du.pt
+      cameras: [CL, CR]                   # 잎 상태를 판단할 카메라
+      # VLM 재확인 (원본 노트북 6번). 요청 수만큼 요금 발생 → 기본 꺼 둠
+      vlm:
+        enabled: false
+        backend: claude                   # claude | qwen (qwen 은 GPU + transformers 필요)
+        model: claude-opus-5-5
+        effort: low
+        states: [ANOMALY, UNKNOWN]        # 다시 확인할 잎 상태
+        fresh: 5                          # 사진마다 무작위로 확인할 정상 잎 수
+        max: 40                           # 사진마다 최대 확인 잎 수
+
+  # N:
+  #   name: "작물 N"
+  #   rules: config/rules/N.yaml
+  #   growth:  {module: <모듈 이름>, ...}
+  #   disease: {module: <모듈 이름>, ...}
