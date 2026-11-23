@@ -7,3 +7,9 @@ hybrid_data/
 configs/rose_data.yaml
 __pycache__/
 *.pt
+# Claude API 키 — 절대 올리지 않음
+ANTHROPIC_API_KEY.txt
+*API_KEY*.txt
+.env
+# 등급 참고 크롭 (데이터셋에서 tools/make_vlm_examples.py 로 다시 만듦, 현재 기본 설정에서는 안 씀)
+cls_reference/

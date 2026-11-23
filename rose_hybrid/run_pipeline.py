@@ -28,13 +28,19 @@ def main():
     if args.no_detector:
         cfg["grading"]["detector"]["type"] = "none"
 
-    result = RosePipeline(cfg).run()
+    pipeline = RosePipeline(cfg)
+    result = pipeline.run()
 
     out = cfg["output"]
     run_dir = save_outputs(result, resolve(out["dir"]), out.get("save_visualization", True),
                            out.get("save_masks", True))
     print(result.table())
     print("\n" + result.bud_table())
+    if result.vlm_table():
+        print("\n" + result.vlm_table())
+    usage = getattr(pipeline.detector, "usage", None)  # hybrid: 후보·검수 개수, vlm_plant/검수: Claude 요청·토큰 수
+    if usage:
+        print(f"\n사용량 (후보·분류·Claude 검수 개수, Claude 요청·토큰): {usage}")
     print(f"\n결과 저장: {run_dir}")
 
 

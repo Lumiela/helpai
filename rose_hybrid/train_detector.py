@@ -1,8 +1,8 @@
 """꽃봉오리 등급 검출 모델(YOLOv11) 학습.
 
     pip install ultralytics
-    python train_detector.py                       # 기본: yolo11n, 100 epoch
-    python train_detector.py --model yolo11s.pt --epochs 150 --device 0
+    python train_detector.py                       # 기본: weights/yolov8m.pt, 100 epoch
+    python train_detector.py --model yolov8l.pt --epochs 150 --device 0
     python train_detector.py --data-root /content/dataset    # 데이터셋이 다른 폴더에 있을 때 (Colab)
 
 학습 결과: runs/detect/rose_bud/weights/best.pt (configs/pipeline.yaml 의 detector.weights)
@@ -33,7 +33,7 @@ def write_data_yaml(data_root=PROJECT_ROOT):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--model", default="yolo11n.pt", help="시작 가중치 (yolo11n/s/m/l/x.pt)")
+    ap.add_argument("--model", default="weights/yolov8m.pt", help="시작 가중치 (기본: weights/yolov8m.pt)")
     ap.add_argument("--epochs", type=int, default=100)
     ap.add_argument("--imgsz", type=int, default=640)
     ap.add_argument("--batch", type=int, default=16)

@@ -56,7 +56,7 @@ rose_Project_4.v1i.yolov11/
 │   └── build_colab.py       Colab용 rose_colab/ 폴더 생성
 ├── tests/test_pipeline.py   합성 이미지로 전체 흐름 검증
 ├── run_pipeline.py          실행 진입점 (CLI)
-├── train_detector.py        YOLOv11 봉오리 검출 모델 학습
+├── train_detector.py        YOLO 봉오리 검출 모델 학습 (시작 가중치 weights/yolov8m.pt)
 ├── input/                   CL.jpg, CR.jpg
 ├── train/ valid/ test/      학습 데이터 (Roboflow, YOLO 형식)
 └── data.yaml                학습 데이터 클래스 정의
@@ -222,7 +222,7 @@ presence:
 | 클래스 | 설명 |
 |---|---|
 | `BudDetector` | 추상 클래스. `detect(image) -> [BudDetection]` |
-| `YoloBudDetector` | `train_detector.py` 로 학습한 YOLOv11 가중치(`best.pt`)로 검출. ultralytics 는 이 클래스를 만들 때만 불러옴 |
+| `YoloBudDetector` | `train_detector.py` 로 학습한 YOLO 가중치(`best.pt`)로 검출. ultralytics 는 이 클래스를 만들 때만 불러옴 |
 | `NullDetector` | 항상 빈 결과. 검출 모델 없이 1단계만 확인할 때 사용 (`--no-detector`) |
 
 **`BudDetection`** 의 필드는 `class_name`(등급 이름), `conf`(신뢰도), `xyxy`(이미지 좌표 박스), `cell_id`(배정된 칸, 배정 후 채워짐)입니다.
@@ -443,7 +443,7 @@ presence:
 | `tools/build_colab.py` | Colab 폴더 생성 (아래 설명) |
 
 **`train_detector.py`**
-- Roboflow `data.yaml` 의 `../train/images` 상대 경로 문제를 피하려고, 절대 경로로 바꾼 `configs/rose_data.yaml` 을 만든 뒤 YOLOv11을 학습합니다.
+- Roboflow `data.yaml` 의 `../train/images` 상대 경로 문제를 피하려고, 절대 경로로 바꾼 `configs/rose_data.yaml` 을 만든 뒤 YOLO(시작 가중치 weights/yolov8m.pt)를 학습합니다.
 - `--data-root` 로 데이터셋 위치를 바꿀 수 있습니다(Colab).
 - 학습 결과는 `runs/detect/rose_bud/` 에 저장됩니다.
 

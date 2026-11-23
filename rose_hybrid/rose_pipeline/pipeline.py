@@ -36,6 +36,9 @@ class CellResult:
             "buds": [{"camera": cam, "class": b.class_name, "conf": round(b.conf, 3),
                       "xyxy": [round(float(v), 1) for v in b.xyxy],
                       **({"det_conf": round(b.det_conf, 3)} if b.det_conf is not None else {}),
+                      **({"cls_class": b.first_class, "cls_conf": round(b.first_conf, 3)}
+                         if b.first_class is not None else {}),
+                      **({"added_by": "claude"} if b.added else {}),
                       **({"mask_px": int(b.mask.sum())} if b.mask is not None else {})}
                      for cam, b in self.buds],
         }
@@ -55,6 +58,7 @@ class CameraFrame:
     holes: dict[str, Hole]
     plants: list[PlantSegment]
     buds: list[BudDetection]
+    vlm: dict | None = None       # vlm_plant: {칸: {summary, buds(버린 것 포함), view, view_xy}}
 
 
 @dataclass
@@ -67,8 +71,29 @@ class PipelineResult:
     grades: list = field(default_factory=list)  # 낮은 → 높은 등급 순서
 
     def to_dict(self):
-        return {"timestamp": self.timestamp, "table": self.grid(),
-                "cells": [c.to_dict() for c in self.cells]}
+        cells = []
+        for c in self.cells:
+            d = c.to_dict()
+            vlm = {cam: vlm_note_dict(f.vlm[c.cell_id]) for cam, f in self.frames.items()
+                   if f.vlm and c.cell_id in f.vlm}
+            if vlm:
+                d["vlm"] = vlm  # VLM 이 이 식물에 대해 답한 내용 (확신이 낮아 버린 봉오리 포함)
+            cells.append(d)
+        return {"timestamp": self.timestamp, "table": self.grid(), "cells": cells}
+
+    def vlm_table(self):
+        """VLM 판단 요약 문자열 (vlm_plant 일 때만, 아니면 빈 문자열)."""
+        if not any(f.vlm for f in self.frames.values()):
+            return ""
+        lines = ["VLM 판단 (칸 / 카메라: 요약 | 답한 봉오리, x = 확신이 낮아 버림)"]
+        for c in self.cells:
+            for cam, f in self.frames.items():
+                note = (f.vlm or {}).get(c.cell_id)
+                if note is None:
+                    continue
+                buds = ", ".join(f"{b['grade']} {b['conf']:.2f}{'' if b['kept'] else ' x'}" for b in note["buds"])
+                lines.append(f"{c.cell_id} {cam}: {note['summary'] or '-'} | {buds or '봉오리 없음'}")
+        return "\n".join(lines)
 
     def grid(self):
         by = {(c.row, c.col): c.symbol for c in self.cells}
@@ -136,10 +161,15 @@ class RosePipeline:
 
     # ── 2단계: 생장 단계 판단 ─────────────────────────────────
     def grade_plants(self, image, plants):
+        if hasattr(self.detector, "grade_plants"):  # vlm_plant: 식물마다 VLM 이 봉오리를 찾아 이미 식물을 정함
+            buds = self.detector.grade_plants(image, plants)
+            return decide_grades(plants, buds, self.grades), buds
         det_cfg = self.cfg["grading"]["detector"]
         buds = detect_buds(image, plants, self.detector,
                            det_cfg.get("detect_on", "plant_crop"), det_cfg.get("crop_padding", 0.1))
         assign_buds(buds, plants, self.assigner)
+        if hasattr(self.detector, "add_missed"):  # 혼합형 Claude 검수: 놓친 봉오리 추가 (이미 식물이 정해져 있음)
+            buds = self.detector.add_missed(image, plants, buds)  # 추가 + 중복 검수 봉오리 정리
         return decide_grades(plants, buds, self.grades), buds
 
     def run(self, images=None) -> PipelineResult:
@@ -157,7 +187,8 @@ class RosePipeline:
             plants = self.separate_plants(name, image, holes[name], presence)
             grades, buds = self.grade_plants(image, plants)
             cam_grades[name] = grades
-            frames[name] = CameraFrame(name, image, holes[name], plants, buds)
+            notes = getattr(self.detector, "last_notes", None)
+            frames[name] = CameraFrame(name, image, holes[name], plants, buds, dict(notes) if notes else None)
 
         cells = []
         for cid in all_cells(self.layout):
@@ -170,3 +201,9 @@ class RosePipeline:
             cells.append(CellResult(cid, row, col, self.coverage[cid], present, scores, per_cam, grade, buds))
         return PipelineResult(datetime.now().isoformat(timespec="seconds"),
                               self.layout["rows"], self.layout["cols"], cells, frames, self.grades)
+
+
+def vlm_note_dict(note):
+    return {"summary": note["summary"],
+            "buds": [{"class": b["grade"], "conf": round(b["conf"], 3), "kept": b["kept"],
+                      "xyxy": [round(float(v), 1) for v in b["xyxy"]]} for b in note["buds"]]}

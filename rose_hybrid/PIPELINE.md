@@ -98,7 +98,7 @@ pip install -r requirements.txt
 | `train_hybrid.py` | 혼합형 학습: 봉오리 위치(det)·등급 분류(cls) |
 | `tools/prepare_hybrid_data.py` | 혼합형 학습 데이터 생성 |
 | `tools/mine_crops.py` | 실제 사진에서 분류 보강용 크롭 수집 |
-| `train_detector.py` | (기존 방식) YOLOv11 위치+등급 한 번에 학습 |
+| `train_detector.py` | (기존 방식) YOLO 위치+등급 한 번에 학습 |
 | `run_pipeline.py` | 실행 진입점 |
 
 ## 바꾸기 쉬운 부분

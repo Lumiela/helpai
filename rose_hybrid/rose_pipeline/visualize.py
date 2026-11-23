@@ -90,6 +90,21 @@ def draw_frame(frame, cell_results):
         _label(image, text or "?", (h.center[0] - 60 * scale, h.center[1] + 10 * scale),
                GRADE_COLORS.get(text, (255, 200, 120)), scale * 0.8)
 
+    if frame.vlm:  # vlm_plant: 칸 등급 아래에 VLM 이 답한 봉오리 수. 확신이 낮아 버린 봉오리는 회색 얇은 박스
+        for cid, note in frame.vlm.items():
+            h = frame.holes.get(cid)
+            if h is not None:
+                n = sum(b["kept"] for b in note["buds"])
+                _label(image, f"VLM {n} bud" + ("s" if n != 1 else ""),
+                       (h.center[0] - 60 * scale, h.center[1] + 45 * scale), (255, 255, 255), scale * 0.6)
+            for b in note["buds"]:
+                if b["kept"]:
+                    continue
+                x1, y1, x2, y2 = b["xyxy"].astype(int)
+                cv2.rectangle(image, (x1, y1), (x2, y2), (150, 150, 150), max(1, t // 2))
+                _label(image, f"x {GRADE_SHORT.get(b['grade'], b['grade'])} {b['conf']:.2f}",
+                       (x1, max(y1 - 5, 15)), (170, 170, 170), scale * 0.5)
+
     for b in frame.buds:  # 칸 등급 글자에 가리지 않도록 마지막에 그림
         color = GRADE_COLORS.get(b.class_name, (255, 255, 255))
         x1, y1, x2, y2 = b.xyxy.astype(int)
@@ -99,6 +114,10 @@ def draw_frame(frame, cell_results):
             contours, _ = cv2.findContours(b.mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             cv2.drawContours(image, contours, -1, (255, 255, 255), max(1, t // 2), offset=b.mask_xy)
         tag = f"{GRADE_SHORT.get(b.class_name, b.class_name)} {b.conf:.2f} -> {b.cell_id or 'none'}"
+        if b.first_class and b.first_class != b.class_name:  # Claude 검수로 바뀐 등급: (cls 분류 모델 등급)
+            tag += f" (cls {GRADE_SHORT.get(b.first_class, b.first_class)})"
+        if b.added:  # 위치 모델이 놓쳐 Claude 가 추가한 봉오리
+            tag += " +VLM"
         _label(image, tag, (x1, max(y1 - 5, 15)), color, scale * 0.6)
     return image
 
@@ -106,6 +125,10 @@ def draw_frame(frame, cell_results):
 def draw_board(result, thumb=120, per_row=4, max_rows=2):
     """최종 결과판: 3×4 칸마다 최종 등급과 그 칸에 배정된 봉오리 사진 (높은 등급 먼저)."""
     gap, head, cap = 8, 44, 24
+    vlm_cams = [cam for cam, f in result.frames.items() if f.vlm]
+    line_h, chars = 18, 60
+    if vlm_cams:  # vlm_plant: 칸 제목 아래에 카메라별 VLM 요약 (카메라마다 최대 2줄)
+        head += len(vlm_cams) * 2 * line_h + 16
     cell_w = per_row * (thumb + gap) + gap
     cell_h = head + max_rows * (thumb + cap + gap) + gap
     order = list(GRADE_COLORS)
@@ -119,6 +142,17 @@ def draw_board(result, thumb=120, per_row=4, max_rows=2):
                     cv2.LINE_AA)
         if not c.present:
             continue
+        y_text = oy + 44 + 4
+        for cam in vlm_cams:
+            note = result.frames[cam].vlm.get(c.cell_id)
+            if note is None:
+                continue
+            n = sum(b["kept"] for b in note["buds"])
+            lines = _wrap(f"VLM {cam} ({n}): {note['summary'] or '-'}", chars)[:2]
+            for line in lines:
+                y_text += line_h
+                cv2.putText(board, line, (ox + gap, y_text), font, 0.45, (200, 230, 255), 1, cv2.LINE_AA)
+            y_text += (2 - len(lines)) * line_h
         buds = sorted(c.buds, key=lambda cb: (-order.index(cb[1].class_name) if cb[1].class_name in order else 0,
                                               -cb[1].conf))
         if not buds:
@@ -141,6 +175,41 @@ def draw_board(result, thumb=120, per_row=4, max_rows=2):
     return board
 
 
+def _wrap(text, width):
+    lines, cur = [], ""
+    for w in text.split():
+        if cur and len(cur) + 1 + len(w) > width:
+            lines.append(cur)
+            cur = w
+        else:
+            cur = f"{cur} {w}" if cur else w
+    return lines + ([cur] if cur else [])
+
+
+def draw_vlm_view(note):
+    """VLM 에 보낸 식물 사진 위에 VLM 이 답한 박스(버린 것은 회색)와 아래에 요약."""
+    image = note["view"].copy()
+    ox, oy = note["view_xy"]
+    t = _thickness(image)
+    scale = max(max(image.shape[:2]) / 1600, 0.4)
+    for b in note["buds"]:
+        x1, y1, x2, y2 = (b["xyxy"] - np.float32([ox, oy, ox, oy])).astype(int)
+        color = GRADE_COLORS.get(b["grade"], (255, 255, 255)) if b["kept"] else (150, 150, 150)
+        cv2.rectangle(image, (x1, y1), (x2, y2), color, t)
+        _label(image, f"{'' if b['kept'] else 'x '}{GRADE_SHORT.get(b['grade'], b['grade'])} {b['conf']:.2f}",
+               (x1, max(y1 - 5, 15)), color, scale * 0.8)
+    w = image.shape[1]
+    font_scale = max(0.5, w / 1400)
+    chars = max(20, int(w / (font_scale * 20)))
+    lines = _wrap(f"VLM: {note['summary'] or '-'}", chars) or ["VLM: -"]
+    line_h = int(32 * font_scale) + 6
+    strip = np.full((line_h * len(lines) + 10, w, 3), 30, np.uint8)
+    for i, line in enumerate(lines):
+        cv2.putText(strip, line, (8, line_h * (i + 1)), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (230, 230, 230),
+                    max(1, round(font_scale * 2)), cv2.LINE_AA)
+    return np.vstack([image, strip])
+
+
 def save_outputs(result, out_dir, save_visualization=True, save_masks=True):
     run_dir = Path(out_dir) / result.timestamp.replace(":", "").replace("-", "")
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -149,9 +218,14 @@ def save_outputs(result, out_dir, save_visualization=True, save_masks=True):
         json.dump(result.to_dict(), f, ensure_ascii=False, indent=2)
     with open(run_dir / "table.txt", "w", encoding="utf-8") as f:
         f.write(result.table() + "\n\n" + result.bud_table() + "\n")
+        if result.vlm_table():
+            f.write("\n" + result.vlm_table() + "\n")
 
     if save_visualization:
         imwrite(run_dir / "result_buds.jpg", draw_board(result))
+        for name, frame in result.frames.items():  # vlm_plant: VLM 에 보낸 식물 사진 + 답한 박스 + 요약
+            for cid, note in (frame.vlm or {}).items():
+                imwrite(run_dir / "vlm" / f"{name}_{cid}.jpg", draw_vlm_view(note))
 
     for name, frame in result.frames.items():
         if save_visualization:
