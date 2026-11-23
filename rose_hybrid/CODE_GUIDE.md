@@ -1,6 +1,8 @@
 # 코드 설명서 — 미니 장미 생장 단계 판단 파이프라인
 
-> 이 폴더는 혼합형입니다. 2단계(봉오리 위치 → 마스크 → 등급)의 동작은 [HYBRID.md](HYBRID.md) 가 우선하며, 아래 5.3·5.5 절의 검출기·배정 설명은 기존 방식 기준입니다.
+> 이 폴더는 혼합형입니다. 2단계(봉오리 위치 → 마스크 → 등급 → Claude 검수·누락 추가)의 동작은 [HYBRID.md](HYBRID.md) 가 우선하며, 아래 5.5 절의 배정 설명과 6절의 일부 기본값은 기존 방식 기준입니다.
+>
+> **11/23 현재:** 모델은 `weights/yolov8m_best.pt`(탐지) + `weights/yolo26m-cls_best.pt`(분류) + `FastSAM-s.pt`(마스크), Claude API 키는 `ANTHROPIC_API_KEY.txt` 파일에서 읽습니다 (5.11절).
 >
 > 사용 순서(실행 명령)는 [PIPELINE.md](PIPELINE.md)를 보세요. 이 문서는 **코드가 어떻게 동작하는지**, **어디를 고치면 무엇이 바뀌는지**를 설명합니다.
 
@@ -33,7 +35,7 @@
 ## 2. 폴더 구조
 
 ```
-rose_Project_4.v1i.yolov11/
+rose_hybrid/
 ├── configs/
 │   ├── pipeline.yaml        ← 모든 설정 (배치, 기준값, 규칙 선택)
 │   └── holes.yaml           ← 카메라별 구멍 중심 좌표 (보정 도구가 생성)
@@ -43,23 +45,32 @@ rose_Project_4.v1i.yolov11/
 │   ├── layout.py            칸 이름, 범위표, 구멍 위치 계산
 │   ├── presence.py          1단계-①  식물 유무 판단
 │   ├── segmentation.py      1단계-②  식물 세그멘테이션
-│   ├── detection.py         2단계-①  봉오리 검출기
+│   ├── detection.py         2단계-①  봉오리 검출기 (hybrid: 위치→마스크→등급→Claude 검수)
+│   ├── vlm.py               ③ 등급 분류기 (YOLO / embed / Claude / cascade)
+│   ├── plant_vlm.py         Claude 화분 단위 판단, ⑤ 누락 추가
+│   ├── api_key.py           Claude API 키 읽기 (ANTHROPIC_API_KEY.txt) + 사용법
 │   ├── assignment.py        2단계-②  봉오리 → 식물 배정 규칙
 │   ├── grading.py           2단계-①②③ 검출 실행·배정·최고 등급
 │   ├── fusion.py            2단계-④  카메라 결과 합치기
 │   ├── pipeline.py          전체 연결 (RosePipeline) + 결과 자료형
 │   └── visualize.py         시각화 이미지·JSON 저장
 ├── tools/
-│   ├── calibrate_holes.py   구멍 보정 GUI (PC, Tkinter)
 │   ├── calibrate_colab.py   구멍 보정 (Colab/Jupyter 셀 안에서 클릭)
 │   ├── preview_holes.py     구멍 위치·빈 구멍 점수 미리보기
-│   └── build_colab.py       Colab용 rose_colab/ 폴더 생성
-├── tests/test_pipeline.py   합성 이미지로 전체 흐름 검증
+│   ├── prepare_hybrid_data.py  혼합형 학습 데이터 만들기
+│   ├── mine_crops.py        실제 사진에서 분류 보강용 크롭 수집
+│   ├── eval_classifier.py   val 크롭으로 분류기 평가
+│   └── make_vlm_examples.py Claude 예시 사진·참고 크롭 만들기
+├── tests/                   test_pipeline.py, test_hybrid.py (모델·API 없이 검증)
+├── weights/                 yolov8m_best.pt·yolo26m-cls_best.pt (학습된 모델, 현재 기본)
+│                            (학습 시작 가중치 yolov8m.pt·yolo26m-cls.pt 는 재학습 때 자동 다운로드)
+├── FastSAM-s.pt             ② 봉오리 마스크 모델
 ├── run_pipeline.py          실행 진입점 (CLI)
-├── train_detector.py        YOLO 봉오리 검출 모델 학습 (시작 가중치 weights/yolov8m.pt)
+├── train_hybrid.py          혼합형 ①·③ 학습 (선택)
+├── train_detector.py        (기존 방식) YOLO 위치+등급 한 번에 학습
+├── rose_hybrid.ipynb        Colab 노트북 (학습 단계 없음)
 ├── input/                   CL.jpg, CR.jpg
-├── train/ valid/ test/      학습 데이터 (Roboflow, YOLO 형식)
-└── data.yaml                학습 데이터 클래스 정의
+└── ANTHROPIC_API_KEY.txt    Claude API 키 (직접 만듦, 깃에 안 올림)
 ```
 
 ---
@@ -222,7 +233,9 @@ presence:
 | 클래스 | 설명 |
 |---|---|
 | `BudDetector` | 추상 클래스. `detect(image) -> [BudDetection]` |
-| `YoloBudDetector` | `train_detector.py` 로 학습한 YOLO 가중치(`best.pt`)로 검출. ultralytics 는 이 클래스를 만들 때만 불러옴 |
+| `YoloBudDetector` | (기존 방식) `train_detector.py` 로 학습한 YOLO 가중치(`best.pt`)로 검출. ultralytics 는 이 클래스를 만들 때만 불러옴 |
+| `HybridBudDetector` | **현재 기본** (`type: hybrid`). ① YOLO 위치 → ② FastSAM 마스크 → ③ 분류(`vlm.py`) → ④ Claude 검수. `add_missed()` 가 ⑤ 누락 추가 뒤 중복 정리. 자세한 동작은 HYBRID.md |
+| `VlmPlantGrader` (`plant_vlm.py`) | `type: vlm_plant`. 식물마다 Claude 가 봉오리 위치·등급을 직접 판단 |
 | `NullDetector` | 항상 빈 결과. 검출 모델 없이 1단계만 확인할 때 사용 (`--no-detector`) |
 
 **`BudDetection`** 의 필드는 `class_name`(등급 이름), `conf`(신뢰도), `xyxy`(이미지 좌표 박스), `cell_id`(배정된 칸, 배정 후 채워짐)입니다.
@@ -338,6 +351,12 @@ cameras:
 | `resolve(path)` | 상대 경로를 절대 경로로 변환 |
 | `load_config(path)` | `pipeline.yaml` 을 읽고 `holes.yaml` 을 `cfg["holes"]` 에 합쳐서 반환 |
 
+### 5.11 `api_key.py` — Claude API 키 (11/23)
+
+- `read_api_key(path)`: 프로젝트 폴더의 `ANTHROPIC_API_KEY.txt` 에서 키 한 줄을 읽습니다. `ANTHROPIC_API_KEY=` 접두어·따옴표·`#` 주석 줄을 허용하고, 파일이 없으면 `ANTHROPIC_API_KEY` 환경 변수를 씁니다. 둘 다 없으면 `FileNotFoundError`.
+- `anthropic_client(path)`: 그 키로 `anthropic.Anthropic` 클라이언트를 만듭니다. Claude 를 쓰는 모든 곳(`vlm.py`, `plant_vlm.py`)이 이 함수를 씁니다.
+- 사용법(키 발급·파일 만들기·Colab·요금·보안)은 파일 맨 위 설명에 있습니다. 키 파일은 `.gitignore` 에 있어 깃에 올라가지 않습니다.
+
 ---
 
 ## 6. 설정 항목 정리 (`configs/pipeline.yaml`)
@@ -354,9 +373,12 @@ cameras:
 | `segmentation.hsv_ranges` | 잎·꽃 색 | 잎·꽃이 덜 잡히면 범위를 넓힘 (흰 꽃은 현재 안 잡힘) |
 | `segmentation.max_reach` | 1.6 | 가지가 길게 뻗은 식물이 잘리면 올리고, 다른 트레이 잎이 섞이면 내림 |
 | `segmentation.min_component_ratio` | 0.02 | 잡음 조각 제거 기준 |
-| `grading.detector.type` | `yolo` | `none` = 검출 생략 |
-| `grading.detector.weights` | `runs/detect/rose_bud/weights/best.pt` | 다른 모델을 쓸 때 |
-| `grading.detector.conf` | 0.25 | 오검출이 많으면 올림 |
+| `grading.detector.type` | `hybrid` | `yolo`(기존) / `vlm_plant` / `none` = 검출 생략 |
+| `grading.detector.weights` | `weights/yolov8m_best.pt` | 다른 모델을 쓸 때 |
+| `grading.detector.conf` | 0.15 | 오검출이 많으면 올림 |
+| `grading.detector.cls_weights` | `weights/yolo26m-cls_best.pt` | ③ 등급 분류 모델 |
+| `grading.detector.review` / `add_missed` | `true` / `true` | Claude 검수 / 누락 추가. 둘 다 `false` 면 API 안 씀 |
+| `grading.detector.vlm.api_key_file` | `ANTHROPIC_API_KEY.txt` | Claude API 키 파일 (5.11절) |
 | `grading.detector.detect_on` | `plant_crop` | `full_image` 와 비교해 볼 때 |
 | `grading.assignment` | `center_in_mask` | 5.5절 |
 | `grading.fusion` | `max` | 5.6절 |
@@ -436,11 +458,12 @@ presence:
 | 파일 | 하는 일 |
 |---|---|
 | `run_pipeline.py` | 전체 실행. `--CL`/`--CR` 로 이미지를 지정하고, `--no-detector` 로 검출을 생략 |
-| `train_detector.py` | 학습 실행 (아래 설명) |
-| `tools/calibrate_holes.py` | 구멍 보정 GUI (아래 설명) |
+| `train_detector.py` | (기존 방식) 학습 실행 (아래 설명) |
+| `train_hybrid.py` | 혼합형 ①(`det`)·③(`cls`) 학습. 현재는 학습된 모델이 `weights/` 에 있어 필요 없음 |
 | `tools/calibrate_colab.py` | 구멍 보정 Colab판 (아래 설명) |
 | `tools/preview_holes.py` | 구멍 원 + 빈 구멍 점수를 그린 `output/holes_preview_*.jpg` 와 콘솔 출력. 기준값 조정용 |
-| `tools/build_colab.py` | Colab 폴더 생성 (아래 설명) |
+| `tools/eval_classifier.py` | val 크롭으로 분류기 평가 (혼동 행렬, `--backend yolo` 등) |
+| `tools/make_vlm_examples.py` | Claude 예시 사진·참고 크롭 폴더 만들기 |
 
 **`train_detector.py`**
 - Roboflow `data.yaml` 의 `../train/images` 상대 경로 문제를 피하려고, 절대 경로로 바꾼 `configs/rose_data.yaml` 을 만든 뒤 YOLO(시작 가중치 weights/yolov8m.pt)를 학습합니다.
@@ -488,5 +511,6 @@ python tests/test_pipeline.py --save out   # 합성 이미지와 시각화 저�
 | 잎에 완전히 덮인 빈 구멍을 식물로 오판 (현재 CR R3C4) | 색 기반 판단이라 덮개가 안 보이면 구분 불가 | 식물 위치가 고정이면 `presence.method: fixed` (5.1절)<br>자동 판단이 필요하면 구멍 영역 "식물/빈 구멍" 분류 모델 학습 (7절 예 3) |
 | 빈 구멍 판단 기준의 여유가 작음 (식물 최대 0.31 / 빈 구멍 최소 0.46) | 조명·그림자 영향 | 조명이 바뀌면 `preview_holes.py` 로 점수를 보고 `empty_ratio` 재조정 |
 | 겹친 잎의 경계가 근사치 | "가까운 구멍" 기준 분할 | SAM 등 세그멘테이션 모델로 교체 (`SEGMENTERS` 에 등록) |
-| 2단계 정확도 미검증 | 학습 데이터가 일반 장미 근접 사진. 실제 트레이 사진과 다름 | 실제 트레이 사진의 봉오리 라벨링 후 재학습 |
+| 2단계 정확도 미검증 | 정답 있는 트레이 사진이 없음. 분류 모델 G2~G4 재현율 0.42~0.63 | 실제 트레이 사진의 봉오리 라벨링 후 평가·재학습 |
+| 모델 비교 범위 (11/23) | 분류 모델은 정확도만 비교, 9개 조합 외 모델은 비교 안 함 | 클래스별 정밀도·재현율 비교, 다른 모델 추가 비교 |
 | 흰 꽃이 식물 마스크에 안 잡힘 | HSV 범위가 채도 기준 | 흰색 범위 추가 (단, 흰 배경과 섞이지 않게 주의) |

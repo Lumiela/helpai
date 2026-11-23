@@ -14,9 +14,12 @@
 
 | | 모델 | 하는 일 | 학습 |
 |---|---|---|---|
-| ① | YOLO 검출 (1클래스 `bud`) | 봉오리 **위치**만 찾음. 등급을 몰라도 되므로 박스 5만여 개를 한 클래스로 모두 씀 | `train_hybrid.py det` |
-| ② | FastSAM | ①의 박스 안에서 봉오리의 정확한 **마스크**를 따냄 | 안 함 (공개 가중치) |
-| ③ | YOLO 분류 | 봉오리 크롭의 **등급** 판단. `not_bud` 클래스로 ①의 오탐지를 거름 | `train_hybrid.py cls` |
+| ① | YOLO 검출 (1클래스 `bud`) — `weights/yolov8m_best.pt` | 봉오리 **위치**만 찾음. 등급을 몰라도 되므로 박스 5만여 개를 한 클래스로 모두 씀 | 학습 완료 (`train_hybrid.py det`) |
+| ② | FastSAM — `FastSAM-s.pt` | ①의 박스 안에서 봉오리의 정확한 **마스크**를 따냄 | 안 함 (공개 가중치) |
+| ③ | YOLO 분류 — `weights/yolo26m-cls_best.pt` | 봉오리 크롭의 **등급** 판단. `not_bud` 클래스로 ①의 오탐지를 거름 | 학습 완료 (`train_hybrid.py cls`) |
+| ④⑤ | Claude (API) | ③이 남긴 봉오리 다시 판단(검수), 모델이 놓친 봉오리 추가 | 안 함 |
+
+모델 파일은 모두 이 폴더에 들어 있어 **학습 없이 바로 실행**합니다 (학습 시작 가중치 `weights/yolov8m.pt`·`weights/yolo26m-cls.pt` 는 폴더에 없으며, 재학습할 때 ultralytics 가 내려받습니다).
 
 ## 화분 하나가 판단되는 과정
 
@@ -95,13 +98,27 @@
 
 ## 실행 (Colab)
 
-`rose_hybrid.ipynb`를 위에서부터 실행합니다. **학습 단계는 없습니다** — `weights/yolov8m.pt`·`weights/yolo26m-cls.pt`·`cls_reference/` 를 그대로 쓰고 5번(전체 실행)에서 바로 적용합니다.
+`rose_hybrid.ipynb`를 위에서부터 실행합니다. **학습 단계는 없습니다** — 학습된 `weights/yolov8m_best.pt`·`weights/yolo26m-cls_best.pt` 와 `FastSAM-s.pt` 를 그대로 쓰고 5번(전체 실행)에서 바로 적용합니다. 폴더에 `ANTHROPIC_API_KEY.txt` 를 함께 넣어 두세요 (아래 "Claude API 사용법"). GPU 는 없어도 됩니다.
 
 ```
 python run_pipeline.py
 ```
 
-(나중에 학습한 모델로 바꾸려면 노트북 밖에서 `tools/prepare_hybrid_data.py` → `train_hybrid.py det` / `cls` 로 학습하고, 설정의 `weights`·`cls_weights` 를 `best.pt` 로, `cls_backend: yolo` 로 바꿉니다.)
+(모델을 다시 학습하려면 노트북 밖에서 `tools/prepare_hybrid_data.py` → `train_hybrid.py det` / `cls` 로 학습하고, 설정의 `weights`·`cls_weights` 를 새 `best.pt` 로 바꿉니다.)
+
+## Claude API 사용법
+
+Claude 검수(④)·누락 추가(⑤)·화분 단위 VLM 은 Claude API 를 씁니다. 키는 **파일에서 읽습니다** (11/23 변경: 직접 입력 → 파일로 읽기).
+
+1. https://console.anthropic.com → API Keys 에서 키(`sk-ant-...`)를 발급합니다. 사용량만큼 요금이 나갑니다.
+2. 프로젝트 폴더(`rose_hybrid/`)에 `ANTHROPIC_API_KEY.txt` 를 만들고 **키 한 줄만** 넣습니다. (`ANTHROPIC_API_KEY=sk-ant-...` 형식, `#` 주석 줄도 됨)
+3. Colab 이면 이 파일을 `rose_hybrid` 폴더와 함께 드라이브에 올립니다. 노트북 0번 셀이 키가 '있음' 만 출력합니다.
+4. 파일이 없으면 `ANTHROPIC_API_KEY` 환경 변수를 씁니다. 파일 위치는 `grading.detector.vlm.api_key_file` 로 바꿉니다.
+5. `review: false`, `add_missed: false` 로 하면 API 를 쓰지 않으므로 키가 필요 없습니다.
+
+- 요청 수는 실행 끝 `사용량` 에 나옵니다 (11/19 사진 기준 약 20번).
+- 코드: `rose_pipeline/api_key.py` (맨 위에 같은 설명). **키 파일은 `.gitignore` 에 있어 깃에 올라가지 않습니다. 다른 사람에게 공유하지 마세요.**
+
 
 기존 방식으로 돌아가려면 `configs/pipeline.yaml`에서 다음을 바꿉니다.
 - `detector.type: yolo`
@@ -116,15 +133,18 @@ python run_pipeline.py
 | 항목 | 기본값 | 뜻 |
 |---|---|---|
 | `type` | `hybrid` | `yolo`(기존) / `hybrid` / `none` |
-| `det_base` / `cls_base` | `weights/yolov8m.pt` / `weights/yolo26m-cls.pt` | ①·③ 학습 시작 가중치 (`train_hybrid.py` 기본값, COCO·ImageNet 사전학습). 학습 결과는 아래 `weights`·`cls_weights` |
-| `weights` | `runs/detect/rose_bud1/weights/best.pt` | ① 위치 검출 가중치 |
+| `weights` | `weights/yolov8m_best.pt` | ① 위치 검출 가중치 (학습 시작 가중치 `weights/yolov8m.pt` 는 `train_hybrid.py` 기본값) |
 | `conf` | 0.15 | ① 신뢰도 하한 (낮게 두고 ③이 거름) |
+| `max_box_frac` / `max_box_px` | 0.3 / 200 | 식물 크롭 넓이의 30% 또는 긴 변 200px 보다 큰 박스는 버림 |
 | `sam_weights` | `FastSAM-s.pt` | ② 가중치. `null`이면 FastSAM 생략(박스만) |
 | `sam_imgsz` / `sam_conf` | 1024 / 0.4 | ② 입력 크기 / 조각 신뢰도 |
 | `mask_iou` | 0.3 | 박스와 조각 IoU가 이보다 작으면 마스크 없이 박스만 사용 |
 | `mask_margin` | 0.1 | 고른 조각을 박스보다 이만큼만 넓게 잘라 씀 |
-| `cls_weights` | `runs/classify/rose_grade/weights/best.pt` | ③ 분류 가중치 |
+| `cls_weights` | `weights/yolo26m-cls_best.pt` | ③ 분류 가중치 (학습 시작 가중치 `weights/yolo26m-cls.pt`) |
+| `cls_backend` | `yolo` | ③ 분류 방식: `yolo` / `embed` / `vlm` / `cascade` |
 | `cls_imgsz` / `cls_conf` | 224 / 0.5 | ③ 입력 크기 / 확신 하한 |
+| `review` / `review_conf` | `true` / 0.6 | ④ Claude 검수 / 검수 확신 하한 |
+| `add_missed` | `true` | ⑤ Claude 누락 추가 |
 | `crop_pad` | 0.15 | 분류 크롭 여백 (`prepare_hybrid_data.py --pad`와 같게) |
 | `vlm.api_key_file` | `ANTHROPIC_API_KEY.txt` | Claude API 키 파일 (프로젝트 폴더 기준, 키 한 줄). 없으면 `ANTHROPIC_API_KEY` 환경 변수 |
 | `grading.assignment` | `mask_overlap` | 봉오리 마스크 기준 화분 배정 |
@@ -138,6 +158,18 @@ python run_pipeline.py
 | ① 위치 | `weights/yolov8m_best.pt` — yolov8m.pt 에서 `bud` 1클래스로 학습 (30 epoch, 11/23). `conf: 0.15` |
 | ③ 등급 | `weights/yolo26m-cls_best.pt` — yolo26m-cls.pt 에서 `not_bud`/G1~G4 로 학습 (30 epoch, 11/23). `cls_backend: yolo` |
 | ④⑤ | Claude 검수·누락 추가 (아래 "학습 없이" 와 같음). `review`·`add_missed` 를 false 로 하면 모델만 사용 |
+
+**모델 선정 이유 (11/23)** — YOLO11·YOLOv8·YOLO26 의 n/s/m 9개 조합을 같은 데이터로 30 epoch 학습해 비교 (탐지 val 545장·봉오리 3,549개, 분류 val 4,235장)
+
+| 기준 | 선택 | 값 |
+|---|---|---|
+| 탐지 · 오탐을 줄이는 게 중요 (Precision, 정밀도) | **YOLOv8m** | 0.744 (1위) |
+| 탐지 · 놓치는 물체를 줄이는 게 중요 (Recall, 재현율) | **YOLOv8m** | 0.703 (1위) |
+| 탐지 · 상자 위치를 정밀하게 맞추는 게 중요 (mAP50-95) | **YOLOv8m & YOLO11m** | 0.310 (m 크기 중 공동 1위. 전체로는 YOLO26s 0.317) |
+| 분류 (top-1 정확도) | **YOLO26m-cls** | 0.970 (1위) |
+| **결론** | **YOLOv8m + YOLO26m-cls** | |
+
+한계: 분류 모델은 정확도만 비교했고(클래스별 정밀도·재현율 비교 없음), 위 9개 외 다른 모델과는 비교하지 않았습니다.
 
 **확인한 성능 (2026-11-23)**
 - ③ val 크롭 2169장 (`tools/eval_classifier.py --backend yolo`): 정확도 0.950. 재현율 not_bud 0.99 · G1 0.98 · **G2 0.42 · G3 0.58 · G4 0.63** — 데이터가 적은 G2~G4 는 아직 약함 (G2 를 G1 으로 41/79 판단).
@@ -260,7 +292,13 @@ python tools/eval_classifier.py --backend yolo vlm cascade --per-class 30   # va
 | `tools/eval_classifier.py` | val 크롭으로 분류기 비교 (혼동 행렬, `cls_conf` 별 결과) |
 | `tools/make_vlm_examples.py` | VLM 예시 사진 폴더 만들기 |
 | `tests/test_hybrid.py` | 가짜 모델로 혼합형 검증 (모델·GPU 불필요, VLM 은 가짜 클라이언트로) |
-| `rose_hybrid.ipynb` | 혼합형 Colab 노트북 |
+| `rose_hybrid.ipynb` | 혼합형 Colab 노트북 (학습 단계 없음) |
+| `rose_pipeline/api_key.py` | Claude API 키를 `ANTHROPIC_API_KEY.txt` 에서 읽기 (11/23) |
+| `rose_pipeline/plant_vlm.py` → `VlmMissedFinder` | ⑤ Claude 누락 추가 (11/23) |
+| `weights/yolov8m_best.pt`, `weights/yolo26m-cls_best.pt` | 학습된 ①·③ 모델 (11/23, 현재 기본) |
+| `weights/yolov8m.pt`, `weights/yolo26m-cls.pt` | 학습 시작 가중치 (COCO·ImageNet 사전학습) (폴더에 없음 — 재학습할 때 ultralytics 가 내려받음) |
+| `FastSAM-s.pt` | ② 마스크 모델 |
+| `장미_생장단계_진행정리_20261123.pdf` | 진행 정리 (11/23 기준) |
 
 ## 한계
 
@@ -269,3 +307,6 @@ python tools/eval_classifier.py --backend yolo vlm cascade --per-class 30   # va
 - **속도:** 화분마다 FastSAM을 한 번씩 돌립니다(카메라 2대 × 화분 6개). T4 GPU에서는 문제없지만 CPU에서는 느립니다.
 - **작은 봉오리:** FastSAM이 잎과 구분하지 못할 수 있습니다. 이때도 마스크 없이 박스로 판단하므로 결과는 남습니다.
 - **G1 어린 초록 봉오리:** 잎과 비슷하므로 ③의 정확도에 달려 있습니다. 혼동 행렬에서 `grade_one` ↔ `not_bud`를 확인하세요.
+- **③ G2~G4 약함:** 학습된 분류 모델의 재현율이 G2 0.42 · G3 0.58 · G4 0.63 입니다 (한 단계 낮게 보는 경향). ④ Claude 검수가 보완하지만 검수를 끄면 그대로 나옵니다.
+- **모델 비교 범위:** 분류 모델은 정확도만 비교했고, 9개 조합 외 다른 모델과는 비교하지 않았습니다.
+- **Colab 미확인:** 11/23 설정(학습 모델 + API 키 파일)은 로컬(CPU)에서만 실행했습니다.

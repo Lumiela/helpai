@@ -6,7 +6,10 @@ runs/
 hybrid_data/
 configs/rose_data.yaml
 __pycache__/
+# 모델: weights/ 와 FastSAM-s.pt 만 올림 (그 밖의 .pt 는 학습 결과물)
 *.pt
+!weights/*.pt
+!FastSAM-s.pt
 # Claude API 키 — 절대 올리지 않음
 ANTHROPIC_API_KEY.txt
 *API_KEY*.txt
