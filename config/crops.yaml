@@ -56,11 +56,11 @@ crops:
       module: rose_disease
       models_dir: weights/rose/disease
       config: config/rose/disease.json    # 잎 탐지·분류 설정 (원본 package/config.json)
-      cls_weights: leaf_cls_yolov8m.pt    # leaf_cls_yolov8m.pt | leaf_cls_yolov8m_du.pt | leaf_cls_yolo26m_du.pt
+      cls_weights: leaf_cls_yolov8m_du.pt    # leaf_cls_yolov8m.pt | leaf_cls_yolov8m_du.pt | leaf_cls_yolo26m_du.pt
       cameras: [CL, CR]                   # 잎 상태를 판단할 카메라
-      # VLM 재확인 (원본 노트북 6번). 요청 수만큼 요금 발생 → 기본 꺼 둠
+      # VLM 재확인 (원본 노트북 6번). 요청 수만큼 요금 발생 (지금 켜 둠, 판정 반영은 rules 의 alerts.vlm_apply)
       vlm:
-        enabled: false
+        enabled: true
         backend: claude                   # claude | qwen (qwen 은 GPU + transformers 필요)
         model: claude-opus-5-5
         effort: low

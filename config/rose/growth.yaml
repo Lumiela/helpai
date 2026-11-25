@@ -137,7 +137,7 @@ grading:
       max_tokens: 8000
       fallbacks: default       # 안전 분류기가 거절하면 서버가 다른 모델로 다시 실행. 끄려면 null
       examples_dir: weights/rose/growth/vlm_examples   # <클래스>/*.jpg 예시 사진 (tools/make_vlm_examples.py). 없으면 예시 없이
-      examples_per_class: 2
+      examples_per_class: 3      # 클래스마다 보낼 예시 수 (vlm_examples/<클래스>/ 에 3장씩)
       # vlm_plant 전용
       plant_image_size: 1024   # 식물 사진의 긴 변 (크게 할수록 작은 봉오리가 잘 보이지만 비쌈)
       dim_outside: 0.35        # 이웃 식물로 나뉜 픽셀의 밝기 배율 (이웃 봉오리를 헷갈리지 않게). 1 = 안 어둡게
