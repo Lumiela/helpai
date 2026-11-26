@@ -1,0 +1,85 @@
+# 파이프라인 설정
+# 경로는 프로젝트 루트(Image_Langgraph) 기준 상대 경로
+
+# ─────────────────────────────────────────────
+# 카메라: 천장 카메라 2대
+#   names        : 입력 이미지 이름. 생장 단계 모듈(config/rose/holes.yaml)의 카메라 이름과 같아야 함
+#   stereo_left  : 스테레오 왼쪽 카메라에 해당하는 이미지 (젯슨 stereo_calib.npz 를 만들 때의 왼쪽과 같아야 함)
+#   stereo_right : 오른쪽 카메라
+#   CL = CUBE001-C1, CR = CUBE001-C2. 2026-11-24 20:13 사진에서 C1 이 왼쪽 (C1 보드 교체 뒤 좌우가 바뀜)
+# ─────────────────────────────────────────────
+cameras:
+  names: [CL, CR]
+  input_width: 2000     # 더 넓은 사진은 이 폭으로 줄여 씀 (팀 설정값의 기준 크기. 젯슨 GPU 메모리도 아낌)
+  stereo_left: CL
+  stereo_right: CR
+  devices: {CL: CUBE001-C1, CR: CUBE001-C2}   # 최신 쌍을 자동으로 찾을 때 쓰는 카메라 SN
+
+# ─────────────────────────────────────────────
+# 젯슨 추론 창구
+# ─────────────────────────────────────────────
+remote:
+  crop_url: http://127.0.0.1:8002     # crop-infer (생장 추론, 높이 지도)
+  leafdx_url: http://127.0.0.1:8001   # leafdx-api (잎 이상)
+  key_file: ~/.leafdx/api_key
+  growth_timeout_s: 360
+  disease_timeout_s: 420
+  height_timeout_s: 180
+  on_bad_calib: skip      # 보정이 지금 카메라와 맞지 않으면: skip = 높이를 내지 않음 | warn = 경고만 하고 냄
+
+# ─────────────────────────────────────────────
+# 작물 높이 공통 모듈 (helpai-Height / stereo_pair.py)
+# ─────────────────────────────────────────────
+height:
+  calib: null           # 보정 파일은 젯슨 /data/notebooks/height/stereo_calib.npz 한 곳에만 둠
+  mode: auto            # auto | y-align | none
+  disp_offset: 0.0      # 시차 보정값 px (캘리브레이션 모드 v4 = 0)
+  block: 5
+  min_dist_cm: 20       # 이보다 가까운 건 안 잼 (시차 탐색 범위)
+  max_dist_cm: 500
+  baseline_mm: 33.3     # 근사 모드 전용
+  hfov_deg: 56.0        # 근사 모드 전용
+  # 기준면: ransac = 화면에서 가장 넓은 평면(트레이/바닥)을 자동으로 찾음
+  #         fixed  = reference_cm 에 카메라 → 기준면 거리(cm, 줄자 실측)를 넣음
+  reference: ransac
+  reference_cm: null
+  ransac_thresh_cm: 1.0
+  top_percentile: 5     # 식물 영역 높이 중 상위 5% 지점을 식물 높이로 사용 (잡음 제거)
+  min_valid_px: 30
+  max_rect_dy_px: 2.0   # 정렬 후 세로 어긋남(px)이 이보다 크면 보고서에 재보정 경고 (보정 당시 0.68px)
+
+# ─────────────────────────────────────────────
+# 작물 레지스트리
+#   module 은 src/crop_monitor/modules/<module>/adapter.py 를 가리킴
+#   작물 N 추가: 항목 + 규칙 파일 + (필요하면) 새 모듈 adapter.py. 그래프 코드는 그대로.
+# ─────────────────────────────────────────────
+crops:
+  A:
+    name: "미니 장미"
+    rules: config/rules/A.yaml
+
+    # 생장 단계 (helpai-Rose_Growth / rose_pipeline)
+    growth:
+      module: rose_growth
+      config: config/rose/growth.yaml     # 트레이 배치·검출·등급·Gemini 검수 설정은 이 파일에서
+      on_missing_key: disable_vlm         # API 키가 없으면: disable_vlm = Gemini 검수·누락 추가를 끄고 YOLO 만 | error
+
+    # 이상 상태 (helpai-Rose_Disease / leafdx)
+    disease:
+      module: rose_disease
+      cls_weights: leaf_cls_yolov8m.pt    # 젯슨 leafdx-api 가 쓰는 모델 (바꾸려면 젯슨 쪽을 바꿔야 함)
+      cameras: [CL, CR]                   # 잎 상태를 판단할 카메라
+      # VLM 재확인 (원본 노트북 6번, Gemini). 요청 수만큼 요금 발생 → 기본 꺼 둠
+      vlm:
+        enabled: false
+        model: gemini-4-hydrogen
+        thinking: low
+        states: [ANOMALY, UNKNOWN]        # 다시 확인할 잎 상태
+        fresh: 5                          # 사진마다 무작위로 확인할 정상 잎 수
+        max: 40                           # 사진마다 최대 확인 잎 수
+
+  # N:
+  #   name: "작물 N"
+  #   rules: config/rules/N.yaml
+  #   growth:  {module: <모듈 이름>, ...}
+  #   disease: {module: <모듈 이름>, ...}

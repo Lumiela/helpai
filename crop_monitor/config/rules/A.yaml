@@ -1,0 +1,24 @@
+# 작물 A (미니 장미) 규칙
+# 클래스 이름은 각 모듈의 모델 클래스 이름과 같아야 합니다.
+#   생장 단계: config/rose/growth.yaml 의 grading.grades
+#   이상 상태: leafdx 분류 모델 클래스 (black_spot, downy_mildew, healthy, insects_infected)
+
+# 생장 단계 (꽃이 핀 정도). height_cm: [최소, 최대] 를 넣으면 범위 밖일 때 경고
+growth_stages:
+  grade_zero:  { label: "봉오리 없음" }
+  grade_one:   { label: "1단계 (닫힌 봉오리)" }
+  grade_two:   { label: "2단계 (피기 시작)" }
+  grade_three: { label: "3단계 (반쯤 핌)" }
+  grade_four:  { label: "4단계 (만개)" }
+  # 예) grade_one: { label: "1단계 (닫힌 봉오리)", height_cm: [8, 25] }
+
+# 잎 이상 유형. severity: warning(주의) | critical(위험)  — 농장 기준에 맞게 조정하세요
+anomalies:
+  black_spot:       { label: "흑점병",   severity: warning }
+  downy_mildew:     { label: "노균병",   severity: warning }
+  insects_infected: { label: "해충 피해", severity: warning }
+
+alerts:
+  unknown_leaf: warning        # UNKNOWN(이상 의심, 판단 보류) 잎이 있으면
+  critical_leaf_count: 3       # 한 칸에 이상 잎이 이 개수 이상이면 위험(critical)으로 올림. null = 사용 안 함
+  height_out_of_range: warning
