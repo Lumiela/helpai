@@ -1,23 +1,23 @@
 /* 2026-11-24 SMART CUBE 모바일 앱(2차). 390×844 기준, 밝은 Oripio 색감.
-   강조색은 진한 초록 하나(#3E8A4C→#2C6E3A, 2026-11-24 연두에서 변경). 초록 위 글자는 흰색. */
+   강조색은 공통 짙은 초록을 사용하고, 그 위의 글자는 흰색으로 표시한다. */
 @import url('https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap');
 
 .a2-root {
   --a2-ink: #1c211f;
   --a2-muted: #66706a; /* 보조 글자(흰·옅은 바탕에서 4.5:1 이상) */
-  --a2-lime-1: #3e8a4c; /* 2026-11-24 연두 → 진한 초록 */
-  --a2-lime-2: #2c6e3a;
+  --a2-lime-1: var(--smartcube-interior-green);
+  --a2-lime-2: var(--smartcube-interior-green);
   --a2-on-accent: #ffffff; /* 강조색 위 글자 */
-  --a2-accent-rgb: 62, 138, 76; /* 옅은 강조 바탕용 */
-  --a2-slider: #2c6e3a; /* 밝기 슬라이더 */
-  --a2-lime-ink: #2c6e3a;
+  --a2-accent-rgb: var(--smartcube-interior-green-rgb); /* 옅은 강조 바탕용 */
+  --a2-slider: var(--smartcube-interior-green); /* 밝기 슬라이더 */
+  --a2-lime-ink: var(--smartcube-interior-green);
   --a2-sage: #8e9c94;
   --a2-warn: #a8611f;
   --a2-warn-bg: #fbeedd;
   --a2-glass: rgba(255, 255, 255, 0.75);
-  --a2-soft: #f1f4f1;
+  --a2-soft: var(--smartcube-light-gray);
   min-height: 100dvh;
-  background: linear-gradient(180deg, #eef2ef, #f3f5f3);
+  background: var(--smartcube-light-gray);
   color: var(--a2-ink);
   font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -56,11 +56,11 @@
 .a2-ic-warn { background: var(--a2-warn-bg); color: var(--a2-warn); }
 .a2-btn-lime { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 52px; padding: 0 18px; border-radius: 999px; background: linear-gradient(150deg, var(--a2-lime-1), var(--a2-lime-2)); color: var(--a2-on-accent) !important; font-size: 16px; font-weight: 600; box-shadow: 0 8px 20px rgba(var(--a2-accent-rgb), 0.35); }
 .a2-btn-lime svg { width: 19px; height: 19px; }
-.a2-btn-lime.is-on { background: #e6f0d0; box-shadow: none; }
+.a2-btn-lime.is-on { background: var(--smartcube-light-gray); box-shadow: none; }
 .a2-btn-lime:disabled { opacity: 0.5; box-shadow: none; }
 .a2-btn-soft { min-height: 52px; border-radius: 999px; background: var(--a2-soft); font-size: 15px; font-weight: 600; }
 .a2-btn-danger { min-height: 52px; border-radius: 999px; background: #d8403a; color: #fff !important; font-size: 15px; font-weight: 700; }
-.a2-btn-chip { margin-top: 8px; height: 36px; padding: 0 14px; border-radius: 999px; background: var(--a2-ink); color: #fff !important; font-size: 13px; font-weight: 600; }
+.a2-btn-chip { margin-top: 8px; height: 36px; padding: 0 14px; border-radius: 999px; background: var(--a2-lime-2); color: #fff !important; font-size: 13px; font-weight: 600; }
 .a2-btn-chip:disabled { opacity: 0.45; }
 .a2-tag-sm { margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: var(--a2-soft); font-size: 11px; color: var(--a2-muted); vertical-align: 1px; }
 .a2-lock { display: flex; align-items: flex-start; gap: 6px; margin: 10px 0 0; padding: 10px 12px; border-radius: 14px; background: var(--a2-warn-bg); color: var(--a2-warn); font-size: 13px; line-height: 1.45; }
@@ -115,7 +115,7 @@
 .a2-chips button.is-on { background: linear-gradient(150deg, var(--a2-lime-1), var(--a2-lime-2)); border-color: transparent; font-weight: 600; color: var(--a2-on-accent); }
 .a2-chips-sm button { height: 32px; padding: 0 12px; font-size: 13px; }
 .a2-chips-ghost { margin-top: 6px; }
-.a2-chips-ghost button.is-on { background: var(--a2-ink); color: #fff; }
+.a2-chips-ghost button.is-on { background: var(--a2-lime-2); color: #fff; }
 .a2-cubes { display: flex; flex-direction: column; gap: 12px; }
 .a2-cube-card { position: relative; display: grid; grid-template-columns: 1fr 132px; grid-template-rows: auto 1fr auto; min-height: 196px; padding: 18px 16px 16px 20px; border-radius: 28px; background: var(--a2-glass); border: 1px solid #fff; box-shadow: 0 8px 28px rgba(28, 33, 31, 0.06); text-align: left; overflow: hidden; }
 .a2-cube-text { grid-column: 1; display: flex; flex-direction: column; gap: 4px; padding-right: 8px; }
@@ -170,7 +170,7 @@
 .a2-switch.is-on > span:first-child { transform: translateX(22px); }
 .a2-switch:disabled { opacity: 0.45; }
 .a2-slider { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--a2-muted); }
-.a2-slider input { width: 100%; height: 30px; accent-color: var(--a2-slider, #2c6e3a); }
+.a2-slider input { width: 100%; height: 30px; accent-color: var(--a2-slider, var(--smartcube-interior-green)); }
 .a2-pills { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .a2-pills button { height: 46px; border-radius: 999px; background: var(--a2-soft); font-size: 15px; }
 .a2-pills button.is-on { background: linear-gradient(150deg, var(--a2-lime-1), var(--a2-lime-2)); font-weight: 600; color: var(--a2-on-accent); }
@@ -397,7 +397,7 @@
 .sc-demo { margin: 0 0 10px; padding: 9px 12px; border-radius: 12px; background: #fff6dd; color: #6b4f00; font-size: 13px; font-weight: 700; text-align: center; }
 
 /* ---------- 상태 화면 큐브: 주석 콜아웃 + 돋보기 렌즈 (2026-11-24) ---------- */
-.cx { position: relative; width: 100%; aspect-ratio: 100 / 120; margin: 4px 0 -19%; --cx-lime: #3e8a4c; --cx-warn: #C9772B; }
+.cx { position: relative; width: 100%; aspect-ratio: 100 / 120; margin: 4px 0 -19%; --cx-lime: var(--smartcube-interior-green); --cx-warn: #C9772B; }
 .cx-cube { position: absolute; }
 .cx-shadow { position: absolute; left: 6%; right: 6%; bottom: -3%; height: 7%; border-radius: 50%; background: radial-gradient(closest-side, rgba(40,52,46,.28), rgba(40,52,46,0)); }
 .cx-cube .sc { position: relative; }
@@ -413,7 +413,7 @@
 .cx-dot { position: absolute; width: 36px; height: 36px; margin: -18px 0 0 -18px; padding: 0; border: 0; background: none; cursor: pointer; display: grid; place-items: center; animation: cx-pop .3s cubic-bezier(.3,1.5,.6,1) both; border-radius: 50%; }
 .cx-dot > span { width: 10px; height: 10px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 5px rgba(255,255,255,.45), 0 1px 4px rgba(0,0,0,.25); transition: background .2s ease, box-shadow .2s ease; }
 .cx-dot.is-warn > span { background: var(--cx-warn); box-shadow: 0 0 0 5px rgba(201,119,43,.25), 0 1px 4px rgba(0,0,0,.2); }
-.cx-dot.is-picked > span, .cx-dot:hover > span { background: var(--cx-lime); box-shadow: 0 0 0 6px rgba(62, 138, 76,.3), 0 1px 4px rgba(0,0,0,.2); }
+.cx-dot.is-picked > span, .cx-dot:hover > span { background: var(--cx-lime); box-shadow: 0 0 0 6px rgba(var(--smartcube-interior-green-rgb),.3), 0 1px 4px rgba(0,0,0,.2); }
 .cx-dot:focus-visible { outline: 2px solid var(--cx-lime); outline-offset: 0; }
 .cx-dot.is-static { cursor: default; pointer-events: none; }
 @keyframes cx-pop { from { transform: scale(0); } to { transform: scale(1); } }
@@ -424,7 +424,7 @@
 .cx-label small { font-size: 12px; color: #7B857F; }
 .cx-label b { font-size: 17px; font-weight: 500; color: #1C211F; letter-spacing: -0.01em; word-break: keep-all; }
 .cx-label.is-warn b { color: var(--cx-warn); }
-.cx-label.is-picked small { color: #2c6e3a; }
+.cx-label.is-picked small { color: var(--smartcube-interior-green); }
 @keyframes cx-fade { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
 
 .cx-lens { position: absolute; aspect-ratio: 1; border-radius: 50%; animation: cx-float 4s ease-in-out .8s infinite, cx-fade .4s ease both; }
@@ -496,7 +496,7 @@
 .ctl2 .a2-big b span { font-size: 13px; color: #7B857F; }
 .ctl2 .a2-ctl { gap: 10px; }
 .ctl2 .a2-ctl > .a2-row-between > span { font-size: 14px; color: #1C211F; }
-.ctl2 .a2-pills { gap: 4px; padding: 4px; border-radius: 999px; background: #f1f4f2; }
+.ctl2 .a2-pills { gap: 4px; padding: 4px; border-radius: 999px; background: var(--smartcube-light-gray); }
 .ctl2 .a2-pills button { height: 38px; background: none; font-size: 14px; color: #55615a; }
 .ctl2 .a2-pills button.is-on { background: #fff; color: var(--a2-lime-ink); font-weight: 600; box-shadow: 0 2px 8px rgba(40,52,46,.12); }
 .ctl2 .a2-slider { font-size: 12px; color: #7B857F; }
@@ -510,3 +510,7 @@
 .ctl2 .a2-lock { background: none; padding: 4px 2px; color: #A85F1E; font-size: 12.5px; }
 .ctl2 .a2-stop-wide { margin-top: 18px; background: #fff; color: #C0392B; border: 1.5px solid rgba(192,57,43,.35); box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { .sc-qicon.is-waiting::after { animation: none; } }
+
+/* 2026-11-25 실시간 영상: 카메라 이름 줄이 잘리거나 '그림 보기' 버튼과 겹치지 않게 안쪽 여백 */
+.a2-frame-cam > div { padding: 52px 12px 12px; }
+.a2-frame-cam > div > :last-child { border-radius: 16px; overflow: hidden; }

@@ -90,7 +90,7 @@ export const RecordsScreen: React.FC<{ ctx: Ctx }> = ({ ctx }) => {
     ? Math.round((local.germination.sprouted / local.germination.sown) * 100) : null;
   return (
     <section className="a2-screen" aria-labelledby="a2-rec-title">
-      <h1 id="a2-rec-title" className="a2-title-sm">자라는 <span>기록</span></h1>
+      <h1 id="a2-rec-title" className="a2-title-sm">성장 <span>일지</span></h1>
       <p className="a2-sub">{days ? `키운 지 ${days}일째` : '재배 시작일은 재배 설정에서 정할 수 있어요'}</p>
 
       <div className="a2-card">

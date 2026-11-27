@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Bell, ChevronDown, ChevronRight, Droplets, Fan, Leaf, LogOut, LineChart, Lightbulb, Menu, Pause, Play, Search, SlidersHorizontal,
-  Sprout, Waves, Wind, ArrowUpRight, X, WifiOff, Sun, Loader2,
+  Sprout, Waves, Wind, ArrowUpRight, X, WifiOff, Sun, Loader2, Camera, Box,
 } from 'lucide-react';
 import type { ActuatorState, ValueRange, ZoneConfig } from '../types/smartfarm';
 import { getHistory, getReport, getReports, getSnapshotBlob, getSnapshots, type CropProfile, type ReportJob } from '../lib/backend';
@@ -14,6 +14,7 @@ import { EmptyCubes, type EmptyState } from '../components/EmptyCubes';
 import type { AppMenuItem } from '../lib/appMenu';
 import { chartPaths, everyMs } from '../lib/chartPath';
 import { extraMetricsOf, extraText, hasChart, type ChartMetric } from '../lib/extraMetrics';
+import { LiveCameraView } from '../components/LiveCameraView';
 import './desk.css';
 
 // 2026-11-24 새 웹 대시보드 시안 (데스크톱 우선 1440×900, Oripio "Smart Plant Monitoring Dashboard" 느낌).
@@ -120,6 +121,7 @@ export const DeskDashboard: React.FC<DeskDashboardProps> = (p) => {
   const a = zone ? p.reported[zone.id] ?? DEFAULT_ACTUATOR : DEFAULT_ACTUATOR;
   const [view, setView] = useState<'cube' | 'analysis'>('cube');
   const [drawer, setDrawer] = useState(false);
+  const [camera, setCamera] = useState(false);
   const [query, setQuery] = useState('');
   const [pending, setPending] = useState<PendingMap>({});
   const [waterAsk, setWaterAsk] = useState(false);
@@ -172,8 +174,8 @@ export const DeskDashboard: React.FC<DeskDashboardProps> = (p) => {
           <Rail view={view} onView={setView} onControls={() => setDrawer(true)} onMenu={() => setMenuOpen(true)} canSignOut={p.canSignOut} onSignOut={p.onSignOut} />
           <main className="dk-main">
             {view === 'cube'
-              ? <Hero zone={zone} a={a} m={m} plant={plant} subtitle={subtitle} anyGeneral={anyGeneral} hit={hit} off={off} onPickCrop={() => setDrawer(true)}
-                quick={<QuickRow zone={zone} a={a} canControl={p.canControl} send={send} pendState={pendState} onWater={() => setWaterAsk(true)} onMore={() => setDrawer(true)} />} />
+              ? <Hero zone={zone} a={a} m={m} plant={plant} subtitle={subtitle} anyGeneral={anyGeneral} hit={hit} off={off} devMode={p.devMode} camera={camera} onCamera={() => setCamera(true)} onPickCrop={() => setDrawer(true)}
+                quick={<QuickRow zone={zone} a={a} canControl={p.canControl} send={send} pendState={pendState} onWater={() => setWaterAsk(true)} onMore={() => setDrawer(true)} camera={camera} onCamera={() => setCamera((v) => !v)} />} />
               : <Analysis zone={zone} m={m} />}
             <aside className="dk-cards">
               <TrendCard zone={zone} m={m} />
@@ -291,8 +293,8 @@ interface Callout { key: string; label: string; value: string; warn?: boolean; d
 const isOffM = (x: Metric) => { const lv = levelOf(x.value, x.range); return lv === 'low' || lv === 'high'; };
 const withWord = (x: Metric, unit: string) => (x.value === null ? '—' : `${val(x)}${unit} ${word(x)}`);
 
-const Hero: React.FC<{ zone: ZoneConfig; a: ActuatorState; m: Record<MetricKey, Metric>; plant: string; subtitle: string; anyGeneral: boolean; hit: (...w: string[]) => boolean; off: Metric[]; onPickCrop: () => void; quick: React.ReactNode }> = ({
-  zone, a, m, plant, subtitle, anyGeneral, hit, off, onPickCrop, quick,
+const Hero: React.FC<{ zone: ZoneConfig; a: ActuatorState; m: Record<MetricKey, Metric>; plant: string; subtitle: string; anyGeneral: boolean; hit: (...w: string[]) => boolean; off: Metric[]; devMode: boolean; camera: boolean; onCamera: () => void; onPickCrop: () => void; quick: React.ReactNode }> = ({
+  zone, a, m, plant, subtitle, anyGeneral, hit, off, devMode, camera, onCamera, onPickCrop, quick,
 }) => {
   const lensUrl = useSnapshot(zone.id);
   const live = zone.live;
@@ -315,12 +317,13 @@ const Hero: React.FC<{ zone: ZoneConfig; a: ActuatorState; m: Record<MetricKey, 
     <section className="dk-hero" aria-labelledby="dk-hero-title">
       <div className="dk-hero-head">
         <div className="dk-hero-row">
-          <h1 id="dk-hero-title">{plant} <span>건강 상태</span></h1>
+          <h1 id="dk-hero-title">오늘의 {zone.cropId ? plant : "식물"} <span>컨디션</span></h1>
           {anyGeneral && <button type="button" className="dk-crop-chip" onClick={onPickCrop} title="식물을 고르면 좋아하는 범위가 더 정확해져요. 지금은 일반 식물 기준이에요.">작물 고르기 →</button>}
         </div>
         <p>{subtitle}</p>
       </div>
       {!live && <div className="dk-offline" role="alert"><WifiOff aria-hidden="true" />큐브와 연락이 안 돼요 · 전원과 와이파이를 확인해 주세요</div>}
+      {camera ? <div className="dk-cam"><LiveCameraView cubeSn={zone.id} devMode={devMode} /></div> : (
       <div className={`dk-canvas ${live ? '' : 'is-off'}`}>
         <svg viewBox="0 0 1000 700" className="dk-canvas-svg" aria-hidden="true">
           <ellipse cx={cx(725)} cy={cy(1214) + 6} rx="230" ry="14" fill="#1c211f" opacity=".1" />
@@ -341,6 +344,11 @@ const Hero: React.FC<{ zone: ZoneConfig; a: ActuatorState; m: Record<MetricKey, 
             <circle cx={cx(560)} cy={cy(640)} r="5" />
           </g>
         </svg>
+        {/* 2026-11-26 미리보기: 큐브 그림을 누르면 실시간 카메라로 넘어간다. 마우스를 올리면 안내가 뜬다 */}
+        <button type="button" className="dk-cube-hit" onClick={onCamera} aria-label="큐브 안 실시간 카메라 보기"
+          style={{ left: `${cx(SCENE.x) / 10}%`, top: `${cy(SCENE.y) / 7}%`, width: `${(SCENE.w * C.s) / 10}%`, height: `${(SCENE.h * C.s) / 7}%` }}>
+          <span className="dk-cube-hint"><Camera aria-hidden="true" />눌러서 카메라 보기</span>
+        </button>
         {/* 돋보기 렌즈: 최근 촬영 사진, 없으면 큐브 그림의 화분 부분 확대. 식물에 이상이 있으면 빨간 불이 깜빡인다 */}
         <div className={`dk-lens ${leafAlert ? 'is-alert' : ''}`} role="img" aria-label={lensUrl ? '카메라가 찍은 최근 사진 확대' : '큐브 그림의 화분 부분 확대'}
           style={lensUrl ? { backgroundImage: `url(${lensUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
@@ -358,6 +366,7 @@ const Hero: React.FC<{ zone: ZoneConfig; a: ActuatorState; m: Record<MetricKey, 
           </div>
         ))}
       </div>
+      )}
       {quick}
       {/* 1024px 미만: 콜아웃 대신 2열 카드 */}
       <div className="dk-co-cards">
@@ -380,11 +389,11 @@ const QBtn: React.FC<{ st: 'waiting' | 'late' | null; lock: boolean; icon: React
 
 // ---------- 그림 아래 바로가기: 조명 · 물 주기 · 환기 (모바일 앱과 같은 동작) ----------
 // 켜짐 = 진한 초록 원, 응답 대기 = 도는 링, 응답 없음 = 주황 점. 표시는 장치가 보고한 상태를 따른다.
-const QuickRow: React.FC<{ zone: ZoneConfig; a: ActuatorState; canControl: boolean; send: (k: DeviceKey, target: number | boolean, updates: Partial<ActuatorState>) => void; pendState: (k: DeviceKey) => 'waiting' | 'late' | null; onWater: () => void; onMore: () => void }> = ({
-  zone, a, canControl, send, pendState, onWater, onMore,
+const QuickRow: React.FC<{ zone: ZoneConfig; a: ActuatorState; canControl: boolean; send: (k: DeviceKey, target: number | boolean, updates: Partial<ActuatorState>) => void; pendState: (k: DeviceKey) => 'waiting' | 'late' | null; onWater: () => void; onMore: () => void; camera: boolean; onCamera: () => void }> = ({
+  zone, a, canControl, send, pendState, onWater, onMore, camera, onCamera,
 }) => {
   const live = zone.live;
-  const lock = !live ? '큐브와 연락이 안 돼서 지금은 조작할 수 없어요.' : !canControl ? '보기 전용이에요. 큐브 주인만 조작할 수 있어요.' : a.autoMode ? '자동 돌보기 중이에요. 직접 조절하려면 조작 서랍에서 자동 돌보기를 꺼 주세요.' : null;
+  const lock = !live ? '큐브와 연락이 안 돼서 지금은 조작할 수 없어요.' : !canControl ? '보기 전용이에요. 큐브 주인만 조작할 수 있어요.' : a.autoMode ? '자동 돌보기 중이에요. 직접 조작하려면 조작 서랍에서 자동 돌보기를 꺼 주세요.' : null;
   const led = reportedOf(a, 'led') as number;
   const outer = reportedOf(a, 'outer') as number;
   const lit = live && led > 0;
@@ -401,6 +410,8 @@ const QuickRow: React.FC<{ zone: ZoneConfig; a: ActuatorState; canControl: boole
           onClick={() => (pumping ? send('water', false, { irrigationPump: false, nutrientValve: false }) : onWater())} />
         <QBtn st={pendState('outer')} lock={lock !== null} icon={Wind} on={venting} label={venting ? '환기 끄기' : '환기 켜기'} small={sub('outer', venting ? `배기팬 ${FAN_WORDS[outer]}` : '지금 꺼짐')}
           onClick={() => (venting ? send('outer', 0, { outerFan: false, outerFanSpeed: 0 }) : send('outer', 2, { outerFan: true, outerFanSpeed: 2 }))} />
+        {/* 2026-11-26 미리보기: 바로하기 줄의 카메라 버튼. 누르면 큐브 그림 자리가 실시간 카메라로 바뀐다(잠금과 상관없이 볼 수 있음) */}
+        <QBtn st={null} lock={false} icon={camera ? Box : Camera} on={camera} label={camera ? '그림 보기' : '카메라 보기'} small={camera ? '큐브 그림으로' : '실시간 영상'} onClick={onCamera} />
         <button type="button" className="dk-qmore" onClick={onMore}><SlidersHorizontal aria-hidden="true" />자세히 조절</button>
       </div>
       {lock && <p className="dk-qlock">{lock}</p>}
@@ -513,8 +524,8 @@ const AreaChart: React.FC<{ sn: string; metric: ChartMetric; start: string; ever
         onPointerLeave={() => setPick(null)}>
         <defs>
           <linearGradient id={`dk-fill-${variant}-${metric.key}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#3e8a4c" stopOpacity=".18" />
-            <stop offset="1" stopColor="#3e8a4c" stopOpacity="0" />
+            <stop offset="0" className="dk-chart-stop" stopOpacity=".18" />
+            <stop offset="1" className="dk-chart-stop" stopOpacity="0" />
           </linearGradient>
         </defs>
         {shape.band && <rect x="0" y={shape.band.y1} width={W} height={Math.max(0, shape.band.y2 - shape.band.y1)} className="dk-chart-band" />}

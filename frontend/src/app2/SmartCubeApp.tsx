@@ -130,7 +130,7 @@ const SmartCubeAppInner: React.FC<SmartCubeAppProps & { demo?: boolean }> = (p) 
   const crop = p.crops.find((c) => c.id === zone.cropId);
   const lockReason = !zone.live ? '큐브와 연락이 안 돼서 지금은 조작할 수 없어요.'
     : !p.canControl ? '보기 전용이에요. 큐브 주인만 조작할 수 있어요.'
-      : a.autoMode ? '자동 돌보기 중이에요. 직접 조절하려면 위의 자동 돌보기를 꺼 주세요.' : null;
+      : a.autoMode ? '자동 돌보기 중이에요. 직접 조작하려면 위의 자동 돌보기를 꺼 주세요.' : null;
   const ctx: Ctx = {
     zone, a, m, crop, now: p.now, canControl: p.canControl, lockReason,
     send: (k, target, updates) => { setPending((prev) => ({ ...prev, [k]: { target, at: Date.now() } })); p.onUpdate(zone.id, updates); },
@@ -404,7 +404,7 @@ const ControlScreen: React.FC<{ ctx: Ctx; cropAssigned: boolean; onSettings: () 
   return (
     <section className="a2-screen ctl2" aria-labelledby="a2-ctl-title">
       <div className="a2-row-between">
-        <h1 id="a2-ctl-title" className="a2-title-sm">직접 <span>조절</span></h1>
+        <h1 id="a2-ctl-title" className="a2-title-sm">직접 <span>조작</span></h1>
         <button type="button" className="a2-round" onClick={onSettings} aria-label="재배 설정 열기"><SlidersHorizontal aria-hidden="true" strokeWidth={1.6} /></button>
       </div>
 
@@ -538,7 +538,7 @@ const FanItem: React.FC<{ ctx: Ctx; which: 'inner' | 'outer' }> = ({ ctx, which 
 // ---------- 하단 탭 바 ----------
 const TABS: Array<{ key: Tab; label: string; icon: React.ElementType }> = [
   { key: 'status', label: '상태', icon: Activity },
-  { key: 'control', label: '조절', icon: SlidersHorizontal },
+  { key: 'control', label: '조작', icon: SlidersHorizontal },
   { key: 'records', label: '기록', icon: LayoutGrid },
   { key: 'alerts', label: '알림', icon: Bell },
 ];

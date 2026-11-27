@@ -1,35 +1,43 @@
 @import "tailwindcss";
 
+:root {
+  --smartcube-interior-green-rgb: 54, 84, 61;
+  --smartcube-interior-green: rgb(var(--smartcube-interior-green-rgb));
+  --smartcube-light-gray: #eef0f2;
+  --smartcube-green-rgb: 27, 42, 32;
+  --smartcube-green: rgb(var(--smartcube-green-rgb));
+}
+
 /*
   스마트큐브 관제 화면 색 체계
 
-  바탕 5색(#f7f7f7 #eaf2e3 #2c5f2d #23294a #7db249 #c13844)은 기존 팔레트를 그대로 쓰고,
+  공통 짙은 초록은 선택 상태와 정상 동작 표시를 강조한다.
   같은 계열의 명도 단계(inset, line)를 더해 표면 깊이를 표현한다.
   기능색은 큐브가 실제로 하는 물리 동작에 하나씩 대응한다.
     water  = 물(급수, 가습, 냉각)
     heat   = 빛과 열(조명, 가온, 범위 이탈 주의)
     danger = 위험(긴급 정지, 경보)
-    accent = 정상 동작 표시(테두리, 표시등 등 글자가 아닌 요소 전용. 글자 대비 2.2:1이라 텍스트에 쓰지 않는다)
+    accent = 정상 동작 표시
   Tailwind 기본 팔레트는 전부 비활성화해 의도하지 않은 색이 새지 않게 한다.
 */
 @theme {
   --color-*: initial;
-  --color-surface: #f7f7f7;
-  --color-panel: #eaf2e3;
-  --color-inset: #dfe9d4;
-  --color-line: #d0dec1;
-  --color-line-strong: #b3c7a0;
-  --color-ink: #23294a;
-  --color-ink-strong: #2c5f2d;
-  --color-ink-muted: #5a6078;
-  --color-ink-on-dark: #f7f7f7;
-  --color-accent: #7db249;
-  --color-accent-deep: #2c5f2d;
+  --color-surface: var(--smartcube-light-gray); /* 2026-11-25 새 테마: 라이트 그레이 바탕 */
+  --color-panel: #ffffff;
+  --color-inset: #e4e8ec;
+  --color-line: #d7dbe0;
+  --color-line-strong: #bfc6cd;
+  --color-ink: #203024;
+  --color-ink-strong: var(--smartcube-green);
+  --color-ink-muted: #536252;
+  --color-ink-on-dark: #f8faef;
+  --color-accent: var(--smartcube-green);
+  --color-accent-deep: var(--smartcube-interior-green);
   --color-water: #2f6f9f;
   --color-water-soft: #e4eef6;
-  --color-heat: #8a5a00;
+  --color-heat: #9a5518;
   --color-heat-soft: #f1e3c2;
-  --color-danger: #c13844;
+  --color-danger: #b93135;
   --color-danger-soft: #f8e1e4;
   --color-sky: #5ab4e8; /* 이력 그래프의 허용 범위 띠 (투명도 30%로 사용) */
 
@@ -184,7 +192,7 @@
     color: var(--color-ink-on-dark);
   }
   .btn-primary:hover, .color-indigo:hover, .btn-ag-primary:hover {
-    background: #244d25;
+    background: #26392c;
   }
   .btn-secondary, .color-gray, .btn-ag-secondary {
     background: var(--color-surface);
@@ -569,3 +577,36 @@ row-between { display: flex; align-items: center; justify-content: space-between
 @keyframes cube-flat-watering { from { transform: translate(0, 0); opacity: 1; } to { transform: translate(30px, 20px); opacity: 0; } }
 @keyframes cube-nozzle-drip { from { transform: translateY(0); opacity: 1; } to { transform: translateY(23px); opacity: 0; } }
 @keyframes cube-soil-ripple { from { transform: scale(.5); opacity: .8; } to { transform: scale(1.5); opacity: 0; } }
+
+/* =============================================================
+   2026-11-25 새 테마를 옛 화면에도 입힘
+   (장치 연결·알림 이력·프리셋·Home·큐브 상세·로그인 관문·개발자 도구, 알림창·확인 창·영상 보기)
+   새 웹 대시보드와 같은 규칙: 바깥은 짙은 잎사귀 초록, 안은 라이트 그레이 판 + 흰 카드, 둥근 모서리, 알약 버튼.
+   ============================================================= */
+.app-viewport { background: radial-gradient(ellipse at 12% 0%, #394e31 0%, var(--smartcube-green) 46%, #151f19 100%); }
+@media (min-width: 1024px) {
+  .app-viewport .app-shell { border-radius: 26px; overflow: hidden; box-shadow: 0 18px 48px #0d180e66; }
+}
+.app-shell { background: var(--color-surface); }
+.panel { border-radius: 16px; box-shadow: 0 5px 18px #293b2210; }
+.btn, .button, .seg, .badge { border-radius: 999px; }
+.seg > button[aria-pressed="true"], .btn[aria-pressed="true"] { background: var(--smartcube-interior-green); border-color: var(--smartcube-interior-green); }
+.btn-primary:hover, .color-indigo:hover, .btn-ag-primary:hover { background: var(--smartcube-green); }
+.btn-secondary, .color-gray, .btn-ag-secondary { background: #fff; }
+.app-shell :is(select, input[type="text"], input[type="number"], input[type="date"], input[type="datetime-local"], textarea) { border-radius: 10px; border-color: var(--color-line); background: #fff; }
+.table th { background: var(--color-surface); border-bottom-color: var(--color-line); }
+.reading-panel[aria-pressed="true"] { border-color: var(--smartcube-interior-green); box-shadow: inset 0 0 0 1px var(--smartcube-interior-green); }
+
+/* 알림창(화면 아래 안내) */
+toast-item { border-radius: 14px; background: var(--smartcube-green); box-shadow: 0 10px 28px rgba(13, 24, 14, .28); padding: 12px 18px; }
+message-item { border-radius: 16px; background: #fff; border-color: var(--color-line); box-shadow: 0 14px 34px rgba(13, 24, 14, .18); }
+.discover-card { border-radius: 12px; background: var(--color-surface); }
+.close-icon-btn { border-radius: 999px; }
+
+/* 확인 창(긴급 정지 등): 빨간 띠 대신 흰 창 + 빨간 제목 */
+.ag-modal-backdrop { background: rgba(13, 24, 14, .45); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+.ag-modal { border-radius: 22px; border-color: transparent; background: #fff; box-shadow: 0 24px 60px rgba(13, 24, 14, .35); overflow: hidden; }
+.ag-modal.is-danger { border-color: transparent; }
+.ag-modal-head { background: #fff; border-bottom: 1px solid var(--color-line); padding-top: 18px; }
+.ag-modal.is-danger .ag-modal-head { background: #fff; color: var(--color-danger); }
+.ag-modal-actions .btn, .ag-modal-actions button { border-radius: 999px; }
