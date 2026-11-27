@@ -1,0 +1,6 @@
+{
+  "name": "아라온실 스마트팜 엣지 관리자 (Ara Greenhouse Edge Manager)",
+  "description": "아라온실 엣지 UI Notification API 및 스마트 온실 통합 환경 관제 데모 시스템",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

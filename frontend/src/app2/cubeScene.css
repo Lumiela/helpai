@@ -1,0 +1,39 @@
+/* 2026-11-24 큐브 시뮬레이션 그림(CubeScene) 전용 스타일. 모바일 앱과 웹 대시보드가 같이 쓴다. */
+.sc { display: block; width: 100%; height: auto; }
+.sc-dark { opacity: 0; mix-blend-mode: multiply; transition: opacity 0.8s ease; }
+.sc.is-dark .sc-dark { opacity: 0.68; }
+.sc-glow { transition: opacity 0.8s ease; }
+.sc-ledbar { fill: #fff0f7; transition: fill 0.6s ease, opacity 0.6s ease; }
+.sc.is-dark .sc-ledbar { fill: #9aa0a6; }
+.sc-hose { stroke: #f3f6f8; transition: stroke 0.4s ease; }
+.sc.is-pumping .sc-hose { stroke: #4aa3da; }
+.sc-stream { opacity: 0; }
+.sc.is-pumping .sc-stream { opacity: 1; }
+.sc-tray-water { opacity: 0; transform-box: fill-box; transform-origin: bottom; transform: scaleY(0.2); transition: opacity 6s ease, transform 6s ease; }
+.sc.is-pumping .sc-tray-water { opacity: 0.6; transform: scaleY(1); transition: opacity 1.5s ease, transform 1.5s ease; }
+.sc-wet { opacity: 0; mix-blend-mode: multiply; transition: opacity 8s ease; }
+.sc.is-pumping .sc-wet { opacity: 0.35; transition: opacity 2.5s ease 1s; }
+.sc-tank-water { transition: transform 6s ease; }
+.sc.is-pumping .sc-tank-water { transform: translateY(16px); transition: transform 12s linear; }
+.sc-fan { display: none; }
+.sc-fan.is-on { display: inline; }
+.sc-air path { fill: none; stroke: #ffffff; stroke-width: 5; stroke-linecap: round; stroke-dasharray: 18 16; opacity: 0.85; }
+.sc-bubbles { opacity: 0; transition: opacity 0.6s ease; }
+.sc.is-pumping .sc-bubbles { opacity: 0.9; }
+.sc.is-pumping .sc-bubbles circle { animation: sc-bubble 1.8s ease-in infinite; }
+.sc.is-offline { filter: grayscale(1) brightness(0.95); }
+/* 움직임(보고 상태를 따라감). 동작 줄이기 설정이면 멈춘 그림 + 글자 상태만 */
+@keyframes sc-spin { to { transform: rotate(360deg); } }
+@keyframes sc-flow { to { stroke-dashoffset: 24; } }
+@keyframes sc-air { to { stroke-dashoffset: -40; } }
+@keyframes sc-blink { 50% { opacity: 0.35; } }
+@keyframes sc-bubble { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-34px); opacity: 0; } }
+.sc-rotor { transform-box: fill-box; transform-origin: center; }
+.sc-rotor.is-on { animation: sc-spin linear infinite; }
+.sc.is-pumping .sc-stream { animation: sc-flow 0.6s linear infinite reverse; }
+.sc-air path { animation: sc-air 1.4s linear infinite; }
+.sc.is-pumping .sc-pump-led { animation: sc-blink 1s ease-in-out infinite; }
+.sc.is-offline .sc-rotor, .sc.is-offline .sc-air path, .sc.is-offline .sc-stream { animation: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .sc *, .sc { animation: none !important; transition-duration: 0.01s !important; }
+}

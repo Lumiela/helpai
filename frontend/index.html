@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- 2026-11-24 PWA: 홈 화면에 설치 (시작 주소 /m → 마지막으로 연 인스턴스. 화면은 폭에 따라 모바일·웹으로 바뀐다) -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#EEF2EF" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="SMART CUBE" />
+    <script>
+      // PWA 시작 주소 /m → 마지막으로 연 인스턴스(/i/<iid>/). 앱 코드가 주소에서 인스턴스를 읽기 전에 바꿔야 한다.
+      (function () {
+        var p = location.pathname;
+        if (p !== "/m" && p !== "/m/") return;
+        var iid = null;
+        try { iid = localStorage.getItem("smartcube-last-iid"); } catch (e) {}
+        history.replaceState(null, "", iid ? "/i/" + encodeURIComponent(iid) + "/" : "/");
+      })();
+    </script>
+    <title>스마트큐브 관제</title>
+    <meta name="description" content="스마트큐브 생육 환경 관제 화면 (아라온실 엣지 관리자)" />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
