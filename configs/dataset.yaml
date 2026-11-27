@@ -12,6 +12,7 @@ synth:                        # 합성 — 경계·이상 상황을 넉넉히
   missing_rate: 0.03
   night_frac: 0.2           # 장미 광주기 01~23 시 — 실제 밤 2 시간이라 일부러 늘림
   comfort_frac: 0.15        # 온도 22~29·습도 60~65 (팬 한 단계 내림 구간)
+  midnight_frac: 0.04       # 오늘 급수 0 회 중 자정 직후·어제 급수 대기 중 (FEATURE_VERSION 3)
   year: 2026
 
 replay:                       # 젯슨 InfluxDB 이력 재생 — export-influx 로 받은 CSV

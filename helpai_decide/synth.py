@@ -21,7 +21,8 @@ DEFAULTS = {
     "anomaly_rate": 0.15,
     "missing_rate": 0.03,
     "night_frac": 0.2,          # 밤 비율 (장미 광주기 01~23 시라 실제 밤은 2 시간뿐 — 일부러 늘린다)
-    "comfort_frac": 0.15,       # 온도 최저~최고−1, 습도 최저~최고−5 (팬 '한 단계 내림'이 나오는 좁은 구간)
+    "comfort_frac": 0.15,
+    "midnight_frac": 0.04,      # 오늘 급수 0 회 중 자정 직후·어제 급수 대기 중인 비율       # 온도 최저~최고−1, 습도 최저~최고−5 (팬 '한 단계 내림'이 나오는 좁은 구간)
     "year": 2026,
 }
 ANOMALIES = ("stuck_temperature", "no_rise_after_watering", "led_high_lux_low", "stale", "missing_reading",
@@ -77,6 +78,10 @@ def sample_snapshot(rng, profile, cfg):
     since = None
     if count > 0:
         since = round(_mix(rng, 0.5, [PUMP_WAIT_MIN, 5.0, 30.0], 3.0, 0.5, 900.0), 1)
+    if count == 0 and rng.random() < cfg.get("midnight_frac", 0.04):
+        # 자정 직후, 어제 늦은 급수의 재급수 대기가 남은 경우 (autoctl 은 날짜와 상관없이 60 분을 센다)
+        now = now.replace(hour=0, minute=rng.randrange(60))
+        since = round(rng.uniform(now.minute + 0.5, PUMP_WAIT_MIN - 0.1), 1)
     rise = round(rng.uniform(1.5, 10.0), 1) if since is not None and since <= 30 else None
     cal = rng.choices([True, False, None], weights=[0.88, 0.07, 0.05])[0]
 

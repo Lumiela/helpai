@@ -51,7 +51,7 @@ profiles/          crops.json (서버 api 작물표 복사본 — autoctl 과 �
 edge/              laya-edge 추론 서버 (Node 20, @receptron/laya 0.2.0) · 젯슨 전용 docker-compose.yml (laya-edge + collector)
 collector/         shadow 수집기 이미지 (helpai_decide collect — 서버 읽기만, 명령 없음)
 scripts/           pipeline.sh (집 PC 전 과정)
-tests/             시험 36 개 — python -m unittest discover -s tests -t .
+tests/             시험 42 개 — python -m unittest discover -s tests -t .
 docs/ manual/      문서
 reports/<rev>/     회차별 작은 결과(JSON·YAML) — git 으로 공유
 data/ models/ runs/ bundles/   큰 파일 — git 에 넣지 않는다(.gitignore). 묶음은 scp/USB
@@ -65,6 +65,6 @@ data/ models/ runs/ bundles/   큰 파일 — git 에 넣지 않는다(.gitignor
 
 ## 상태 (2026-11-27)
 
-- ✅ 키트·문서·매뉴얼, 시험 36 개 통과(모델 없이), laya-edge 를 가짜 모델로 확인(묶음 검사·인증·추론·변조 거부)
+- ✅ 키트·문서·매뉴얼, 시험 42 개 통과(모델 없이), laya-edge 를 가짜 모델로 확인(묶음 검사·인증·추론·변조 거부)
 - ✅ shadow 수집기(`collect`·`shadow-report`) — 가짜 서버로 읽기 전용·토큰 갱신·기록 확인
 - ⏳ 실제 Laya 학습·ONNX 내보내기(집 PC), 젯슨에서 수집기 첫 실행·실측, PolicyGate(팀 결정 뒤)

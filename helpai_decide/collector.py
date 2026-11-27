@@ -34,7 +34,7 @@ import yaml
 
 from . import calibration as cal
 from . import labeler
-from .features import FEATURE_VERSION, Snapshot, build_state, soil_calibrated_from_status
+from .features import FEATURE_VERSION, PUMP_WAIT_MIN, Snapshot, build_state, minutes_since_pulse, soil_calibrated_from_status
 from .predict import HttpPredictor, normalize_response
 from .questions import load_questions, questions_sha256
 
@@ -217,18 +217,21 @@ def _flat(series, now, minutes=30):
     return len(xs) >= 10 and (max(xs) - min(xs)) < 0.05
 
 
-def _pulses_today(pump_series, now):
-    """오늘(KST) 펌프 0→양수 전환 시각들."""
-    day = now.astimezone(KST).date()
+def _pulse_edges(pump_series):
+    """펌프 0→양수 전환 시각들 (받은 구간 전체 — 어제 늦은 급수도 포함)."""
     edges, prev = [], 0.0
     for t, v in pump_series:
-        if t.astimezone(KST).date() != day:
-            prev = v
-            continue
         if v > 0 and prev <= 0:
             edges.append(t)
         prev = v
     return edges
+
+
+def pump_history_minutes(now):
+    """급수 이력을 받을 구간(분): 오늘 KST 0 시부터, 그리고 자정을 넘는 재급수 대기를 보려고 최소 60 분 + 1."""
+    local = now.astimezone(KST)
+    mins = int((local - local.replace(hour=0, minute=0, second=0, microsecond=0)).total_seconds() // 60) + 1
+    return max(mins, int(PUMP_WAIT_MIN) + 1)
 
 
 def _value_before(series, t):
@@ -237,6 +240,7 @@ def _value_before(series, t):
 
 
 def build_snapshot(now, values_resp, status_resp, auto_resp, history_rows, today_pump_rows=None):
+    # today_pump_rows: pump_history_minutes(now) 구간의 펌프 이력 (오늘 + 최소 61 분)
     """서버 응답 → Snapshot. now 는 UTC aware datetime. 어떤 응답이 없어도(None) 만들 수 있는 만큼 만든다."""
     v = (values_resp or {}).get("values") or {}
     seen = (values_resp or {}).get("seen")
@@ -247,15 +251,17 @@ def build_snapshot(now, values_resp, status_resp, auto_resp, history_rows, today
     state = (auto_resp or {}).get("state") or {}
     local = now.astimezone(KST)
 
+    # 하루 횟수는 KST 날짜로, 재급수 대기는 날짜와 상관없이 (autoctl: now - pump_last_at < 60 분)
     count, last_pulse = 0, None
     if state.get("pump_last_at"):
-        lp = datetime.fromtimestamp(float(state["pump_last_at"]), UTC)
-        if lp.astimezone(KST).date() == local.date():
-            count, last_pulse = int(state.get("pump_count") or 0), lp
+        last_pulse = datetime.fromtimestamp(float(state["pump_last_at"]), UTC)
+        if last_pulse.astimezone(KST).date() == local.date():
+            count = int(state.get("pump_count") or 0)
     elif today_pump_rows is not None:
-        edges = _pulses_today(_series(today_pump_rows).get("pump", []), now)
-        count, last_pulse = len(edges), (edges[-1] if edges else None)
-    since = None if last_pulse is None else (now - last_pulse).total_seconds() / 60.0
+        edges = _pulse_edges(_series(today_pump_rows).get("pump", []))
+        count = sum(1 for t in edges if t.astimezone(KST).date() == local.date())
+        last_pulse = edges[-1] if edges else None
+    since = minutes_since_pulse(now, last_pulse, count)
     change = None
     moist = hist.get("moisture_pct", [])
     if last_pulse is not None and since is not None and since <= 30 and moist:
@@ -336,9 +342,8 @@ class Collector:
         hist = self._get(sn, "history", errors, {"start": "-%dm" % self.window, "field": fields, "every": "1m"})
         today = None
         if not ((auto or {}).get("state") or {}).get("pump_last_at"):
-            mins = int((now.astimezone(KST) - now.astimezone(KST).replace(hour=0, minute=0, second=0,
-                                                                          microsecond=0)).total_seconds() // 60) + 1
-            r = self._get(sn, "history", errors, {"start": "-%dm" % max(mins, 1), "field": "pump", "every": "1m"})
+            r = self._get(sn, "history", errors, {"start": "-%dm" % pump_history_minutes(now), "field": "pump",
+                                                  "every": "1m"})
             today = (r or {}).get("rows")
         rec = {"t": now.isoformat(timespec="seconds"), "sn": sn, "iid": self.api.iid,
                "feature_version": FEATURE_VERSION, "questions_sha256": questions_sha256(self.questions)}

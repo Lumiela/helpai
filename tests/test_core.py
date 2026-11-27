@@ -55,7 +55,7 @@ class FeatureTest(unittest.TestCase):
         st = build_state(snap(), P)
         self.assertEqual(list(st), ["crop", "time", "temperature", "humidity", "light", "soil", "irrigation", "fan",
                                     "data"])
-        self.assertEqual(FEATURE_VERSION, 2)
+        self.assertEqual(FEATURE_VERSION, 3)
 
     def test_sentences(self):
         self.assertIn("above max 30.0 by 1.2", build_state(snap(temperature=31.2), P)["temperature"])

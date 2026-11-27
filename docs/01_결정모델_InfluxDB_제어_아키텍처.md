@@ -222,7 +222,7 @@ nginx 허용 목록(`/influx/api/v2/query`·`buckets`·`orgs`·`query`·`health`
   "base": "convaiinnovations/laya (typed-decisions)",
   "precision": "int8",
   "questions_sha256": "…",
-  "feature_version": 1,
+  "feature_version": 3,
   "kit_commit": "…", "exporter_commit": "…",
   "dataset": {"rows_synth": 20000, "rows_replay": 4210, "split_test": 2400},
   "eval": {"fan_action": {"accuracy": 0.93, "ece": 0.06, "temperature": 1.4}}
@@ -345,7 +345,7 @@ profiles/crops.json      작물표 (backend 브랜치 api/app/crops.json 복사�
 edge/                    laya-edge: server.mjs · bench.mjs · Dockerfile · docker-compose.yml(젯슨 전용, laya-edge + collector)
 helpai_decide/collector.py  shadow 수집기 (서버 읽기만 → 기준 판단·autoctl 상태·모델 답 기록)  · collector/Dockerfile
 scripts/pipeline.sh      집 PC 학습 전 과정
-tests/                   시험 36 개 (모델 없이)
+tests/                   시험 42 개 (모델 없이)
 ```
 
 **rules v2 에 더할 것 — 다음 단계(아직 없음)**

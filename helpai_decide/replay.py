@@ -17,7 +17,7 @@ import csv
 from collections import deque
 from datetime import datetime, timedelta, timezone
 
-from .features import Snapshot, WATER_CHECK_MIN, soil_calibrated_from_status
+from .features import Snapshot, WATER_CHECK_MIN, minutes_since_pulse, soil_calibrated_from_status
 
 KST = timezone(timedelta(hours=9))
 
@@ -80,8 +80,8 @@ def replay(rows, zone, tz=KST, window_min=30):
                 last_seen[c] = t
                 last_val[c] = x
         local = t.astimezone(tz).replace(tzinfo=None)
-        if local.date() != day:             # 현지 자정에 하루 관수 횟수를 0 으로 (rules v2 와 같음)
-            day, count, last_pulse = local.date(), 0, None
+        if local.date() != day:             # 현지 자정에 하루 급수 횟수만 0 으로 — 재급수 대기는 이어진다(autoctl 과 같음)
+            day, count = local.date(), 0
 
         pump_now = (v.get(col["pump"]) or 0) > 0 if col["pump"] else False
         if pump_now and not pump_prev:
@@ -111,10 +111,9 @@ def replay(rows, zone, tz=KST, window_min=30):
 
         used = [c for c in col.values() if c]
         ages = [(t - last_seen[c]).total_seconds() if c in last_seen else 1e9 for c in used]
-        since = None
         change = None
-        if last_pulse is not None and count > 0:
-            since = (t - last_pulse).total_seconds() / 60.0
+        since = minutes_since_pulse(t, last_pulse, count)
+        if since is not None:
             if since <= WATER_CHECK_MIN and M is not None and moist_at_pulse is not None:
                 change = round(M - moist_at_pulse, 2)
 

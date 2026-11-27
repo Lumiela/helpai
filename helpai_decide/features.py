@@ -16,7 +16,7 @@ from typing import Optional
 
 from .profile import is_light_period, ranges_at
 
-FEATURE_VERSION = 2
+FEATURE_VERSION = 3                 # 3: 자정을 넘는 재급수 대기 (어제 마지막 급수가 60 분 안이면 남긴다)
 
 # ── autoctl.py 상수 (backend 28aed59) ──
 FAN_STEPS = (0, 33, 66, 100)
@@ -54,7 +54,7 @@ class Snapshot:
     fan_pct: Optional[int] = None               # fan1 보고값
     pump_on: bool = False
     irrigations_today: int = 0                  # KST 날짜 기준
-    minutes_since_irrigation: Optional[float] = None    # 오늘 급수 없음 = None
+    minutes_since_irrigation: Optional[float] = None    # 마지막 급수 뒤 분. 오늘 급수 없고 어제 것도 60 분 넘었으면 None (minutes_since_pulse)
     moisture_change_since_irrigation: Optional[float] = None   # %p
     temp_trend_30m: Optional[float] = None
     humidity_trend_30m: Optional[float] = None
@@ -85,6 +85,17 @@ def nearest_step(v):
     if v is None:
         return 0
     return min(range(len(FAN_STEPS)), key=lambda i: abs(FAN_STEPS[i] - float(v)))
+
+
+def minutes_since_pulse(now, last_pulse, count_today):
+    """마지막 급수 뒤 분 — autoctl 처럼 자정을 넘어 대기를 센다.
+    오늘 급수가 있으면 그대로, 없으면 어제 마지막 급수가 60 분(재급수 대기) 안일 때만 남긴다(그 밖엔 None)."""
+    if last_pulse is None:
+        return None
+    m = (now - last_pulse).total_seconds() / 60.0
+    if count_today > 0 or m < PUMP_WAIT_MIN:
+        return m
+    return None
 
 
 def watering_check_active(s):
@@ -200,7 +211,9 @@ def _irrigation(s, p):
         parts.append("none yet today")
     else:
         m = s.minutes_since_irrigation
-        if m < PUMP_WAIT_MIN:
+        if s.irrigations_today == 0:                       # 어제 마지막 급수 (minutes_since_pulse 로 60 분 안만 남는다)
+            parts.append("last pulse before midnight, %d min ago, %d min wait NOT passed" % (round(m), PUMP_WAIT_MIN))
+        elif m < PUMP_WAIT_MIN:
             parts.append("last %d min ago, %d min wait NOT passed" % (round(m), PUMP_WAIT_MIN))
         else:
             parts.append("last %d min ago, wait passed" % round(m))
