@@ -49,7 +49,7 @@ configs/           questions.yaml(질문) · dataset.yaml · training.yaml · re
 profiles/          crops.json (서버 api 작물표 복사본 — autoctl 과 같은 값)
 edge/              laya-edge 추론 서버 (Node 20, @receptron/laya 0.2.0) · Dockerfile · 젯슨 전용 docker-compose.yml
 scripts/           pipeline.sh (집 PC 전 과정)
-tests/             시험 28 개 — python -m unittest discover -s tests -t .
+tests/             시험 29 개 — python -m unittest discover -s tests -t .
 docs/ manual/      문서
 reports/<rev>/     회차별 작은 결과(JSON·YAML) — git 으로 공유
 data/ models/ runs/ bundles/   큰 파일 — git 에 넣지 않는다(.gitignore). 묶음은 scp/USB
@@ -63,5 +63,5 @@ data/ models/ runs/ bundles/   큰 파일 — git 에 넣지 않는다(.gitignor
 
 ## 상태 (2026-11-27)
 
-- ✅ 키트·문서·매뉴얼, 시험 28 개 통과(모델 없이), laya-edge 를 가짜 모델로 확인(묶음 검사·인증·추론·변조 거부)
+- ✅ 키트·문서·매뉴얼, 시험 29 개 통과(모델 없이), laya-edge 를 가짜 모델로 확인(묶음 검사·인증·추론·변조 거부)
 - ⏳ 실제 Laya 학습·ONNX 내보내기(집 PC), 젯슨 실측, rules v2 PolicyGate 연결

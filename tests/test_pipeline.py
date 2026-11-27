@@ -181,3 +181,29 @@ class BundleTest(TmpDir):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class LightCheckTest(TmpDir):
+    """앞 5 일은 조명이 CUBE002(CUBE001 조도와 무관), 뒤 5 일은 CUBE001(조도가 LED 를 따라감) → 6 일째를 찾아야 한다."""
+    def test_finds_move_day(self):
+        import random
+        from helpai_decide import light_check as lc
+        rng = random.Random(1)
+        p = self.tmp / "light.csv"
+        t0 = datetime(2026, 11, 1, 0, 0, tzinfo=timezone(timedelta(hours=9)))
+        with open(p, "w", newline="", encoding="utf-8") as f:
+            w = csv.writer(f)
+            w.writerow(["time", "CUBE001.led1", "CUBE001.lux", "CUBE002.led1"])
+            for m in range(10 * 24 * 60):
+                t = t0 + timedelta(minutes=m)
+                led = 0 if t.hour in (23, 0) else 50 + 10 * ((t.hour // 3) % 4)
+                moved = m >= 5 * 24 * 60
+                lux = (led * 80 + rng.gauss(0, 200)) if moved else rng.uniform(300, 1500)
+                w.writerow([t.astimezone(timezone.utc).isoformat(), led, round(max(0, lux)),
+                            "" if moved else led])
+        rep, day = lc.run(p)
+        self.assertEqual(day, "2026-11-06")
+        self.assertLess(abs(rep[0]["corr"]), 0.3)
+        self.assertGreater(rep[-1]["corr"], 0.9)
+        self.assertGreater(rep[0]["other_led_minutes"], 0)
+        self.assertEqual(rep[-1]["other_led_minutes"], 0)

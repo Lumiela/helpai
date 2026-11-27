@@ -5,6 +5,7 @@
   check-env                         학습 환경 점검
   download-base                     기반 체크포인트 내려받기
   export-influx                     서버 InfluxDB(읽기 창구 /influx) → 1분 평균 CSV
+  light-check                       조명을 CUBE001 로 옮긴 날 찾기 (LED·조도 상관)
   dataset build | check             데이터셋 만들기 / 형식 검사
   token-count                       state 토큰 수 실측
   train                             미세조정
@@ -54,6 +55,21 @@ def cmd_export_influx(a):
     zone = _yaml(a.zone_config)["zone"]
     n = ie.export(zone, ie.parse_time(a.start), ie.parse_time(a.stop), a.out, url=a.url, org=a.org, bucket=a.bucket)
     print("저장 %s (%d 분)" % (a.out, n))
+
+
+def cmd_light_check(a):
+    from . import light_check as lc
+    rep, day = lc.run(a.csv, a.threshold, led_col=a.led, lux_col=a.lux, other_led_col=a.other_led)
+    print("%-10s %7s %8s %7s %10s" % ("날짜(KST)", "분", "LED표준편차", "상관", a.other_led + "분"))
+    for r in rep:
+        print("%-10s %7d %8.1f %7s %10d" % (r["date"], r["minutes"], r["led_std"],
+                                           "-" if r["corr"] is None else "%.2f" % r["corr"], r["other_led_minutes"]))
+    if day:
+        print("\n제안: 조명이 CUBE001 에 있다고 볼 첫날 = %s  (그날부터 판단 가능한 날이 모두 상관 ≥ %.2f)" % (day, a.threshold))
+        print("      MOVED=%s 로 export-influx --start 에 쓴다. 표를 보고 앞뒤 하루는 직접 확인할 것." % day)
+    else:
+        print("\n제안 없음: 상관이 꾸준히 높은 구간이 없다 — 조명이 CUBE001 조도계를 비추는지, LED 가 움직였는지(표준편차) 확인")
+    return 0 if day else 1
 
 
 def cmd_dataset_build(a):
@@ -206,6 +222,14 @@ def main(argv=None):
     p.add_argument("--bucket", default="sensors")
     p.add_argument("--zone-config", default=str(ROOT / "configs" / "replay.yaml"))
     p.set_defaults(fn=cmd_export_influx)
+
+    p = sub.add_parser("light-check", help="조명을 CUBE001 로 옮긴 날 찾기 (날마다 LED·조도 상관)")
+    p.add_argument("--csv", required=True, help="export-influx --zone-config configs/light_check.yaml 결과")
+    p.add_argument("--led", default="CUBE001.led1")
+    p.add_argument("--lux", default="CUBE001.lux")
+    p.add_argument("--other-led", default="CUBE002.led1")
+    p.add_argument("--threshold", type=float, default=0.6)
+    p.set_defaults(fn=cmd_light_check)
 
     p = sub.add_parser("dataset")
     s2 = p.add_subparsers(dest="sub", required=True)

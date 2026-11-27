@@ -1,0 +1,8 @@
+# 조명을 옮긴 날 찾기용 내보내기 매핑 — export-influx --zone-config configs/light_check.yaml
+# CUBE001 의 LED·조도와, 조명이 예전에 있던 CUBE002 의 LED 만 받는다.
+zone:
+  id: light-check
+  sensors:
+    lux: CUBE001.lux
+  actuators:
+    light: [CUBE001.led1, CUBE002.led1]

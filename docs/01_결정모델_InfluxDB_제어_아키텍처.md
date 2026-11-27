@@ -344,7 +344,7 @@ configs/                 questions.yaml · dataset.yaml · training.yaml · repl
 profiles/crops.json      작물표 (backend 브랜치 api/app/crops.json 복사본)
 edge/                    laya-edge: server.mjs · bench.mjs · Dockerfile · docker-compose.yml(젯슨 전용)
 scripts/pipeline.sh      집 PC 학습 전 과정
-tests/                   시험 28개 (모델 없이)
+tests/                   시험 29 개 (모델 없이)
 ```
 
 **rules v2 에 더할 것 — 다음 단계(아직 없음)**
