@@ -1,6 +1,6 @@
 # langgraph 브랜치: AWS 시험 서버 자동 반영
 
-이 브랜치에 푸시하면 AWS 시험 서버(https://smartcubeaws.duckdns.org)와 젯슨 추론 서버에 자동으로 반영됩니다. 보통 푸시하고 1~2분 안에 끝납니다.
+이 브랜치에 푸시하면 AWS 시험 서버("https://smartcubeaws.duckdns.org")와 젯슨 추론 서버에 자동으로 반영됩니다. 보통 푸시하고 1~2분 안에 끝납니다.
 
 ## 폴더
 
@@ -61,4 +61,4 @@
 - `crop_monitor/requirements.txt` 를 바꾸면 서버가 패키지를 자동으로 설치하지 않고 반영을 멈춥니다. 서버 담당자에게 알려 주세요.
 - `crop_monitor/config/crops.yaml` 의 젯슨 주소는 AWS 가 반영할 때 자기 쪽 값으로 바꿔 씁니다.
 - AWS 화면은 네이버 클라우드 api 를 조회만 합니다. 제어 버튼은 동작하지 않습니다.
-- 반영 여부는 GitHub 의 Actions 탭에서 신호가 성공했는지로 먼저 확인하고, 서버 쪽 결과는 서버 담당자에게 확인하세요.
+- 반영 여부는 GitHub 의 Actions 탭에서 신호가 성공했는지로 먼저 확인하고, 서버 쪽 결과는 aws서버에서 확인하세요.
