@@ -1,0 +1,13 @@
+# InfluxDB 이력 재생용 구역 매핑 — rules v2 config/zones.yaml 의 zone-1 과 같은 모양·같은 값으로 유지한다.
+# 2026-10-06 실서버 jetson-01 구성: 센서·펌프·팬 = CUBE001, 조명 = CUBE002.led1
+zone:
+  id: zone-1
+  sensors:
+    temperature: CUBE001.temperature
+    humidity: CUBE001.humidity
+    lux: CUBE001.lux
+    soil_moisture: {from: CUBE001.moisture_pct, valid_if: CUBE001.moisture_calibrated}
+  actuators:
+    light: [CUBE002.led1]
+    pump: CUBE001.pump
+    fan: [CUBE001.fan1]

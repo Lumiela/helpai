@@ -1,0 +1,19 @@
+# 미세조정 설정 — python -m helpai_decide train --config configs/training.yaml --out runs/<이름>/model
+# train: 아래 키는 laya.train.TrainConfig 의 필드 이름 그대로 넘긴다(laya 0.5.5 기준).
+#        이 판에 없는 키는 경고하고 무시한다 → check-env 로 실제 필드 목록 확인.
+# RTX 5060 Ti 16 GB 기준. 메모리 부족(CUDA out of memory)이면 micro_batch 를 4 로, 그래도 안 되면 gradient_checkpointing: true.
+train:
+  epochs: 4
+  micro_batch: 8
+  grad_accum: 8               # 실효 배치 = 8 × 8 = 64
+  encoder_lr: 2.5e-5
+  head_lr: 1.0e-4
+  min_lr: 1.0e-6
+  weight_decay: 0.01
+  grad_clip: 1.0
+  loss: rlcd                  # laya 기본(보정 지향). 비교 실험: soft-ce
+  calib_frac: 0.1             # laya 내부 온도 보정용으로 떼어 두는 비율 (우리 사후 보정과 별개)
+  calib_max: 400
+  seed: 0
+  gradient_checkpointing: false
+  log_every: 100

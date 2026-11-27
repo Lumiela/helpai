@@ -1,0 +1,21 @@
+# 데이터셋 조립 설정 — python -m helpai_decide dataset build --config configs/dataset.yaml --out data/dataset
+val_frac: 0.1
+test_frac: 0.1
+state_token_budget: 300       # 대략 토큰 수(단어 × 1.6)가 이보다 크면 그 행은 뺀다. 실측은 token-count 명령
+
+synth:                        # 합성 — 경계·이상 상황을 넉넉히
+  enabled: true
+  n: 20000
+  seed: 20261127
+  edge_frac: 0.6              # 판단 경계 근처에서 뽑는 비율
+  anomaly_rate: 0.15          # 센서 이상 시나리오 비율
+  missing_rate: 0.03
+  day_frac: 0.7
+  year: 2026
+
+replay:                       # 젯슨 InfluxDB 이력 재생 — export-influx 로 받은 CSV
+  enabled: false              # CSV 를 받은 뒤 true 로
+  zone_config: configs/replay.yaml
+  subsample_min: 5            # 분 단위 데이터가 거의 같아서 5 분마다 하나
+  csv:
+    - data/raw/influx_2026-10-06_2026-11-27.csv

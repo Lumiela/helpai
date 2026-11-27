@@ -1,0 +1,23 @@
+# 비밀 — 절대 올리지 않는다
+.env
+*.env
+secrets*
+
+# 큰 파일·생성물 (모델·데이터·묶음은 git 이 아니라 scp 로 옮긴다)
+data/
+models/
+runs/
+bundles/
+*.onnx
+*.onnx.data
+*.safetensors
+*.tar
+
+# 환경
+.venv/
+venv/
+__pycache__/
+*.pyc
+edge/node_modules/
+.ipynb_checkpoints/
+.DS_Store

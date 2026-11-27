@@ -1,0 +1,2 @@
+# 핵심 모듈(features·questions·labeler·calibration·bundle·dataset) — rules 엔진·시험에 필요한 전부
+pyyaml>=6,<7

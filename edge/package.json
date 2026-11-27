@@ -1,0 +1,15 @@
+{
+  "name": "helpai-laya-edge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "젯슨용 Laya 추론 서버 — 묶음(bundle)을 검사해 적재하고 POST /v1/systemone 을 연다",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node server.mjs",
+    "bench": "node bench.mjs"
+  },
+  "dependencies": {
+    "@receptron/laya": "0.2.0"
+  }
+}

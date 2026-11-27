@@ -1,0 +1,74 @@
+# 장미 생육 프로필 — docs/01_장미_생육데이터_정리.md 의 기계용 판.
+# 작물을 바꾸려면 이 파일을 복사해 값만 바꾼다(코드 수정 없음). 단위: °C, %, lx, 분/초.
+# source 등급: interview(숫자 있음) / interview + 가정(방법만) / 일반 기준(검증 필요)
+
+crop: rose
+name: 장미
+version: 1
+
+# ── 일장: 이 시간대만 "낮". 그 밖은 LED 를 끈다(밤 인식 → 뿌리 발달, 인터뷰 1.3)
+photoperiod:
+  start: "06:00"
+  end: "22:00"                          # YAML 에서 on/off 는 참/거짓으로 읽혀 start/end 를 쓴다
+  night_lighting_months: [12, 1, 2]     # 이 달엔 밤에도 일장 규칙 적용(24 h 조명 허용)
+  source: "interview 1.3 + 가정"
+
+temperature:
+  min: 22.0                             # interview 1.2 온도 a
+  max: 30.0                             # interview 1.2 온도 a
+  critical: 35.0                        # interview 1.2 광량 b (차광 기준)
+  comfort: 26.0                         # min~max 중앙. 이 위부터 팬을 비례로 올린다 (가정)
+  hysteresis: 1.0                       # 진입/해제 간격
+  use_light_for_heating: true           # 저온 시 LED 로 보온 (interview 1.2 온도 b)
+  cold_light_floor: 100                 # 저온 시 LED 하한(%)
+  cold_fan_cap: 20                      # 저온 시 팬 상한(%) — 열 손실 최소화, 최소 환기만
+  heat_light_cap: 30                    # 35 °C 이상 LED 상한(%) — 차광막 대체
+  source: "interview 1.2"
+
+light:
+  lux_min: 6000                         # interview 1.2 광량 a
+  lux_target: 9000                      # interview 1.2 광량 a (9,000~12,000) — 참고값. 규칙은 min~max 대역 유지
+  lux_max: 12000                        # interview 1.2 광량 a
+  step: 10                              # 한 번에 LED 를 바꾸는 폭(%)
+  source: "interview 1.2"
+
+humidity:
+  max: 85.0                             # 일반 기준(검증 필요)
+  hysteresis: 5.0
+  vent_fan_floor: 60
+  low_alert: 40.0                       # 가습기 없음 → 경보만
+  source: "일반 기준(검증 필요)"
+
+ventilation:                            # CO2 공급 대신 주기 환기 (interview 1.2 CO2 a)
+  every_min: 60
+  duration_min: 5
+  fan_floor: 50
+  source: "interview 1.2 + 가정"
+
+fan:
+  idle: 20                              # comfort 이하일 때 기본 순환
+  max: 100
+
+irrigation:
+  moisture_min: 40.0                    # 이 아래면 관수 (가정, 튜닝 필요)
+  pulse_s: 8                            # 펌웨어 PUMP_MAX_MS(30 s) 보다 짧게
+  min_interval_min: 20                  # 스며들 시간
+  max_per_day: 12                       # interview 1.4 공급 방식 b
+  require_calibrated: true              # moisture_calibrated=false 면 관수 안 함
+  source: "interview 1.4 + 가정"
+
+growth_cycle_days:                      # 정식/전정 후 수확까지 (interview 1.1)
+  summer: [30, 30]                      # 6~8월 (8월 기준값을 확장 — 가정)
+  spring: [40, 45]                      # 3~5월
+  autumn: [40, 45]                      # 9~11월
+  winter: [50, 55]                      # 12~2월
+  harvest_stage: "개화 전 봉오리"
+
+# 센서·구동기가 없어 사람이 하는 일. 엔진은 상태에 체크리스트로만 보여 준다.
+manual:
+  nutrient_ec: 2.8                      # interview 1.4
+  nutrient_ph: [5.2, 5.4]               # interview 1.4
+  source_water_ph_max: 5.5              # interview 1.4 (구연산)
+  substrate_ph: 5.3                     # interview 1.4 장미 전용 상토
+  fertilizer: "30-10-10"                # interview 1.4
+  pest: "재배 초기 살충·살균제 몇 회 예방 살포"   # interview 1.5

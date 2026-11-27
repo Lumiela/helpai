@@ -1,0 +1,61 @@
+{
+  "state": {
+    "crop": "rose",
+    "time": "14:10, daytime (light period 06:00 to 22:00)",
+    "temperature": "31.2 C; hot: above max 30.0 by 1.2; rising fast (+1.8 C in 30 min)",
+    "humidity": "71.0 %; within range (max 85.0); flat over 30 min",
+    "light": "LED 100 % (already at max); 4800 lux, below min 6000",
+    "soil": "38.0 %; below min 40.0 by 2.0; sensor calibrated",
+    "irrigation": "3 of 12 used today; last 45 min ago, interval passed",
+    "fan": "33 % (level low)",
+    "data": "fresh (oldest reading 4 s old)"
+  },
+  "questions": {
+    "fan_level": {
+      "type": "choice",
+      "instructions": "Choose the exhaust fan level for a rose grow cube from the readings. Critical heat or high humidity needs strong airflow; cold needs the fan off.",
+      "criteria": {
+        "off": "cold below min, keep heat in",
+        "low": "comfortable or slightly warm, idle airflow",
+        "mid": "warm, high humidity, or ventilation window",
+        "high": "very warm, hot above max, or critical heat"
+      }
+    },
+    "light_action": {
+      "type": "choice",
+      "instructions": "Choose what to do with the grow LED now. Respect night, critical heat and cold protection before lux targets.",
+      "criteria": {
+        "off": "night and not cold, lights must be off",
+        "decrease": "lux above max, or critical heat with LED above 30",
+        "hold": "lux in range, or LED already at its limit",
+        "increase": "lux below min, or cold and LED below max"
+      }
+    },
+    "irrigate_now": {
+      "type": "noul",
+      "instructions": "Should the pump give one short watering pulse now? Only if soil is below min, the sensor is calibrated, the interval has passed and the daily limit is not reached.",
+      "criteria": {
+        "true": "soil below min and every watering condition allows it",
+        "false": "soil fine, sensor not calibrated, interval not passed, limit reached, or soil missing"
+      }
+    },
+    "plant_stress": {
+      "type": "choice",
+      "instructions": "Rate the current stress on the roses from temperature, humidity, light and soil.",
+      "criteria": {
+        "none": "all readings in range",
+        "mild": "humidity out of range or light below min with LED at max",
+        "moderate": "temperature outside min or max, or dry soil that cannot be watered",
+        "severe": "critical heat, or temperature far outside range"
+      }
+    },
+    "data_suspect": {
+      "type": "noul",
+      "instructions": "Do the readings look like a sensor or wiring fault rather than real conditions?",
+      "criteria": {
+        "true": "stale data, value stuck for 30 min, no rise after watering, or LED high but lux very low",
+        "false": "readings are fresh and consistent"
+      }
+    }
+  }
+}

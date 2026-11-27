@@ -1,0 +1,14 @@
+# 집 PC 학습용. torch 는 이 파일보다 먼저, RTX 50 계열(sm_120)용 CUDA 12.8 휠로 따로 설치한다:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu128
+# (manual/01_집PC_학습환경_설정.md)
+-r requirements-core.txt
+laya==0.5.5               # 2026-11-27 확인 판. 올릴 때는 check-env 로 학습 API 이름부터 확인
+transformers>=4.48
+huggingface_hub
+safetensors
+tokenizers
+onnx
+onnxscript
+onnxruntime
+onnxconverter-common      # FP16 변환(convert --precision fp16)에만
+influxdb-client           # export-influx 에만
