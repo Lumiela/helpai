@@ -21,7 +21,7 @@ preprocess ─┬─(작물 등록됨)─┬─ growth_stage ─┐  생장 단�
 | 모듈 | 원본 | 위치 | 하는 일 |
 |---|---|---|---|
 | 높이 (공통) | helpai-Height `stereo_pair.py` | `modules/height/`, `calibration/` | 정렬 → SGBM 시차 → 거리(cm) → 기준면(RANSAC) 대비 높이 지도. 세로 어긋남이 크면 자동 미세 조정(B) 후 다시 계산 |
-| 장미 생장 단계 | helpai-Rose_Growth `rose_pipeline` | `modules/rose_growth/` | 구멍 위치 자동 찾기 → 빈 화분 판정 → 트레이 칸 나누기 → 봉오리 검출(YOLOv8m) → 등급 분류(YOLO26m-cls) → Claude 검수·누락 추가 |
+| 장미 생장 단계 | helpai-Rose_Growth `rose_pipeline` | `modules/rose_growth/` | 구멍 위치 자동 찾기 → 빈 화분 판정 → 트레이 칸 나누기 → 봉오리 검출(YOLOv8m) → 등급 분류(YOLO26m-cls, 확신 0.8 미만은 Claude 가 다시 판단 = cascade) → Claude 검수·누락 추가 |
 | 장미 이상 상태 | helpai-Rose_Disease `leafdx` (`rose_leaf_colab_keyfile.ipynb`) | `modules/rose_disease/` | 잎 탐지 → 잎별 상태 분류 → VLM 재확인 (켜져 있음) |
 
 각 모듈의 원본 코드는 거의 그대로 두고, `adapter.py` 가 그래프와 연결합니다. 원본에서 바꾼 곳은 경로 기준(프로젝트 루트)과 API 키 위치(`secrets/`)뿐입니다.
@@ -49,7 +49,7 @@ uv sync
 
 `secrets/ANTHROPIC_API_KEY` 파일에 키 한 줄(`sk-ant-...`)을 넣으세요. 메모장에서 `.txt` 가 붙어도 됩니다. 이 폴더는 git 에 올라가지 않습니다.
 
-- 생장 단계: 키가 있으면 원본 설정대로 Claude 검수·누락 추가를 씁니다. 키가 없으면 그 단계를 끄고 YOLO 결과만 씁니다 (보고서 경고에 표시). Claude 에게는 `weights/rose/growth/vlm_examples/<클래스>/` 의 예시 사진(not_bud, grade_one ~ grade_four 각 3장)을 함께 보냅니다 (`vlm.examples_per_class: 3`).
+- 생장 단계: 키가 있으면 원본 설정대로 Claude 검수·누락 추가를 쓰고, 등급은 `cls_backend: cascade` 로 YOLO26m-cls 확신이 `cascade_below`(0.8) 미만인 봉오리만 Claude 가 다시 정합니다 (`yolo` 로 바꾸면 YOLO 만). 키가 없으면 그 단계를 끄고 YOLO 결과만 씁니다 (보고서 경고에 표시). Claude 에게는 `weights/rose/growth/vlm_examples/<클래스>/` 의 예시 사진(not_bud, grade_one ~ grade_four 각 3장)을 함께 보냅니다 (`vlm.examples_per_class: 3`).
 - 잎 이상 VLM 재확인: **켜져 있습니다** (`config/crops.yaml` 의 `disease.vlm.enabled`). 이상 · UNKNOWN 잎 전부와 정상 잎 5장을 사진마다 최대 40장까지 Claude 에게 다시 묻습니다. 장미 샘플 1회 약 $0.28. 키가 없으면 이 모듈이 실패하니 `enabled: false` 로 끄세요. VLM 의 판정 · 증상 · 이유는 `crop_data.json` 에 저장되고, VLM 판정으로 상태가 바뀐 잎은 보고서의 "VLM 재확인으로 바뀐 잎" 표에 나옵니다 (모델 판정과 함께). 보고서의 "잎 상태" 칸은 VLM 반영 후 개수입니다 (VLM 적용 전 개수는 `crop_data.json` 의 `model_counts`).
 
 ## 실행
@@ -78,6 +78,7 @@ uv run python scripts/run.py --crop A --CL data/samples/rose_CL.jpg --CR data/sa
 |---|---|---|
 | 잎 분류 모델 바꾸기 | `config/crops.yaml` | `disease.cls_weights` (지금 `leaf_cls_yolov8m_du.pt`) |
 | 잎 이상 VLM 켜기 · 끄기 | `config/crops.yaml` | `disease.vlm.enabled` |
+| 생장 등급을 누가 정하나 | `config/rose/growth.yaml` | `grading.detector.cls_backend` (`cascade` 지금 / `yolo` / `vlm`), `cascade_below` (0.8) |
 | 빈 화분 판정 기준 | `config/rose/growth.yaml` | `presence.dark_v_max` (110), `presence.dark_s_max` (100), `presence.empty_ratio` (0.25) — 구멍 원 안에서 명도 110 이하·채도 100 이하인 픽셀 비율의 두 카메라 평균이 이 값 이상이면 빈 칸 |
 | 구멍 위치 자동 · 고정 | `config/rose/growth.yaml` | `holes_auto.mode` (`auto` / `fixed`), 원 크기 `radius_ratio` (0.25) |
 | 실행 중 자동 보정(B) 켜기 · 끄기 | `config/crops.yaml` | `height.autocalib.in_pipeline` |
