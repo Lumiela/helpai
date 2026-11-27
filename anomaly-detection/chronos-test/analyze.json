@@ -1,0 +1,188 @@
+{
+ "temperature_30min": {
+  "n": 792,
+  "n_24h": 644,
+  "persist": 0.313,
+  "persist_plus_24h_change": 0.42,
+  "c2_uni": 0.29,
+  "c2_multi": 0.285,
+  "c2_future": 0.251,
+  "on_24h_subset": {
+   "persist": 0.305,
+   "persist_plus_24h_change": 0.42,
+   "c2_uni": 0.282,
+   "c2_multi": 0.272,
+   "c2_future": 0.235
+  },
+  "c2_uni_ratio_ci95": [
+   0.88,
+   0.972
+  ],
+  "c2_uni_days_better": "18/24",
+  "c2_multi_ratio_ci95": [
+   0.86,
+   0.962
+  ],
+  "c2_multi_days_better": "19/24",
+  "c2_future_ratio_ci95": [
+   0.751,
+   0.853
+  ],
+  "c2_future_days_better": "22/24"
+ },
+ "temperature_60min": {
+  "n": 782,
+  "n_24h": 634,
+  "persist": 0.501,
+  "persist_plus_24h_change": 0.624,
+  "c2_uni": 0.433,
+  "c2_multi": 0.42,
+  "c2_future": 0.355,
+  "on_24h_subset": {
+   "persist": 0.505,
+   "persist_plus_24h_change": 0.624,
+   "c2_uni": 0.434,
+   "c2_multi": 0.418,
+   "c2_future": 0.343
+  },
+  "c2_uni_ratio_ci95": [
+   0.809,
+   0.919
+  ],
+  "c2_uni_days_better": "19/24",
+  "c2_multi_ratio_ci95": [
+   0.777,
+   0.892
+  ],
+  "c2_multi_days_better": "20/24",
+  "c2_future_ratio_ci95": [
+   0.657,
+   0.769
+  ],
+  "c2_future_days_better": "21/24"
+ },
+ "temperature_180min": {
+  "n": 757,
+  "n_24h": 612,
+  "persist": 0.971,
+  "persist_plus_24h_change": 1.003,
+  "c2_uni": 0.759,
+  "c2_multi": 0.725,
+  "c2_future": 0.632,
+  "on_24h_subset": {
+   "persist": 0.973,
+   "persist_plus_24h_change": 1.003,
+   "c2_uni": 0.747,
+   "c2_multi": 0.696,
+   "c2_future": 0.6
+  },
+  "c2_uni_ratio_ci95": [
+   0.721,
+   0.853
+  ],
+  "c2_uni_days_better": "18/23",
+  "c2_multi_ratio_ci95": [
+   0.685,
+   0.82
+  ],
+  "c2_multi_days_better": "17/23",
+  "c2_future_ratio_ci95": [
+   0.586,
+   0.726
+  ],
+  "c2_future_days_better": "19/23"
+ },
+ "humidity_30min": {
+  "n": 792,
+  "n_24h": 644,
+  "persist": 0.914,
+  "persist_plus_24h_change": 1.293,
+  "c2_uni": 0.905,
+  "c2_multi": 0.881,
+  "c2_future": 0.834,
+  "on_24h_subset": {
+   "persist": 0.848,
+   "persist_plus_24h_change": 1.293,
+   "c2_uni": 0.842,
+   "c2_multi": 0.812,
+   "c2_future": 0.755
+  },
+  "c2_uni_ratio_ci95": [
+   0.955,
+   1.027
+  ],
+  "c2_uni_days_better": "14/24",
+  "c2_multi_ratio_ci95": [
+   0.918,
+   1.008
+  ],
+  "c2_multi_days_better": "16/24",
+  "c2_future_ratio_ci95": [
+   0.859,
+   0.961
+  ],
+  "c2_future_days_better": "18/24"
+ },
+ "humidity_60min": {
+  "n": 782,
+  "n_24h": 634,
+  "persist": 1.324,
+  "persist_plus_24h_change": 1.785,
+  "c2_uni": 1.251,
+  "c2_multi": 1.215,
+  "c2_future": 1.116,
+  "on_24h_subset": {
+   "persist": 1.265,
+   "persist_plus_24h_change": 1.785,
+   "c2_uni": 1.2,
+   "c2_multi": 1.165,
+   "c2_future": 1.038
+  },
+  "c2_uni_ratio_ci95": [
+   0.901,
+   0.987
+  ],
+  "c2_uni_days_better": "16/24",
+  "c2_multi_ratio_ci95": [
+   0.866,
+   0.963
+  ],
+  "c2_multi_days_better": "17/24",
+  "c2_future_ratio_ci95": [
+   0.778,
+   0.904
+  ],
+  "c2_future_days_better": "20/24"
+ },
+ "humidity_180min": {
+  "n": 757,
+  "n_24h": 612,
+  "persist": 2.624,
+  "persist_plus_24h_change": 3.269,
+  "c2_uni": 2.469,
+  "c2_multi": 2.449,
+  "c2_future": 2.32,
+  "on_24h_subset": {
+   "persist": 2.514,
+   "persist_plus_24h_change": 3.269,
+   "c2_uni": 2.422,
+   "c2_multi": 2.352,
+   "c2_future": 2.197
+  },
+  "c2_uni_ratio_ci95": [
+   0.884,
+   0.997
+  ],
+  "c2_uni_days_better": "15/23",
+  "c2_multi_ratio_ci95": [
+   0.849,
+   0.999
+  ],
+  "c2_multi_days_better": "14/23",
+  "c2_future_ratio_ci95": [
+   0.776,
+   0.97
+  ],
+  "c2_future_days_better": "16/23"
+ }
+}

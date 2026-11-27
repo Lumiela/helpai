@@ -1,0 +1,36 @@
+led_on_temperature {'events': 15, 'median_curve_min_0_10_20_30_45_60': [0.033, 0.283, 0.575, 0.793, 1.117, 1.35, 1.477, 1.502, 1.517, 1.5], 'final_55_60': 1.5, 'minutes_to_63pct': 4}
+led_on_humidity {'events': 15, 'median_curve_min_0_10_20_30_45_60': [-0.062, -0.808, -1.545, -1.957, -2.598, -3.415, -3.632, -3.465, -3.562, -3.617], 'final_55_60': -3.575, 'minutes_to_63pct': 4}
+led_on_chip_temp {'events': 19, 'median_curve_min_0_10_20_30_45_60': [-0.079, -0.03, 0.183, 0.13, 0.373, 0.297, 0.605, 1.023, 0.625, 0.647], 'final_55_60': 0.728, 'minutes_to_63pct': 12}
+led_on_moisture_raw {'events': 19, 'median_curve_min_0_10_20_30_45_60': [0.25, 0.383, 2.083, 3.35, 4.35, 7.467, 10.417, 10.517, 11.833, 10.583], 'final_55_60': 10.472, 'minutes_to_63pct': 10}
+led_off_temperature {'events': 7, 'median_curve_min_0_10_20_30_45_60': [-0.045, -0.28, -0.547, -0.738, -1.088, -1.488, -1.688, -1.888, -2.08, -2.097], 'final_55_60': -2.091, 'minutes_to_63pct': 8}
+led_off_humidity {'events': 7, 'median_curve_min_0_10_20_30_45_60': [0.025, 0.25, 0.655, 1.147, 1.705, 2.33, 2.347, 2.522, 2.77, 3.187], 'final_55_60': 3.049, 'minutes_to_63pct': 6}
+led_off_chip_temp {'events': 10, 'median_curve_min_0_10_20_30_45_60': [0.162, -0.07, -0.057, -0.18, -0.308, -0.288, 0.116, -0.344, -0.682, -0.659], 'final_55_60': -0.408, 'minutes_to_63pct': 5}
+led_off_moisture_raw {'events': 11, 'median_curve_min_0_10_20_30_45_60': [0.017, 0.0, -0.133, -0.283, -0.067, -0.217, 0.0, 0.133, 1.0, 1.0], 'final_55_60': 1.0, 'minutes_to_63pct': 37}
+펌프 급수 27
+   {'t': '09-23 18:32', 'pump_minutes_next_10': 1, 'moisture_raw_before': 280.8, 'delta': {5: None, 15: None, 30: None, 60: None}}
+   {'t': '09-23 19:20', 'pump_minutes_next_10': 3, 'moisture_raw_before': 319.9, 'delta': {5: -0.94, 15: 0.89, 30: 0.09, 60: 0.08}}
+   {'t': '09-27 00:28', 'pump_minutes_next_10': 1, 'moisture_raw_before': 357.0, 'delta': {5: -22.7, 15: -25.0, 30: -26.0, 60: -25.0}}
+   {'t': '09-28 14:04', 'pump_minutes_next_10': 1, 'moisture_raw_before': None, 'delta': {5: None, 15: None, 30: None, 60: None}}
+   {'t': '09-29 17:41', 'pump_minutes_next_10': 1, 'moisture_raw_before': None, 'delta': {5: None, 15: None, 30: None, 60: None}}
+   {'t': '09-29 22:11', 'pump_minutes_next_10': 2, 'moisture_raw_before': 12338.2, 'delta': {5: -311.06, 15: None, 30: None, 60: None}}
+   {'t': '09-30 08:22', 'pump_minutes_next_10': 2, 'moisture_raw_before': 12001.0, 'delta': {5: None, 15: None, 30: None, 60: None}}
+   {'t': '09-30 09:04', 'pump_minutes_next_10': 1, 'moisture_raw_before': None, 'delta': {5: None, 15: None, 30: None, 60: None}}
+   {'t': '09-30 14:19', 'pump_minutes_next_10': 1, 'moisture_raw_before': 12948.4, 'delta': {5: -614.08, 15: -617.22, 30: -608.32, 60: -593.6}}
+   {'t': '10-01 16:32', 'pump_minutes_next_10': 1, 'moisture_raw_before': 14104.3, 'delta': {5: None, 15: None, 30: None, 60: None}}
+   {'t': '10-03 17:22', 'pump_minutes_next_10': 1, 'moisture_raw_before': None, 'delta': {5: None, 15: None, 30: None, 60: None}}
+   {'t': '10-05 15:47', 'pump_minutes_next_10': 2, 'moisture_raw_before': 17540.5, 'delta': {5: None, 15: None, 30: None, 60: None}}
+   {'t': '10-06 12:47', 'pump_minutes_next_10': 1, 'moisture_raw_before': 12455.7, 'delta': {5: -140.14, 15: -144.42, 30: -154.99, 60: -172.72}}
+   {'t': '10-06 15:27', 'pump_minutes_next_10': 1, 'moisture_raw_before': 12068.1, 'delta': {5: -6.95, 15: -5.63, 30: 22.03, 60: 4.23}}
+   {'t': '10-08 16:15', 'pump_minutes_next_10': 1, 'moisture_raw_before': 11806.2, 'delta': {5: None, 15: None, 30: None, 60: None}}
+   {'t': '10-09 17:17', 'pump_minutes_next_10': 3, 'moisture_raw_before': 11979.2, 'delta': {5: 5.63, 15: 0.55, 30: -2.07, 60: None}}
+   {'t': '10-12 09:18', 'pump_minutes_next_10': 6, 'moisture_raw_before': 12111.6, 'delta': {5: -43.97, 15: -54.37, 30: -116.66, 60: -121.42}}
+   {'t': '10-13 09:51', 'pump_minutes_next_10': 1, 'moisture_raw_before': 9602.9, 'delta': {5: 2445.09, 15: 2423.23, 30: 2416.66, 60: 2400.0}}
+   {'t': '10-30 21:56', 'pump_minutes_next_10': 1, 'moisture_raw_before': None, 'delta': {5: None, 15: None, 30: None, 60: None}}
+   {'t': '11-01 14:45', 'pump_minutes_next_10': 1, 'moisture_raw_before': None, 'delta': {5: None, 15: None, 30: None, 60: None}}
+   {'t': '11-02 19:45', 'pump_minutes_next_10': 2, 'moisture_raw_before': None, 'delta': {5: None, 15: None, 30: None, 60: None}}
+   {'t': '11-03 09:25', 'pump_minutes_next_10': 2, 'moisture_raw_before': None, 'delta': {5: None, 15: None, 30: None, 60: None}}
+   {'t': '11-03 19:19', 'pump_minutes_next_10': 1, 'moisture_raw_before': None, 'delta': {5: None, 15: None, 30: None, 60: None}}
+   {'t': '11-09 15:45', 'pump_minutes_next_10': 1, 'moisture_raw_before': 13906.5, 'delta': {5: -2.7, 15: 0.92, 30: 3.08, 60: 10.75}}
+   {'t': '11-11 09:52', 'pump_minutes_next_10': 1, 'moisture_raw_before': 14474.9, 'delta': {5: -795.77, 15: -1365.57, 30: -1727.53, 60: None}}
+   {'t': '11-16 10:39', 'pump_minutes_next_10': 1, 'moisture_raw_before': 20169.9, 'delta': {5: -7130.08, 15: -7771.3, 30: -7599.97, 60: -7800.53}}
+   {'t': '11-18 11:12', 'pump_minutes_next_10': 2, 'moisture_raw_before': 12365.1, 'delta': {5: -211.52, 15: -209.02, 30: -207.13, 60: -214.17}}

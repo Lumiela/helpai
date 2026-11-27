@@ -1,0 +1,2338 @@
+{
+ "window": [
+  "2026-11-26 09:24:00+09:00",
+  "2026-11-27 09:23:00+09:00"
+ ],
+ "steady": [
+  "2026-11-26 18:21:00+09:00",
+  "2026-11-27 09:23:00+09:00"
+ ],
+ "classes": {
+  "ads1115_ok": [
+   "변함",
+   985,
+   [
+    0.0,
+    1.0,
+    2
+   ]
+  ],
+  "applied_seq": [
+   "변함",
+   985,
+   [
+    0.0,
+    5.0,
+    6
+   ]
+  ],
+  "bh1750_count": [
+   "변함",
+   985,
+   [
+    0.0,
+    2.0,
+    3
+   ]
+  ],
+  "chip_temp": [
+   "변함",
+   567,
+   [
+    47.8,
+    60.833,
+    88
+   ]
+  ],
+  "co2_ok": [
+   "변함",
+   985,
+   [
+    0.75,
+    1.0,
+    4
+   ]
+  ],
+  "co2_ppm": [
+   "변함",
+   981,
+   [
+    420.0,
+    872.833,
+    201
+   ]
+  ],
+  "diag_mode": [
+   "값 하나",
+   985,
+   0.0
+  ],
+  "fan1": [
+   "99% 이상 한 값",
+   985,
+   [
+    0.0,
+    0.9949,
+    5
+   ]
+  ],
+  "fan1_rpm": [
+   "값 하나",
+   985,
+   -1.0
+  ],
+  "fan1_rpm2": [
+   "값 하나",
+   985,
+   -1.0
+  ],
+  "fan1_stall": [
+   "99% 이상 한 값",
+   985,
+   [
+    0.0,
+    0.9959,
+    4
+   ]
+  ],
+  "fan2": [
+   "변함",
+   985,
+   [
+    0.0,
+    100.0,
+    2
+   ]
+  ],
+  "fan2_rpm": [
+   "값 하나",
+   985,
+   -1.0
+  ],
+  "fan2_rpm2": [
+   "값 하나",
+   985,
+   -1.0
+  ],
+  "fan2_stall": [
+   "변함",
+   985,
+   [
+    0.0,
+    1.0,
+    2
+   ]
+  ],
+  "hum_1": [
+   "변함",
+   952,
+   [
+    45.567,
+    56.958,
+    455
+   ]
+  ],
+  "hum_2": [
+   "변함",
+   952,
+   [
+    42.2,
+    54.575,
+    474
+   ]
+  ],
+  "hum_3": [
+   "변함",
+   952,
+   [
+    42.775,
+    53.708,
+    500
+   ]
+  ],
+  "humidity": [
+   "변함",
+   952,
+   [
+    43.808,
+    55.05,
+    483
+   ]
+  ],
+  "ina226_ok": [
+   "변함",
+   985,
+   [
+    0.0,
+    1.0,
+    2
+   ]
+  ],
+  "lease_active": [
+   "값 하나",
+   985,
+   0.0
+  ],
+  "led1": [
+   "99% 이상 한 값",
+   985,
+   [
+    100.0,
+    0.9949,
+    4
+   ]
+  ],
+  "led2": [
+   "값 하나",
+   985,
+   0.0
+  ],
+  "led_freq": [
+   "값 하나",
+   985,
+   25000.0
+  ],
+  "led_mode": [
+   "값 하나",
+   985,
+   0.0
+  ],
+  "lux": [
+   "변함",
+   952,
+   [
+    51.45,
+    7967.583,
+    765
+   ]
+  ],
+  "lux_1": [
+   "변함",
+   952,
+   [
+    55.0,
+    7967.583,
+    765
+   ]
+  ],
+  "lux_2": [
+   "변함",
+   9,
+   [
+    47.9,
+    6940.0,
+    9
+   ]
+  ],
+  "moisture_calibrated": [
+   "값 하나",
+   985,
+   1.0
+  ],
+  "moisture_pct": [
+   "99% 이상 한 값",
+   930,
+   [
+    77.0,
+    0.9914,
+    6
+   ]
+  ],
+  "moisture_raw": [
+   "변함",
+   930,
+   [
+    13614.667,
+    20156.0,
+    412
+   ]
+  ],
+  "moisture_v": [
+   "변함",
+   930,
+   [
+    1.702,
+    2.52,
+    90
+   ]
+  ],
+  "motor_duty": [
+   "값 하나",
+   985,
+   0.0
+  ],
+  "motor_set": [
+   "값 하나",
+   985,
+   0.0
+  ],
+  "power_a": [
+   "변함",
+   951,
+   [
+    0.195,
+    10.289,
+    452
+   ]
+  ],
+  "power_v": [
+   "변함",
+   952,
+   [
+    9.46,
+    12.64,
+    47
+   ]
+  ],
+  "pump": [
+   "값 하나",
+   985,
+   0.0
+  ],
+  "pump_locked": [
+   "값 하나",
+   985,
+   0.0
+  ],
+  "rssi_dbm": [
+   "변함",
+   985,
+   [
+    -91.0,
+    -44.333,
+    158
+   ]
+  ],
+  "sht45_count": [
+   "변함",
+   985,
+   [
+    0.0,
+    3.0,
+    2
+   ]
+  ],
+  "soil_ec": [
+   "값 하나",
+   985,
+   0.0
+  ],
+  "soil_k": [
+   "값 하나",
+   985,
+   0.0
+  ],
+  "soil_n": [
+   "값 하나",
+   985,
+   0.0
+  ],
+  "soil_p": [
+   "값 하나",
+   985,
+   0.0
+  ],
+  "soil_ph": [
+   "값 하나",
+   985,
+   7.0
+  ],
+  "soil_rs485_ok": [
+   "값 하나",
+   985,
+   1.0
+  ],
+  "soil_salinity": [
+   "값 하나",
+   985,
+   0.0
+  ],
+  "soil_sensor_ok": [
+   "변함",
+   985,
+   [
+    0.0,
+    1.0,
+    3
+   ]
+  ],
+  "soil_temp": [
+   "변함",
+   985,
+   [
+    20.433,
+    31.108,
+    419
+   ]
+  ],
+  "soil_vwc": [
+   "값 하나",
+   985,
+   0.0
+  ],
+  "temp_1": [
+   "변함",
+   952,
+   [
+    20.1,
+    25.2,
+    217
+   ]
+  ],
+  "temp_2": [
+   "변함",
+   952,
+   [
+    20.0,
+    26.508,
+    242
+   ]
+  ],
+  "temp_3": [
+   "변함",
+   952,
+   [
+    20.1,
+    26.608,
+    222
+   ]
+  ],
+  "temperature": [
+   "변함",
+   952,
+   [
+    20.1,
+    25.9,
+    198
+   ]
+  ],
+  "uptime_ms": [
+   "변함",
+   985,
+   [
+    21581.667,
+    56517610.0,
+    985
+   ]
+  ]
+ },
+ "pairs": [
+  {
+   "a": "hum_3",
+   "b": "humidity",
+   "raw": 1.0,
+   "n": 952,
+   "change10": 0.9,
+   "n10": 95,
+   "ci95": [
+    0.79,
+    0.98
+   ],
+   "steady_raw": 1.0,
+   "steady_change10": 0.95,
+   "same_source": true
+  },
+  {
+   "a": "lux",
+   "b": "lux_1",
+   "raw": 1.0,
+   "n": 952,
+   "change10": 1.0,
+   "n10": 95,
+   "ci95": [
+    1.0,
+    1.0
+   ],
+   "steady_raw": 1.0,
+   "steady_change10": 1.0,
+   "same_source": true
+  },
+  {
+   "a": "temp_3",
+   "b": "temperature",
+   "raw": 1.0,
+   "n": 952,
+   "change10": 0.93,
+   "n10": 95,
+   "ci95": [
+    0.85,
+    0.97
+   ],
+   "steady_raw": 1.0,
+   "steady_change10": 0.93,
+   "same_source": true
+  },
+  {
+   "a": "moisture_raw",
+   "b": "moisture_v",
+   "raw": 0.97,
+   "n": 930,
+   "change10": 0.86,
+   "n10": 92,
+   "ci95": [
+    0.68,
+    0.91
+   ],
+   "steady_raw": 0.96,
+   "steady_change10": 0.85,
+   "same_source": true
+  },
+  {
+   "a": "temp_2",
+   "b": "temp_3",
+   "raw": 0.95,
+   "n": 952,
+   "change10": 0.68,
+   "n10": 95,
+   "ci95": [
+    0.31,
+    0.85
+   ],
+   "steady_raw": 0.95,
+   "steady_change10": 0.65,
+   "same_source": true
+  },
+  {
+   "a": "temp_2",
+   "b": "temperature",
+   "raw": 0.95,
+   "n": 952,
+   "change10": 0.72,
+   "n10": 95,
+   "ci95": [
+    0.37,
+    0.87
+   ],
+   "steady_raw": 0.95,
+   "steady_change10": 0.71,
+   "same_source": true
+  },
+  {
+   "a": "hum_2",
+   "b": "temperature",
+   "raw": -0.94,
+   "n": 952,
+   "change10": -0.4,
+   "n10": 95,
+   "ci95": [
+    -0.68,
+    -0.11
+   ],
+   "steady_raw": -0.97,
+   "steady_change10": -0.42,
+   "same_source": false
+  },
+  {
+   "a": "hum_2",
+   "b": "temp_3",
+   "raw": -0.93,
+   "n": 952,
+   "change10": -0.34,
+   "n10": 95,
+   "ci95": [
+    -0.65,
+    -0.03
+   ],
+   "steady_raw": -0.96,
+   "steady_change10": -0.34,
+   "same_source": false
+  },
+  {
+   "a": "hum_1",
+   "b": "hum_3",
+   "raw": 0.92,
+   "n": 952,
+   "change10": 0.84,
+   "n10": 95,
+   "ci95": [
+    0.63,
+    0.96
+   ],
+   "steady_raw": 0.93,
+   "steady_change10": 0.89,
+   "same_source": true
+  },
+  {
+   "a": "hum_1",
+   "b": "humidity",
+   "raw": 0.92,
+   "n": 952,
+   "change10": 0.95,
+   "n10": 95,
+   "ci95": [
+    0.84,
+    0.98
+   ],
+   "steady_raw": 0.93,
+   "steady_change10": 0.94,
+   "same_source": true
+  },
+  {
+   "a": "hum_2",
+   "b": "humidity",
+   "raw": 0.92,
+   "n": 952,
+   "change10": 0.85,
+   "n10": 95,
+   "ci95": [
+    0.71,
+    0.95
+   ],
+   "steady_raw": 0.92,
+   "steady_change10": 0.87,
+   "same_source": true
+  },
+  {
+   "a": "hum_2",
+   "b": "moisture_v",
+   "raw": -0.92,
+   "n": 930,
+   "change10": -0.37,
+   "n10": 92,
+   "ci95": [
+    -0.63,
+    -0.07
+   ],
+   "steady_raw": -0.93,
+   "steady_change10": -0.37,
+   "same_source": false
+  },
+  {
+   "a": "hum_3",
+   "b": "temp_1",
+   "raw": -0.92,
+   "n": 952,
+   "change10": -0.48,
+   "n10": 95,
+   "ci95": [
+    -0.75,
+    -0.29
+   ],
+   "steady_raw": -0.95,
+   "steady_change10": -0.58,
+   "same_source": false
+  },
+  {
+   "a": "humidity",
+   "b": "temp_1",
+   "raw": -0.92,
+   "n": 952,
+   "change10": -0.52,
+   "n10": 95,
+   "ci95": [
+    -0.77,
+    -0.32
+   ],
+   "steady_raw": -0.94,
+   "steady_change10": -0.59,
+   "same_source": false
+  },
+  {
+   "a": "soil_temp",
+   "b": "temp_2",
+   "raw": 0.92,
+   "n": 952,
+   "change10": 0.43,
+   "n10": 95,
+   "ci95": [
+    0.01,
+    0.65
+   ],
+   "steady_raw": 0.96,
+   "steady_change10": 0.37,
+   "same_source": false
+  },
+  {
+   "a": "temp_1",
+   "b": "temperature",
+   "raw": 0.92,
+   "n": 952,
+   "change10": 0.75,
+   "n10": 95,
+   "ci95": [
+    0.49,
+    0.9
+   ],
+   "steady_raw": 0.92,
+   "steady_change10": 0.78,
+   "same_source": true
+  },
+  {
+   "a": "hum_2",
+   "b": "hum_3",
+   "raw": 0.91,
+   "n": 952,
+   "change10": 0.77,
+   "n10": 95,
+   "ci95": [
+    0.47,
+    0.89
+   ],
+   "steady_raw": 0.92,
+   "steady_change10": 0.76,
+   "same_source": true
+  },
+  {
+   "a": "hum_2",
+   "b": "moisture_raw",
+   "raw": -0.91,
+   "n": 930,
+   "change10": -0.42,
+   "n10": 92,
+   "ci95": [
+    -0.7,
+    -0.17
+   ],
+   "steady_raw": -0.93,
+   "steady_change10": -0.43,
+   "same_source": false
+  },
+  {
+   "a": "temp_1",
+   "b": "temp_3",
+   "raw": 0.91,
+   "n": 952,
+   "change10": 0.73,
+   "n10": 95,
+   "ci95": [
+    0.47,
+    0.91
+   ],
+   "steady_raw": 0.92,
+   "steady_change10": 0.79,
+   "same_source": true
+  },
+  {
+   "a": "hum_2",
+   "b": "temp_1",
+   "raw": -0.9,
+   "n": 952,
+   "change10": -0.39,
+   "n10": 95,
+   "ci95": [
+    -0.69,
+    -0.22
+   ],
+   "steady_raw": -0.94,
+   "steady_change10": -0.51,
+   "same_source": false
+  },
+  {
+   "a": "moisture_v",
+   "b": "temp_3",
+   "raw": 0.89,
+   "n": 930,
+   "change10": 0.6,
+   "n10": 92,
+   "ci95": [
+    0.24,
+    0.74
+   ],
+   "steady_raw": 0.93,
+   "steady_change10": 0.57,
+   "same_source": false
+  },
+  {
+   "a": "moisture_v",
+   "b": "temperature",
+   "raw": 0.89,
+   "n": 930,
+   "change10": 0.6,
+   "n10": 92,
+   "ci95": [
+    0.29,
+    0.76
+   ],
+   "steady_raw": 0.94,
+   "steady_change10": 0.6,
+   "same_source": false
+  },
+  {
+   "a": "hum_3",
+   "b": "moisture_raw",
+   "raw": -0.88,
+   "n": 930,
+   "change10": -0.49,
+   "n10": 92,
+   "ci95": [
+    -0.73,
+    -0.19
+   ],
+   "steady_raw": -0.91,
+   "steady_change10": -0.47,
+   "same_source": false
+  },
+  {
+   "a": "humidity",
+   "b": "moisture_raw",
+   "raw": -0.88,
+   "n": 930,
+   "change10": -0.47,
+   "n10": 92,
+   "ci95": [
+    -0.71,
+    -0.18
+   ],
+   "steady_raw": -0.9,
+   "steady_change10": -0.47,
+   "same_source": false
+  },
+  {
+   "a": "temp_2",
+   "b": "uptime_ms",
+   "raw": -0.88,
+   "n": 952,
+   "change10": -0.08,
+   "n10": 95,
+   "ci95": [
+    -0.25,
+    0.18
+   ],
+   "steady_raw": -0.98,
+   "steady_change10": -0.14,
+   "same_source": false
+  },
+  {
+   "a": "hum_2",
+   "b": "temp_2",
+   "raw": -0.87,
+   "n": 952,
+   "change10": -0.48,
+   "n10": 95,
+   "ci95": [
+    -0.76,
+    -0.12
+   ],
+   "steady_raw": -0.89,
+   "steady_change10": -0.45,
+   "same_source": false
+  },
+  {
+   "a": "moisture_raw",
+   "b": "temp_1",
+   "raw": 0.87,
+   "n": 930,
+   "change10": 0.65,
+   "n10": 92,
+   "ci95": [
+    0.36,
+    0.82
+   ],
+   "steady_raw": 0.91,
+   "steady_change10": 0.69,
+   "same_source": false
+  },
+  {
+   "a": "moisture_raw",
+   "b": "temp_3",
+   "raw": 0.87,
+   "n": 930,
+   "change10": 0.7,
+   "n10": 92,
+   "ci95": [
+    0.38,
+    0.83
+   ],
+   "steady_raw": 0.9,
+   "steady_change10": 0.69,
+   "same_source": false
+  },
+  {
+   "a": "moisture_raw",
+   "b": "temperature",
+   "raw": 0.87,
+   "n": 930,
+   "change10": 0.66,
+   "n10": 92,
+   "ci95": [
+    0.33,
+    0.83
+   ],
+   "steady_raw": 0.91,
+   "steady_change10": 0.66,
+   "same_source": false
+  },
+  {
+   "a": "hum_1",
+   "b": "temp_1",
+   "raw": -0.86,
+   "n": 952,
+   "change10": -0.5,
+   "n10": 95,
+   "ci95": [
+    -0.76,
+    -0.27
+   ],
+   "steady_raw": -0.9,
+   "steady_change10": -0.56,
+   "same_source": false
+  },
+  {
+   "a": "hum_3",
+   "b": "moisture_v",
+   "raw": -0.85,
+   "n": 930,
+   "change10": -0.44,
+   "n10": 92,
+   "ci95": [
+    -0.65,
+    -0.22
+   ],
+   "steady_raw": -0.87,
+   "steady_change10": -0.42,
+   "same_source": false
+  },
+  {
+   "a": "humidity",
+   "b": "moisture_v",
+   "raw": -0.85,
+   "n": 930,
+   "change10": -0.39,
+   "n10": 92,
+   "ci95": [
+    -0.64,
+    -0.12
+   ],
+   "steady_raw": -0.87,
+   "steady_change10": -0.39,
+   "same_source": false
+  },
+  {
+   "a": "moisture_v",
+   "b": "temp_1",
+   "raw": 0.85,
+   "n": 930,
+   "change10": 0.52,
+   "n10": 92,
+   "ci95": [
+    0.21,
+    0.71
+   ],
+   "steady_raw": 0.9,
+   "steady_change10": 0.55,
+   "same_source": false
+  },
+  {
+   "a": "hum_3",
+   "b": "temperature",
+   "raw": -0.84,
+   "n": 952,
+   "change10": -0.53,
+   "n10": 95,
+   "ci95": [
+    -0.76,
+    -0.37
+   ],
+   "steady_raw": -0.85,
+   "steady_change10": -0.54,
+   "same_source": false
+  },
+  {
+   "a": "humidity",
+   "b": "temperature",
+   "raw": -0.84,
+   "n": 952,
+   "change10": -0.52,
+   "n10": 95,
+   "ci95": [
+    -0.72,
+    -0.27
+   ],
+   "steady_raw": -0.85,
+   "steady_change10": -0.5,
+   "same_source": false
+  },
+  {
+   "a": "hum_3",
+   "b": "temp_3",
+   "raw": -0.83,
+   "n": 952,
+   "change10": -0.49,
+   "n10": 95,
+   "ci95": [
+    -0.74,
+    -0.33
+   ],
+   "steady_raw": -0.84,
+   "steady_change10": -0.48,
+   "same_source": false
+  },
+  {
+   "a": "humidity",
+   "b": "temp_3",
+   "raw": -0.83,
+   "n": 952,
+   "change10": -0.49,
+   "n10": 95,
+   "ci95": [
+    -0.71,
+    -0.22
+   ],
+   "steady_raw": -0.84,
+   "steady_change10": -0.44,
+   "same_source": false
+  },
+  {
+   "a": "temperature",
+   "b": "uptime_ms",
+   "raw": -0.83,
+   "n": 952,
+   "change10": -0.05,
+   "n10": 95,
+   "ci95": [
+    -0.23,
+    0.22
+   ],
+   "steady_raw": -0.9,
+   "steady_change10": -0.1,
+   "same_source": false
+  },
+  {
+   "a": "moisture_v",
+   "b": "temp_2",
+   "raw": 0.82,
+   "n": 930,
+   "change10": 0.56,
+   "n10": 92,
+   "ci95": [
+    0.29,
+    0.72
+   ],
+   "steady_raw": 0.86,
+   "steady_change10": 0.56,
+   "same_source": false
+  },
+  {
+   "a": "temp_3",
+   "b": "uptime_ms",
+   "raw": -0.82,
+   "n": 952,
+   "change10": 0.02,
+   "n10": 95,
+   "ci95": [
+    -0.16,
+    0.27
+   ],
+   "steady_raw": -0.9,
+   "steady_change10": -0.04,
+   "same_source": false
+  },
+  {
+   "a": "applied_seq",
+   "b": "soil_sensor_ok",
+   "raw": 0.81,
+   "n": 985,
+   "change10": 0.27,
+   "n10": 98,
+   "ci95": [
+    0.16,
+    0.4
+   ],
+   "steady_raw": null,
+   "steady_change10": null,
+   "same_source": false
+  },
+  {
+   "a": "hum_2",
+   "b": "uptime_ms",
+   "raw": 0.81,
+   "n": 952,
+   "change10": 0.04,
+   "n10": 95,
+   "ci95": [
+    -0.15,
+    0.27
+   ],
+   "steady_raw": 0.84,
+   "steady_change10": 0.13,
+   "same_source": false
+  },
+  {
+   "a": "soil_temp",
+   "b": "temp_3",
+   "raw": 0.81,
+   "n": 952,
+   "change10": 0.4,
+   "n10": 95,
+   "ci95": [
+    -0.04,
+    0.68
+   ],
+   "steady_raw": 0.85,
+   "steady_change10": 0.31,
+   "same_source": false
+  },
+  {
+   "a": "soil_temp",
+   "b": "uptime_ms",
+   "raw": -0.8,
+   "n": 985,
+   "change10": 0.04,
+   "n10": 98,
+   "ci95": [
+    -0.15,
+    0.3
+   ],
+   "steady_raw": -0.97,
+   "steady_change10": 0.02,
+   "same_source": false
+  },
+  {
+   "a": "moisture_v",
+   "b": "uptime_ms",
+   "raw": -0.79,
+   "n": 930,
+   "change10": 0.09,
+   "n10": 92,
+   "ci95": [
+    -0.16,
+    0.25
+   ],
+   "steady_raw": -0.8,
+   "steady_change10": -0.02,
+   "same_source": false
+  },
+  {
+   "a": "soil_temp",
+   "b": "temperature",
+   "raw": 0.79,
+   "n": 952,
+   "change10": 0.34,
+   "n10": 95,
+   "ci95": [
+    -0.08,
+    0.61
+   ],
+   "steady_raw": 0.85,
+   "steady_change10": 0.27,
+   "same_source": false
+  },
+  {
+   "a": "hum_1",
+   "b": "hum_2",
+   "raw": 0.77,
+   "n": 952,
+   "change10": 0.79,
+   "n10": 95,
+   "ci95": [
+    0.61,
+    0.91
+   ],
+   "steady_raw": 0.8,
+   "steady_change10": 0.81,
+   "same_source": true
+  },
+  {
+   "a": "hum_3",
+   "b": "power_v",
+   "raw": 0.77,
+   "n": 952,
+   "change10": 0.09,
+   "n10": 95,
+   "ci95": [
+    -0.13,
+    0.35
+   ],
+   "steady_raw": 0.86,
+   "steady_change10": 0.15,
+   "same_source": false
+  },
+  {
+   "a": "moisture_raw",
+   "b": "temp_2",
+   "raw": 0.77,
+   "n": 930,
+   "change10": 0.6,
+   "n10": 92,
+   "ci95": [
+    0.32,
+    0.76
+   ],
+   "steady_raw": 0.8,
+   "steady_change10": 0.6,
+   "same_source": false
+  },
+  {
+   "a": "humidity",
+   "b": "power_v",
+   "raw": 0.76,
+   "n": 952,
+   "change10": 0.11,
+   "n10": 95,
+   "ci95": [
+    -0.15,
+    0.36
+   ],
+   "steady_raw": 0.85,
+   "steady_change10": 0.14,
+   "same_source": false
+  },
+  {
+   "a": "temp_1",
+   "b": "temp_2",
+   "raw": 0.76,
+   "n": 952,
+   "change10": 0.5,
+   "n10": 95,
+   "ci95": [
+    0.13,
+    0.77
+   ],
+   "steady_raw": 0.77,
+   "steady_change10": 0.57,
+   "same_source": true
+  },
+  {
+   "a": "hum_1",
+   "b": "moisture_raw",
+   "raw": -0.75,
+   "n": 930,
+   "change10": -0.43,
+   "n10": 92,
+   "ci95": [
+    -0.74,
+    -0.15
+   ],
+   "steady_raw": -0.78,
+   "steady_change10": -0.43,
+   "same_source": false
+  },
+  {
+   "a": "moisture_raw",
+   "b": "power_v",
+   "raw": -0.75,
+   "n": 930,
+   "change10": -0.28,
+   "n10": 92,
+   "ci95": [
+    -0.47,
+    -0.08
+   ],
+   "steady_raw": -0.84,
+   "steady_change10": -0.3,
+   "same_source": false
+  },
+  {
+   "a": "hum_1",
+   "b": "power_v",
+   "raw": 0.74,
+   "n": 952,
+   "change10": 0.13,
+   "n10": 95,
+   "ci95": [
+    -0.12,
+    0.37
+   ],
+   "steady_raw": 0.79,
+   "steady_change10": 0.15,
+   "same_source": false
+  },
+  {
+   "a": "moisture_v",
+   "b": "power_v",
+   "raw": -0.74,
+   "n": 930,
+   "change10": -0.17,
+   "n10": 92,
+   "ci95": [
+    -0.41,
+    0.15
+   ],
+   "steady_raw": -0.83,
+   "steady_change10": -0.19,
+   "same_source": false
+  },
+  {
+   "a": "power_v",
+   "b": "temp_1",
+   "raw": -0.74,
+   "n": 952,
+   "change10": -0.41,
+   "n10": 95,
+   "ci95": [
+    -0.55,
+    -0.14
+   ],
+   "steady_raw": -0.88,
+   "steady_change10": -0.32,
+   "same_source": false
+  },
+  {
+   "a": "power_v",
+   "b": "temp_3",
+   "raw": -0.74,
+   "n": 952,
+   "change10": -0.38,
+   "n10": 95,
+   "ci95": [
+    -0.54,
+    -0.21
+   ],
+   "steady_raw": -0.82,
+   "steady_change10": -0.4,
+   "same_source": false
+  },
+  {
+   "a": "moisture_raw",
+   "b": "uptime_ms",
+   "raw": -0.73,
+   "n": 930,
+   "change10": 0.15,
+   "n10": 92,
+   "ci95": [
+    -0.1,
+    0.32
+   ],
+   "steady_raw": -0.73,
+   "steady_change10": 0.04,
+   "same_source": false
+  },
+  {
+   "a": "hum_2",
+   "b": "power_v",
+   "raw": 0.72,
+   "n": 952,
+   "change10": 0.07,
+   "n10": 95,
+   "ci95": [
+    -0.11,
+    0.32
+   ],
+   "steady_raw": 0.83,
+   "steady_change10": 0.16,
+   "same_source": false
+  },
+  {
+   "a": "hum_2",
+   "b": "soil_temp",
+   "raw": -0.72,
+   "n": 952,
+   "change10": -0.14,
+   "n10": 95,
+   "ci95": [
+    -0.49,
+    0.28
+   ],
+   "steady_raw": -0.77,
+   "steady_change10": -0.1,
+   "same_source": false
+  },
+  {
+   "a": "power_v",
+   "b": "temperature",
+   "raw": -0.72,
+   "n": 952,
+   "change10": -0.39,
+   "n10": 95,
+   "ci95": [
+    -0.53,
+    -0.24
+   ],
+   "steady_raw": -0.82,
+   "steady_change10": -0.38,
+   "same_source": false
+  },
+  {
+   "a": "hum_1",
+   "b": "lux",
+   "raw": 0.7,
+   "n": 952,
+   "change10": 0.2,
+   "n10": 95,
+   "ci95": [
+    -0.04,
+    0.44
+   ],
+   "steady_raw": 0.78,
+   "steady_change10": 0.27,
+   "same_source": false
+  },
+  {
+   "a": "hum_1",
+   "b": "lux_1",
+   "raw": 0.7,
+   "n": 952,
+   "change10": 0.2,
+   "n10": 95,
+   "ci95": [
+    -0.02,
+    0.44
+   ],
+   "steady_raw": 0.78,
+   "steady_change10": 0.27,
+   "same_source": false
+  },
+  {
+   "a": "hum_1",
+   "b": "moisture_v",
+   "raw": -0.7,
+   "n": 930,
+   "change10": -0.34,
+   "n10": 92,
+   "ci95": [
+    -0.61,
+    0.01
+   ],
+   "steady_raw": -0.73,
+   "steady_change10": -0.33,
+   "same_source": false
+  },
+  {
+   "a": "moisture_v",
+   "b": "soil_temp",
+   "raw": 0.7,
+   "n": 930,
+   "change10": 0.18,
+   "n10": 92,
+   "ci95": [
+    -0.18,
+    0.42
+   ],
+   "steady_raw": 0.73,
+   "steady_change10": 0.13,
+   "same_source": false
+  },
+  {
+   "a": "hum_1",
+   "b": "temp_3",
+   "raw": -0.69,
+   "n": 952,
+   "change10": -0.44,
+   "n10": 95,
+   "ci95": [
+    -0.69,
+    -0.16
+   ],
+   "steady_raw": -0.71,
+   "steady_change10": -0.39,
+   "same_source": false
+  },
+  {
+   "a": "hum_1",
+   "b": "temperature",
+   "raw": -0.69,
+   "n": 952,
+   "change10": -0.48,
+   "n10": 95,
+   "ci95": [
+    -0.71,
+    -0.22
+   ],
+   "steady_raw": -0.71,
+   "steady_change10": -0.46,
+   "same_source": false
+  },
+  {
+   "a": "hum_3",
+   "b": "temp_2",
+   "raw": -0.69,
+   "n": 952,
+   "change10": -0.43,
+   "n10": 95,
+   "ci95": [
+    -0.69,
+    -0.11
+   ],
+   "steady_raw": -0.69,
+   "steady_change10": -0.41,
+   "same_source": false
+  },
+  {
+   "a": "humidity",
+   "b": "temp_2",
+   "raw": -0.69,
+   "n": 952,
+   "change10": -0.48,
+   "n10": 95,
+   "ci95": [
+    -0.74,
+    -0.06
+   ],
+   "steady_raw": -0.69,
+   "steady_change10": -0.4,
+   "same_source": false
+  },
+  {
+   "a": "temp_1",
+   "b": "uptime_ms",
+   "raw": -0.68,
+   "n": 952,
+   "change10": -0.11,
+   "n10": 95,
+   "ci95": [
+    -0.24,
+    0.15
+   ],
+   "steady_raw": -0.7,
+   "steady_change10": -0.08,
+   "same_source": false
+  },
+  {
+   "a": "co2_ppm",
+   "b": "soil_temp",
+   "raw": -0.65,
+   "n": 981,
+   "change10": -0.13,
+   "n10": 98,
+   "ci95": [
+    -0.5,
+    0.19
+   ],
+   "steady_raw": -0.61,
+   "steady_change10": -0.15,
+   "same_source": false
+  },
+  {
+   "a": "lux",
+   "b": "power_v",
+   "raw": 0.65,
+   "n": 952,
+   "change10": 0.36,
+   "n10": 95,
+   "ci95": [
+    0.2,
+    0.68
+   ],
+   "steady_raw": 0.68,
+   "steady_change10": 0.53,
+   "same_source": false
+  },
+  {
+   "a": "lux_1",
+   "b": "power_v",
+   "raw": 0.65,
+   "n": 952,
+   "change10": 0.36,
+   "n10": 95,
+   "ci95": [
+    0.22,
+    0.68
+   ],
+   "steady_raw": 0.68,
+   "steady_change10": 0.53,
+   "same_source": false
+  },
+  {
+   "a": "bh1750_count",
+   "b": "soil_sensor_ok",
+   "raw": 0.64,
+   "n": 985,
+   "change10": null,
+   "n10": 98,
+   "ci95": null,
+   "steady_raw": null,
+   "steady_change10": null,
+   "same_source": false
+  },
+  {
+   "a": "chip_temp",
+   "b": "soil_temp",
+   "raw": 0.63,
+   "n": 567,
+   "change10": 0.1,
+   "n10": 89,
+   "ci95": [
+    -0.13,
+    0.23
+   ],
+   "steady_raw": 0.65,
+   "steady_change10": 0.06,
+   "same_source": false
+  },
+  {
+   "a": "co2_ppm",
+   "b": "lux",
+   "raw": 0.62,
+   "n": 948,
+   "change10": 0.16,
+   "n10": 95,
+   "ci95": [
+    -0.14,
+    0.39
+   ],
+   "steady_raw": 0.67,
+   "steady_change10": 0.15,
+   "same_source": false
+  },
+  {
+   "a": "co2_ppm",
+   "b": "lux_1",
+   "raw": 0.62,
+   "n": 948,
+   "change10": 0.16,
+   "n10": 95,
+   "ci95": [
+    -0.15,
+    0.4
+   ],
+   "steady_raw": 0.67,
+   "steady_change10": 0.15,
+   "same_source": false
+  },
+  {
+   "a": "moisture_raw",
+   "b": "soil_temp",
+   "raw": 0.62,
+   "n": 930,
+   "change10": 0.24,
+   "n10": 92,
+   "ci95": [
+    -0.2,
+    0.52
+   ],
+   "steady_raw": 0.64,
+   "steady_change10": 0.2,
+   "same_source": false
+  },
+  {
+   "a": "power_v",
+   "b": "temp_2",
+   "raw": -0.62,
+   "n": 952,
+   "change10": -0.17,
+   "n10": 95,
+   "ci95": [
+    -0.34,
+    0.03
+   ],
+   "steady_raw": -0.69,
+   "steady_change10": -0.2,
+   "same_source": false
+  },
+  {
+   "a": "chip_temp",
+   "b": "uptime_ms",
+   "raw": -0.61,
+   "n": 567,
+   "change10": 0.13,
+   "n10": 89,
+   "ci95": [
+    -0.11,
+    0.29
+   ],
+   "steady_raw": -0.62,
+   "steady_change10": 0.11,
+   "same_source": false
+  },
+  {
+   "a": "hum_3",
+   "b": "uptime_ms",
+   "raw": 0.6,
+   "n": 952,
+   "change10": -0.04,
+   "n10": 95,
+   "ci95": [
+    -0.26,
+    0.23
+   ],
+   "steady_raw": 0.63,
+   "steady_change10": 0.07,
+   "same_source": false
+  },
+  {
+   "a": "humidity",
+   "b": "uptime_ms",
+   "raw": 0.6,
+   "n": 952,
+   "change10": 0.06,
+   "n10": 95,
+   "ci95": [
+    -0.18,
+    0.29
+   ],
+   "steady_raw": 0.63,
+   "steady_change10": 0.11,
+   "same_source": false
+  },
+  {
+   "a": "co2_ppm",
+   "b": "hum_1",
+   "raw": 0.59,
+   "n": 948,
+   "change10": 0.33,
+   "n10": 95,
+   "ci95": [
+    -0.17,
+    0.67
+   ],
+   "steady_raw": 0.61,
+   "steady_change10": 0.3,
+   "same_source": false
+  },
+  {
+   "a": "chip_temp",
+   "b": "co2_ppm",
+   "raw": -0.57,
+   "n": 563,
+   "change10": -0.06,
+   "n10": 89,
+   "ci95": [
+    -0.23,
+    0.16
+   ],
+   "steady_raw": -0.56,
+   "steady_change10": 0.0,
+   "same_source": false
+  },
+  {
+   "a": "lux",
+   "b": "temp_1",
+   "raw": -0.57,
+   "n": 952,
+   "change10": -0.18,
+   "n10": 95,
+   "ci95": [
+    -0.5,
+    0.04
+   ],
+   "steady_raw": -0.72,
+   "steady_change10": -0.31,
+   "same_source": false
+  },
+  {
+   "a": "lux_1",
+   "b": "temp_1",
+   "raw": -0.57,
+   "n": 952,
+   "change10": -0.18,
+   "n10": 95,
+   "ci95": [
+    -0.51,
+    0.03
+   ],
+   "steady_raw": -0.72,
+   "steady_change10": -0.31,
+   "same_source": false
+  },
+  {
+   "a": "hum_3",
+   "b": "lux",
+   "raw": 0.56,
+   "n": 952,
+   "change10": 0.34,
+   "n10": 95,
+   "ci95": [
+    0.07,
+    0.5
+   ],
+   "steady_raw": 0.66,
+   "steady_change10": 0.33,
+   "same_source": false
+  },
+  {
+   "a": "hum_3",
+   "b": "lux_1",
+   "raw": 0.56,
+   "n": 952,
+   "change10": 0.34,
+   "n10": 95,
+   "ci95": [
+    0.06,
+    0.5
+   ],
+   "steady_raw": 0.66,
+   "steady_change10": 0.33,
+   "same_source": false
+  },
+  {
+   "a": "humidity",
+   "b": "lux",
+   "raw": 0.56,
+   "n": 952,
+   "change10": 0.24,
+   "n10": 95,
+   "ci95": [
+    -0.01,
+    0.46
+   ],
+   "steady_raw": 0.65,
+   "steady_change10": 0.29,
+   "same_source": false
+  },
+  {
+   "a": "humidity",
+   "b": "lux_1",
+   "raw": 0.56,
+   "n": 952,
+   "change10": 0.24,
+   "n10": 95,
+   "ci95": [
+    0.02,
+    0.45
+   ],
+   "steady_raw": 0.65,
+   "steady_change10": 0.29,
+   "same_source": false
+  },
+  {
+   "a": "chip_temp",
+   "b": "temp_2",
+   "raw": 0.55,
+   "n": 537,
+   "change10": 0.07,
+   "n10": 86,
+   "ci95": [
+    -0.09,
+    0.27
+   ],
+   "steady_raw": 0.62,
+   "steady_change10": 0.09,
+   "same_source": false
+  },
+  {
+   "a": "co2_ppm",
+   "b": "moisture_v",
+   "raw": -0.55,
+   "n": 929,
+   "change10": -0.06,
+   "n10": 92,
+   "ci95": [
+    -0.51,
+    0.4
+   ],
+   "steady_raw": -0.58,
+   "steady_change10": -0.05,
+   "same_source": false
+  },
+  {
+   "a": "lux",
+   "b": "moisture_raw",
+   "raw": -0.55,
+   "n": 930,
+   "change10": -0.33,
+   "n10": 92,
+   "ci95": [
+    -0.51,
+    -0.02
+   ],
+   "steady_raw": -0.58,
+   "steady_change10": -0.29,
+   "same_source": false
+  },
+  {
+   "a": "lux_1",
+   "b": "moisture_raw",
+   "raw": -0.55,
+   "n": 930,
+   "change10": -0.33,
+   "n10": 92,
+   "ci95": [
+    -0.53,
+    -0.02
+   ],
+   "steady_raw": -0.58,
+   "steady_change10": -0.29,
+   "same_source": false
+  },
+  {
+   "a": "soil_temp",
+   "b": "temp_1",
+   "raw": 0.55,
+   "n": 952,
+   "change10": 0.21,
+   "n10": 95,
+   "ci95": [
+    -0.22,
+    0.54
+   ],
+   "steady_raw": 0.63,
+   "steady_change10": 0.21,
+   "same_source": false
+  },
+  {
+   "a": "co2_ppm",
+   "b": "humidity",
+   "raw": 0.54,
+   "n": 948,
+   "change10": 0.33,
+   "n10": 95,
+   "ci95": [
+    -0.21,
+    0.69
+   ],
+   "steady_raw": 0.58,
+   "steady_change10": 0.29,
+   "same_source": false
+  },
+  {
+   "a": "co2_ppm",
+   "b": "moisture_raw",
+   "raw": -0.54,
+   "n": 929,
+   "change10": -0.06,
+   "n10": 92,
+   "ci95": [
+    -0.55,
+    0.43
+   ],
+   "steady_raw": -0.57,
+   "steady_change10": -0.05,
+   "same_source": false
+  },
+  {
+   "a": "co2_ppm",
+   "b": "temp_2",
+   "raw": -0.54,
+   "n": 948,
+   "change10": -0.16,
+   "n10": 95,
+   "ci95": [
+    -0.61,
+    0.39
+   ],
+   "steady_raw": -0.58,
+   "steady_change10": -0.08,
+   "same_source": false
+  },
+  {
+   "a": "co2_ppm",
+   "b": "hum_3",
+   "raw": 0.53,
+   "n": 948,
+   "change10": 0.37,
+   "n10": 95,
+   "ci95": [
+    -0.17,
+    0.64
+   ],
+   "steady_raw": 0.58,
+   "steady_change10": 0.29,
+   "same_source": false
+  },
+  {
+   "a": "lux",
+   "b": "rssi_dbm",
+   "raw": -0.53,
+   "n": 952,
+   "change10": 0.11,
+   "n10": 95,
+   "ci95": [
+    -0.11,
+    0.29
+   ],
+   "steady_raw": -0.63,
+   "steady_change10": 0.09,
+   "same_source": false
+  },
+  {
+   "a": "lux_1",
+   "b": "rssi_dbm",
+   "raw": -0.53,
+   "n": 952,
+   "change10": 0.11,
+   "n10": 95,
+   "ci95": [
+    -0.11,
+    0.3
+   ],
+   "steady_raw": -0.63,
+   "steady_change10": 0.09,
+   "same_source": false
+  },
+  {
+   "a": "co2_ppm",
+   "b": "hum_2",
+   "raw": 0.52,
+   "n": 948,
+   "change10": 0.39,
+   "n10": 95,
+   "ci95": [
+    -0.21,
+    0.66
+   ],
+   "steady_raw": 0.58,
+   "steady_change10": 0.28,
+   "same_source": false
+  },
+  {
+   "a": "co2_ppm",
+   "b": "temp_3",
+   "raw": -0.52,
+   "n": 948,
+   "change10": -0.05,
+   "n10": 95,
+   "ci95": [
+    -0.58,
+    0.43
+   ],
+   "steady_raw": -0.58,
+   "steady_change10": -0.02,
+   "same_source": false
+  },
+  {
+   "a": "power_v",
+   "b": "soil_temp",
+   "raw": -0.52,
+   "n": 952,
+   "change10": -0.08,
+   "n10": 95,
+   "ci95": [
+    -0.25,
+    0.14
+   ],
+   "steady_raw": -0.55,
+   "steady_change10": -0.06,
+   "same_source": false
+  },
+  {
+   "a": "co2_ppm",
+   "b": "power_v",
+   "raw": 0.51,
+   "n": 948,
+   "change10": -0.15,
+   "n10": 95,
+   "ci95": [
+    -0.3,
+    0.15
+   ],
+   "steady_raw": 0.55,
+   "steady_change10": -0.04,
+   "same_source": false
+  },
+  {
+   "a": "co2_ppm",
+   "b": "temperature",
+   "raw": -0.51,
+   "n": 948,
+   "change10": -0.04,
+   "n10": 95,
+   "ci95": [
+    -0.56,
+    0.4
+   ],
+   "steady_raw": -0.58,
+   "steady_change10": -0.05,
+   "same_source": false
+  },
+  {
+   "a": "co2_ppm",
+   "b": "uptime_ms",
+   "raw": 0.51,
+   "n": 981,
+   "change10": -0.23,
+   "n10": 98,
+   "ci95": [
+    -0.34,
+    -0.01
+   ],
+   "steady_raw": 0.58,
+   "steady_change10": -0.1,
+   "same_source": false
+  },
+  {
+   "a": "hum_1",
+   "b": "temp_2",
+   "raw": -0.51,
+   "n": 952,
+   "change10": -0.44,
+   "n10": 95,
+   "ci95": [
+    -0.67,
+    -0.09
+   ],
+   "steady_raw": -0.51,
+   "steady_change10": -0.37,
+   "same_source": false
+  },
+  {
+   "a": "lux",
+   "b": "moisture_v",
+   "raw": -0.51,
+   "n": 930,
+   "change10": -0.27,
+   "n10": 92,
+   "ci95": [
+    -0.46,
+    0.05
+   ],
+   "steady_raw": -0.53,
+   "steady_change10": -0.23,
+   "same_source": false
+  },
+  {
+   "a": "lux_1",
+   "b": "moisture_v",
+   "raw": -0.51,
+   "n": 930,
+   "change10": -0.27,
+   "n10": 92,
+   "ci95": [
+    -0.47,
+    0.04
+   ],
+   "steady_raw": -0.53,
+   "steady_change10": -0.23,
+   "same_source": false
+  },
+  {
+   "a": "lux",
+   "b": "temp_3",
+   "raw": -0.45,
+   "n": 952,
+   "change10": -0.34,
+   "n10": 95,
+   "ci95": [
+    -0.62,
+    -0.14
+   ],
+   "steady_raw": -0.53,
+   "steady_change10": -0.38,
+   "same_source": false
+  },
+  {
+   "a": "lux_1",
+   "b": "temp_3",
+   "raw": -0.45,
+   "n": 952,
+   "change10": -0.34,
+   "n10": 95,
+   "ci95": [
+    -0.62,
+    -0.14
+   ],
+   "steady_raw": -0.53,
+   "steady_change10": -0.38,
+   "same_source": false
+  },
+  {
+   "a": "co2_ppm",
+   "b": "soil_sensor_ok",
+   "raw": -0.44,
+   "n": 981,
+   "change10": -0.37,
+   "n10": 98,
+   "ci95": [
+    -0.61,
+    -0.29
+   ],
+   "steady_raw": null,
+   "steady_change10": null,
+   "same_source": false
+  },
+  {
+   "a": "lux",
+   "b": "temperature",
+   "raw": -0.43,
+   "n": 952,
+   "change10": -0.34,
+   "n10": 95,
+   "ci95": [
+    -0.6,
+    -0.16
+   ],
+   "steady_raw": -0.53,
+   "steady_change10": -0.4,
+   "same_source": false
+  },
+  {
+   "a": "lux_1",
+   "b": "temperature",
+   "raw": -0.43,
+   "n": 952,
+   "change10": -0.34,
+   "n10": 95,
+   "ci95": [
+    -0.59,
+    -0.15
+   ],
+   "steady_raw": -0.53,
+   "steady_change10": -0.4,
+   "same_source": false
+  },
+  {
+   "a": "chip_temp",
+   "b": "power_v",
+   "raw": -0.41,
+   "n": 537,
+   "change10": -0.53,
+   "n10": 86,
+   "ci95": [
+    -0.69,
+    -0.37
+   ],
+   "steady_raw": -0.46,
+   "steady_change10": -0.57,
+   "same_source": false
+  },
+  {
+   "a": "applied_seq",
+   "b": "soil_temp",
+   "raw": 0.33,
+   "n": 985,
+   "change10": 0.34,
+   "n10": 98,
+   "ci95": [
+    0.24,
+    0.53
+   ],
+   "steady_raw": null,
+   "steady_change10": null,
+   "same_source": false
+  },
+  {
+   "a": "chip_temp",
+   "b": "lux",
+   "raw": -0.3,
+   "n": 537,
+   "change10": -0.34,
+   "n10": 86,
+   "ci95": [
+    -0.55,
+    -0.19
+   ],
+   "steady_raw": -0.26,
+   "steady_change10": -0.4,
+   "same_source": false
+  },
+  {
+   "a": "chip_temp",
+   "b": "lux_1",
+   "raw": -0.3,
+   "n": 537,
+   "change10": -0.34,
+   "n10": 86,
+   "ci95": [
+    -0.54,
+    -0.21
+   ],
+   "steady_raw": -0.26,
+   "steady_change10": -0.4,
+   "same_source": false
+  },
+  {
+   "a": "lux",
+   "b": "uptime_ms",
+   "raw": 0.2,
+   "n": 952,
+   "change10": -0.35,
+   "n10": 95,
+   "ci95": [
+    -0.53,
+    -0.06
+   ],
+   "steady_raw": 0.27,
+   "steady_change10": -0.19,
+   "same_source": false
+  },
+  {
+   "a": "lux_1",
+   "b": "uptime_ms",
+   "raw": 0.2,
+   "n": 952,
+   "change10": -0.35,
+   "n10": 95,
+   "ci95": [
+    -0.54,
+    -0.06
+   ],
+   "steady_raw": 0.27,
+   "steady_change10": -0.19,
+   "same_source": false
+  },
+  {
+   "a": "power_a",
+   "b": "power_v",
+   "raw": 0.19,
+   "n": 951,
+   "change10": -0.66,
+   "n10": 95,
+   "ci95": [
+    -0.8,
+    -0.47
+   ],
+   "steady_raw": 0.17,
+   "steady_change10": -0.67,
+   "same_source": false
+  },
+  {
+   "a": "chip_temp",
+   "b": "power_a",
+   "raw": 0.17,
+   "n": 536,
+   "change10": 0.44,
+   "n10": 86,
+   "ci95": [
+    0.29,
+    0.62
+   ],
+   "steady_raw": 0.17,
+   "steady_change10": 0.5,
+   "same_source": false
+  },
+  {
+   "a": "power_v",
+   "b": "soil_sensor_ok",
+   "raw": -0.08,
+   "n": 952,
+   "change10": 0.3,
+   "n10": 95,
+   "ci95": [
+    0.25,
+    0.43
+   ],
+   "steady_raw": null,
+   "steady_change10": null,
+   "same_source": false
+  }
+ ],
+ "groups_raw_0_7": [
+  [
+   "applied_seq",
+   "soil_sensor_ok"
+  ],
+  [
+   "hum_1",
+   "hum_2",
+   "hum_3",
+   "humidity",
+   "lux",
+   "lux_1",
+   "moisture_raw",
+   "moisture_v",
+   "power_v",
+   "soil_temp",
+   "temp_1",
+   "temp_2",
+   "temp_3",
+   "temperature",
+   "uptime_ms"
+  ]
+ ],
+ "restarts": [
+  "11-26 11:06",
+  "11-26 11:09",
+  "11-26 13:24",
+  "11-26 17:41"
+ ],
+ "coverage": {
+  "ads1115_ok": 985,
+  "applied_seq": 985,
+  "bh1750_count": 985,
+  "chip_temp": 567,
+  "co2_ok": 985,
+  "co2_ppm": 981,
+  "fan2": 985,
+  "fan2_stall": 985,
+  "hum_1": 952,
+  "hum_2": 952,
+  "hum_3": 952,
+  "humidity": 952,
+  "ina226_ok": 985,
+  "lux": 952,
+  "lux_1": 952,
+  "lux_2": 9,
+  "moisture_raw": 930,
+  "moisture_v": 930,
+  "power_a": 951,
+  "power_v": 952,
+  "rssi_dbm": 985,
+  "sht45_count": 985,
+  "soil_sensor_ok": 985,
+  "soil_temp": 985,
+  "temp_1": 952,
+  "temp_2": 952,
+  "temp_3": 952,
+  "temperature": 952,
+  "uptime_ms": 985
+ }
+}

@@ -1,0 +1,228 @@
+{
+ "meta": {
+  "origins": 795,
+  "grid": 8640,
+  "context_steps": 512,
+  "device": "cuda",
+  "load_s": 1.1,
+  "gpu_max_mb": 936,
+  "timing_s": {
+   "c2_uni_temperature": 6.24,
+   "c2_uni_humidity": 5.63,
+   "c2_multi": 19.41,
+   "c2_future": 19.88
+  },
+  "cpu": {
+   "batch64_s": 2.63,
+   "per_series_ms": 41.0,
+   "single_ms": 101.3,
+   "rss_mb": 1691,
+   "threads": 6
+  },
+  "torch": "2.14.1+cu126",
+  "first": "2026-09-30 06:00:00+00:00",
+  "last": "2026-11-19 00:00:00+00:00"
+ },
+ "mae": {
+  "temperature_30min": {
+   "persist": 0.313,
+   "c2_uni": 0.29,
+   "c2_multi": 0.285,
+   "c2_future": 0.251,
+   "season24": 1.262,
+   "persist_on_season_subset": 0.307,
+   "c2_multi_on_season_subset": 0.273,
+   "n_season": 651,
+   "n": 792
+  },
+  "temperature_60min": {
+   "persist": 0.501,
+   "c2_uni": 0.433,
+   "c2_multi": 0.42,
+   "c2_future": 0.355,
+   "season24": 1.262,
+   "persist_on_season_subset": 0.512,
+   "c2_multi_on_season_subset": 0.42,
+   "n_season": 645,
+   "n": 782
+  },
+  "temperature_180min": {
+   "persist": 0.971,
+   "c2_uni": 0.759,
+   "c2_multi": 0.725,
+   "c2_future": 0.632,
+   "season24": 1.275,
+   "persist_on_season_subset": 0.993,
+   "c2_multi_on_season_subset": 0.715,
+   "n_season": 637,
+   "n": 757
+  },
+  "humidity_30min": {
+   "persist": 0.914,
+   "c2_uni": 0.905,
+   "c2_multi": 0.881,
+   "c2_future": 0.834,
+   "season24": 8.579,
+   "persist_on_season_subset": 0.854,
+   "c2_multi_on_season_subset": 0.818,
+   "n_season": 651,
+   "n": 792
+  },
+  "humidity_60min": {
+   "persist": 1.324,
+   "c2_uni": 1.251,
+   "c2_multi": 1.215,
+   "c2_future": 1.116,
+   "season24": 8.588,
+   "persist_on_season_subset": 1.283,
+   "c2_multi_on_season_subset": 1.174,
+   "n_season": 645,
+   "n": 782
+  },
+  "humidity_180min": {
+   "persist": 2.624,
+   "c2_uni": 2.469,
+   "c2_multi": 2.449,
+   "c2_future": 2.32,
+   "season24": 8.727,
+   "persist_on_season_subset": 2.599,
+   "c2_multi_on_season_subset": 2.431,
+   "n_season": 637,
+   "n": 757
+  }
+ },
+ "coverage80": {
+  "temperature_30min": {
+   "c2_uni": 0.794,
+   "c2_multi": 0.785,
+   "c2_future": 0.797
+  },
+  "temperature_60min": {
+   "c2_uni": 0.77,
+   "c2_multi": 0.76,
+   "c2_future": 0.767
+  },
+  "temperature_180min": {
+   "c2_uni": 0.766,
+   "c2_multi": 0.783,
+   "c2_future": 0.782
+  },
+  "humidity_30min": {
+   "c2_uni": 0.806,
+   "c2_multi": 0.788,
+   "c2_future": 0.816
+  },
+  "humidity_60min": {
+   "c2_uni": 0.786,
+   "c2_multi": 0.765,
+   "c2_future": 0.795
+  },
+  "humidity_180min": {
+   "c2_uni": 0.733,
+   "c2_multi": 0.734,
+   "c2_future": 0.762
+  }
+ },
+ "alarm60": {
+  "temperature": {
+   "c2_uni_median": {
+    "tp": 9,
+    "fp": 5,
+    "fn": 37,
+    "tn": 464,
+    "precision": 0.643,
+    "recall": 0.196
+   },
+   "c2_uni_q10_q90": {
+    "tp": 27,
+    "fp": 56,
+    "fn": 19,
+    "tn": 413,
+    "precision": 0.325,
+    "recall": 0.587
+   },
+   "c2_multi_median": {
+    "tp": 11,
+    "fp": 2,
+    "fn": 35,
+    "tn": 467,
+    "precision": 0.846,
+    "recall": 0.239
+   },
+   "c2_multi_q10_q90": {
+    "tp": 27,
+    "fp": 46,
+    "fn": 19,
+    "tn": 423,
+    "precision": 0.37,
+    "recall": 0.587
+   },
+   "c2_future_median": {
+    "tp": 22,
+    "fp": 4,
+    "fn": 24,
+    "tn": 465,
+    "precision": 0.846,
+    "recall": 0.478
+   },
+   "c2_future_q10_q90": {
+    "tp": 34,
+    "fp": 34,
+    "fn": 12,
+    "tn": 435,
+    "precision": 0.5,
+    "recall": 0.739
+   }
+  },
+  "humidity": {
+   "c2_uni_median": {
+    "tp": 7,
+    "fp": 5,
+    "fn": 15,
+    "tn": 99,
+    "precision": 0.583,
+    "recall": 0.318
+   },
+   "c2_uni_q10_q90": {
+    "tp": 19,
+    "fp": 44,
+    "fn": 3,
+    "tn": 60,
+    "precision": 0.302,
+    "recall": 0.864
+   },
+   "c2_multi_median": {
+    "tp": 6,
+    "fp": 3,
+    "fn": 16,
+    "tn": 101,
+    "precision": 0.667,
+    "recall": 0.273
+   },
+   "c2_multi_q10_q90": {
+    "tp": 19,
+    "fp": 44,
+    "fn": 3,
+    "tn": 60,
+    "precision": 0.302,
+    "recall": 0.864
+   },
+   "c2_future_median": {
+    "tp": 6,
+    "fp": 3,
+    "fn": 16,
+    "tn": 101,
+    "precision": 0.667,
+    "recall": 0.273
+   },
+   "c2_future_q10_q90": {
+    "tp": 19,
+    "fp": 41,
+    "fn": 3,
+    "tn": 63,
+    "precision": 0.317,
+    "recall": 0.864
+   }
+  }
+ }
+}
