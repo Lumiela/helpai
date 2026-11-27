@@ -381,6 +381,8 @@ series: {kind: influx, url: https://smartcubens.duckdns.org/influx, org: smartcu
 
 ## 13. 도입 단계
 
+> 지금 진행 순서와 위치는 [docs/06 §5](06_작업_지침과_방향.md) 가 기준이다(학습 1회차를 먼저, shadow 수집기는 그 뒤). 아래 표는 처음 설계안.
+
 | 단계 | 내용 | 통과 기준 |
 |---|---|---|
 | 0 | `decision_fake` + 시뮬레이터로 게이트·장애·묶음 검사 시험 | 기존 시험 55 + 새 시험 통과 |
