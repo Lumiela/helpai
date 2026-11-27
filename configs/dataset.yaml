@@ -19,4 +19,4 @@ replay:                       # 젯슨 InfluxDB 이력 재생 — export-influx 
   zone_config: configs/replay.yaml
   subsample_min: 5            # 분 단위 데이터가 거의 같아서 5 분마다 하나
   csv:
-    - data/raw/influx_2026-10-06_2026-11-27.csv
+    - data/raw/influx_cube001.csv   # 조명을 CUBE001 로 옮긴 날 이후만 (manual/02 단계 A)

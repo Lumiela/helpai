@@ -3,7 +3,7 @@
 InfluxDB 이력 재생 — 1분 평균 CSV(influx_export 결과) → 분마다 Snapshot.
 
 CSV 형식 (influx_export.py 가 만든다):
-    time,CUBE001.temperature,CUBE001.humidity,...,CUBE002.led1
+    time,CUBE001.air,CUBE001.fan1,...,CUBE001.water
     2026-11-20T05:01:00+00:00,25.9,47.6,...,100
   · time 은 UTC, 창 끝 시각. 값이 없는 칸은 빈 문자열(그 분에 데이터 없음).
   · 어떤 열을 어떤 논리 센서로 쓰는지는 configs/replay.yaml 의 zone 매핑. autoctl 처럼 **큐브 한 대** 기준이 기본.

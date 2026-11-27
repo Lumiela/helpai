@@ -14,7 +14,7 @@ ONNX 묶음 → 젯슨 Xavier NX 에서 **추론만** 하는 `laya-edge` → 규
 | 브랜치 | 관계 |
 |---|---|
 | `backend` | 데이터 출처. InfluxDB 저장 형식(`api/app/writer.py`: measurement `mqtt`, tag `cube`·`kind`)과 조회 창구(`nginx/default.conf` 의 `/influx/`), 제어 라우트(`/i/{iid}/cubes/{sn}/control`)를 그대로 쓴다 |
-| `Hardware` | 제어 대상 ESP32 펌웨어(CUBE001 센서·펌프·팬, CUBE002 조명). 펌웨어 안전장치(펌프 30 s 정지)는 이 과제와 별개로 항상 동작 |
+| `Hardware` | 제어 대상 ESP32 펌웨어(CUBE001 = 센서·펌프·팬·조명 led1 — 조명은 CUBE002 에서 CUBE001 로 다시 옮김). 펌웨어 안전장치(펌프 30 s 정지)는 이 과제와 별개로 항상 동작 |
 | `langgraph` · `Rose_Disease` · `Rose_Growth` · `Height` · `Crop_image_processing` | 비전·리포트 쪽. 나중에 잎 병해·생장 단계 결과를 state 에 더할 수 있다(지금은 센서만) |
 
 ## 문서
