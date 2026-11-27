@@ -69,7 +69,8 @@ uv run python scripts/run.py --crop A --CL data/samples/rose_CL.jpg --CR data/sa
 |---|---|---|
 | 잎 분류 모델 바꾸기 | `config/crops.yaml` | `disease.cls_weights` (지금 `leaf_cls_yolov8m_du.pt`) |
 | 잎 이상 VLM 켜기 · 끄기 | `config/crops.yaml` | `disease.vlm.enabled` |
-| 빈 화분 판정 기준 | `config/rose/growth.yaml` | `presence.dark_v_max` (100), `presence.empty_ratio` (0.30) — 구멍 안 어두운 픽셀 비율의 두 카메라 평균이 이 값 이상이면 빈 칸 |
+| 빈 화분 판정 기준 | `config/rose/growth.yaml` | `presence.dark_v_max` (110), `presence.dark_s_max` (100), `presence.empty_ratio` (0.25) — 구멍 원 안에서 명도 110 이하·채도 100 이하인 픽셀 비율의 두 카메라 평균이 이 값 이상이면 빈 칸 |
+| 구멍 위치 자동 · 고정 | `config/rose/growth.yaml` | `holes_auto.mode` (`auto` / `fixed`), 원 크기 `radius_ratio` (0.25) |
 | 식물 있는 칸 고정 | `config/rose/growth.yaml` | `presence.method: fixed` + `layout.plants` (O / X) |
 | 위험 기준 · 심각도 | `config/rules/A.yaml` | `alerts.critical_leaf_count`, `anomalies.<유형>.severity` |
 
@@ -77,6 +78,31 @@ uv run python scripts/run.py --crop A --CL data/samples/rose_CL.jpg --CR data/sa
 
 `stereo_calib.npz` 의 왼쪽 = 천장 C2 입니다. 생장 단계 샘플 사진으로 확인해 보니 **생장 단계 모듈의 CR 이 스테레오 왼쪽**이어서 `cameras.stereo_left: CR` 로 두었습니다.
 보고서에 "정렬 후 세로 어긋남" 경고가 나오면 카메라가 움직였거나 좌우가 바뀐 것이니 다시 보정하세요.
+
+## 구멍 위치 자동 찾기
+
+트레이 직사각형 + 3×4 격자를 사진에 통째로 맞춥니다: 트레이 안은 어둡고, 바깥 띠는 밝은(은색 반사판) 쪽으로.
+잎·꽃·전선(채도 높은 픽셀)은 점수에서 빼므로 화분이 잎에 가려도 찾습니다. 설정은 `config/rose/growth.yaml` 의 `holes_auto`.
+
+- `mode: auto` 이면 실행마다 찾아서 쓰고, 실패하면 `holes.yaml` 로 대신하며 보고서에 경고합니다.
+- `holes.yaml` 과 간격의 25% 넘게 다르면 "트레이·카메라가 움직였음" 경고 (자동 위치는 계속 사용).
+- 확인 그림: `out/run/<시각>/growth/holes_<카메라>.jpg` (빨강 = 트레이 테두리, 청록 = 구멍).
+- 가정: R1C1 = 사진 왼쪽 위. 트레이를 180° 돌려 넣으면 칸 번호가 바뀌니 트레이에 방향 표시를 해 두세요.
+- 간격 잡기: 트레이 한쪽 바깥이 검은 전선·벽이면 밝기만으로는 그 변 위치가 정해지지 않아 간격이 작게 잡힐 수 있습니다
+  (CL2/CR2 에서 가로 간격 5% 작음 → 4열 원이 화분 왼쪽으로 빠짐). 그래서 `holes.yaml` 간격과 다를수록 점수를 깎습니다
+  (`pitch_prior_weight: 3.0`, 세로/가로 비 1 에서 벗어남은 `aspect_weight: 0.5`).
+  **카메라 높이를 바꾸면** 간격 자체가 바뀌므로 `pitch_prior_weight: 0` 으로 `find_holes.py --write` 를 실행해 `holes.yaml` 을 새로 만든 뒤 3.0 으로 되돌리세요.
+
+```powershell
+uv run python scripts/rose_growth/find_holes.py --CL data/samples/CL2.jpg --CR data/samples/CR2.jpg
+uv run python scripts/rose_growth/find_holes.py --CL ... --CR ... --write     # holes.yaml 갱신 (이전 파일 백업)
+```
+
+2026-11-27 사진(CL1/CR1, CL2/CR2)으로 확인한 것
+- 구멍: `holes.yaml` 보다 간격의 약 40% 어긋나 있었음 (트레이·카메라 이동). 자동 위치로 12칸 모두 화분에 맞음.
+- 빈 화분 판정: 검은 덮개는 무채색, 흙은 갈색 기운이 있어 채도 조건 `dark_s_max` 를 추가.
+  `dark_v_max 110 / dark_s_max 100 / empty_ratio 0.25`, 원 반지름 `radius_ratio 0.25` 로 사진 3세트 36칸 모두 맞음
+  (식물 칸 최고 0.22, 빈 칸 최저 0.28. 예전 100 / 채도 조건 없음 / 0.30 은 식물 칸 0.44, 빈 칸 0.40 으로 겹침).
 
 ## 스테레오 다시 보정하기
 

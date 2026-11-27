@@ -140,7 +140,28 @@ class RosePipeline:
         self.fuser = get_fuser(g.get("fusion", "max"))
 
     def holes_for(self, camera, image):
-        return camera_holes(self.cfg["holes"].get(camera), image.shape, self.cfg.get("radius_ratio", 0.3))
+        """구멍 위치. holes_auto.mode: fixed = holes.yaml 그대로 / auto = 사진에서 트레이 격자를 찾아 씀
+        (찾기 실패하면 holes.yaml 로 대신하고 경고). 결과는 self.hole_fits[camera] 에 남김."""
+        fixed = self.cfg["holes"].get(camera)
+        auto = self.cfg.get("holes_auto") or {}
+        holes_norm = fixed
+        if not hasattr(self, "hole_fits"):
+            self.hole_fits = {}
+        if auto.get("mode", "fixed") == "auto":
+            from .hole_finder import HoleFinder
+            finder = HoleFinder(rows=self.layout["rows"], cols=self.layout["cols"], **auto)
+            try:
+                fit = finder.find(image, prior=fixed)
+            except Exception as e:  # 사진이 이상해도 생장 단계는 holes.yaml 로 계속
+                fit = None
+                self.hole_fits[camera] = dict(ok=False, used="fixed", reason=f"{type(e).__name__}: {e}")
+            if fit is not None:
+                used = "auto" if fit.ok or not fixed else "fixed"
+                self.hole_fits[camera] = dict(ok=fit.ok, used=used, score=fit.score, reason=fit.reason,
+                                              shift_ratio=fit.shift_ratio, holes=fit.holes, fit=fit)
+                if used == "auto":
+                    holes_norm = fit.holes
+        return camera_holes(holes_norm, image.shape, self.cfg.get("radius_ratio", 0.3))
 
     # ── 1단계: 각각의 미니 장미 구분 ──────────────────────────
     def detect_presence(self, images, holes):
@@ -178,6 +199,7 @@ class RosePipeline:
         for name, cam in self.cfg["cameras"].items():
             if name not in images:
                 images[name] = build_source(cam["source"]).read()
+        self.hole_fits = {}
         holes = {name: self.holes_for(name, img) for name, img in images.items()}
 
         presence = self.detect_presence(images, holes)

@@ -64,10 +64,41 @@ def run(images: dict, spec: dict, out_dir: Path | None = None) -> tuple[dict, li
 
     segments = {cam: {p.cell_id: (p.mask, p.offset) for p in f.plants} for cam, f in result.frames.items()}
     usage = getattr(pipeline.detector, "usage", None)
+    warnings = list(warnings)
+    holes_info = _hole_report(pipeline, images, out_dir, warnings)
     return {
         "grades": list(result.grades),
         "cells": [c.to_dict() for c in result.cells],
         "segments": segments,
         "table": result.table(),
         "usage": dict(usage) if usage else None,
-    }, list(warnings)
+        "holes": holes_info,
+    }, warnings
+
+
+def _hole_report(pipeline, images: dict, out_dir: Path | None, warnings: list) -> dict | None:
+    """구멍 자동 찾기 결과 요약 + 확인 그림(growth/holes_<카메라>.jpg) + 경고."""
+    fits = getattr(pipeline, "hole_fits", None)
+    if not fits:
+        return None
+    auto = pipeline.cfg.get("holes_auto") or {}
+    warn_shift = float(auto.get("warn_shift_ratio", 0.25))
+    info = {}
+    for cam, f in fits.items():
+        info[cam] = {k: f.get(k) for k in ("used", "ok", "score", "shift_ratio", "reason", "holes")}
+        if not f.get("ok"):
+            warnings.append(f"구멍 자동 찾기 실패({cam}): {f.get('reason')} → holes.yaml 위치 사용")
+        elif f.get("shift_ratio") is not None and f["shift_ratio"] > warn_shift:
+            warnings.append(f"구멍 위치({cam})가 holes.yaml 과 간격의 {f['shift_ratio']:.2f}배 다름 → 트레이·카메라가 "
+                            f"움직였음. 자동 위치 사용 중 (holes.yaml 갱신: scripts/rose_growth/find_holes.py --write)")
+        if out_dir is not None and f.get("fit") is not None:
+            import cv2
+
+            from .rose_pipeline.hole_finder import draw_fit
+
+            d = Path(out_dir) / "growth"
+            d.mkdir(parents=True, exist_ok=True)
+            vis = draw_fit(images[cam], f["fit"], title=cam)
+            s = 1280 / vis.shape[1]
+            cv2.imwrite(str(d / f"holes_{cam}.jpg"), cv2.resize(vis, None, fx=s, fy=s, interpolation=cv2.INTER_AREA))
+    return info

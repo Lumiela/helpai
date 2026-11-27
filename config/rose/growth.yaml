@@ -32,11 +32,32 @@ cameras:
   CR:
     source: {type: file, path: data/samples/rose_CR.jpg}
 
-# 카메라별 구멍 중심 좌표는 tools/calibrate_holes.py 로 생성
+# 카메라별 구멍 중심 좌표 (고정값). scripts/rose_growth/find_holes.py --write 로 사진에서 다시 만들 수 있음
 holes_file: config/rose/holes.yaml
 
+# 구멍 위치 자동 찾기 (rose_pipeline/hole_finder.py)
+#   트레이 직사각형 + 3x4 격자를 사진에 통째로 맞춤: 트레이 안은 어둡고, 바깥 띠는 밝은(은색 반사판) 쪽으로.
+#   잎·꽃·전선(채도 높은 픽셀)은 점수에서 빼므로 화분이 잎에 가려도 찾을 수 있음.
+#   mode: fixed = holes.yaml 그대로 / auto = 실행마다 자동으로 찾음 (실패하면 holes.yaml 로 대신하고 경고)
+#   가정: R1C1 = 사진 왼쪽 위. 트레이를 180° 돌려 넣으면 칸 번호가 바뀌니 트레이에 방향 표시를 해 두세요
+holes_auto:
+  mode: auto
+  margin: 0.5              # 트레이 가장자리 = 바깥 구멍 중심에서 간격 x 0.5 (트레이 실측: 화분이 가장자리까지 거의 닿음)
+  band: 0.3                # 트레이 바깥 '밝아야 하는 띠' 폭 (간격 배수)
+  pitch_range: [0.15, 0.26]    # 구멍 간격이 사진 가로의 몇 배인지 범위 (천장 카메라 높이에 맞춤)
+  aspect_range: [0.92, 1.08]   # 세로 간격 / 가로 간격
+  aspect_weight: 0.5       # 세로/가로 간격이 1 에서 벗어날수록 점수에서 깎는 정도 (화분 간격은 가로·세로가 거의 같음)
+  pitch_prior_weight: 3.0  # holes.yaml 의 간격과 다를수록 점수에서 깎는 정도 (5% 차이 → 약 0.15).
+                           #  카메라 높이가 그대로면 사진 속 간격도 그대로이므로, 트레이 한쪽 테두리가
+                           #  잎·검은 전선에 가려도 간격이 줄거나 늘지 않게 잡아 줌.
+                           #  카메라 높이를 바꿨으면 0 으로 두고 find_holes.py --write 로 holes.yaml 을 새로 만든 뒤 다시 3.0
+  max_rotation_deg: 10
+  min_score: 1.4           # 맞춤 점수(최대 2)가 이보다 낮으면 실패로 보고 holes.yaml 사용
+  warn_shift_ratio: 0.25   # holes.yaml 보다 간격의 25% 넘게 다르면 보고서에 '트레이·카메라 이동' 경고
+
 # 구멍 반지름(px) = 그 구멍에서 가장 가까운 다른 구멍까지 거리 × radius_ratio
-radius_ratio: 0.3
+radius_ratio: 0.25       # 0.3 → 0.25 (2026-11-27): 구멍 위치가 화분에 정확히 맞자 0.3 원이 흙·화분 벽까지 넓게 덮어
+                         # 식물/빈 칸 점수가 겹침. 0.25 에서 가장 잘 갈림 (아래 presence 참고)
 
 # ─────────────────────────────────────────────
 # 1단계-1: 식물 유무 판단
@@ -46,8 +67,12 @@ radius_ratio: 0.3
 # ─────────────────────────────────────────────
 presence:
   method: dark_cover
-  dark_v_max: 100      # HSV 명도(V)가 이 값 이하이면 "어두운 픽셀"
-  empty_ratio: 0.30    # 어두운 픽셀 비율이 이 값 이상이면 빈 구멍 (여러 카메라면 평균)
+  dark_v_max: 110      # HSV 명도(V)가 이 값 이하이고
+  dark_s_max: 100      # 채도(S)가 이 값 이하이면 "어두운 픽셀" (회색 덮개만 셈, 갈색 흙은 뺌. 255 = 채도 조건 없음)
+  empty_ratio: 0.25    # 어두운 픽셀 비율이 이 값 이상이면 빈 구멍 (여러 카메라면 평균)
+  # 2026-11-27 사진 3세트(rose, CL1/CR1, CL2/CR2) 36칸, 자동 구멍 위치 + radius_ratio 0.25 기준:
+  #   식물 칸 최고 0.22, 빈 칸 최저 0.28 → 36칸 모두 맞음 (반지름 0.3 이면 0.25 / 0.26 으로 거의 붙음)
+  # (예전 100 / 채도 조건 없음 / 0.30 은 식물 칸 0.44, 빈 칸 0.40 으로 겹쳐서 흙이 보이는 칸을 빈 칸으로 봄)
 
 # ─────────────────────────────────────────────
 # 1단계-2: 각각의 미니 장미 구분 (식물 세그멘테이션)
@@ -110,7 +135,7 @@ grading:
     #   vlm     : Claude(VLM)가 등급 설명 + 예시 사진을 보고 판단. 학습 불필요, 요금 발생, 인터넷 필요
     #   cascade : YOLO 로 먼저 판단하고 확신이 cascade_below 미만인 크롭만 VLM 에게 다시 물음
     # 바꾸기 전에 tools/eval_classifier.py 로 val 크롭에서 비교하세요.
-    cls_backend: yolo
+    cls_backend: cascade
     cascade_below: 0.8
     embed:
       reference_dir: weights/rose/growth/cls_reference   # <클래스>/*.jpg 참고 크롭 (tools/make_vlm_examples.py --out cls_reference)
