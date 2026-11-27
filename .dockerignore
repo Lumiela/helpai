@@ -1,0 +1,10 @@
+.git
+.venv
+data
+models
+runs
+bundles
+reports
+edge/node_modules
+**/__pycache__
+**/.env

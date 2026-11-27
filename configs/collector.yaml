@@ -1,0 +1,29 @@
+# shadow 수집기 설정 — python -m helpai_decide collect --config configs/collector.yaml   (docs/06 §5-3, manual/03 §5)
+# 젯슨 컨테이너에서는 환경변수가 우선: COLLECTOR_INSTANCE · COLLECTOR_API_BASE · COLLECTOR_CUBES
+# ★ 이 수집기는 서버를 읽기만 한다(GET values·status·auto·history). 명령을 보내는 기능은 없다.
+
+api:
+  base_url: https://smartcubens.duckdns.org/api     # 서버(네이버 클라우드) nginx /api/
+  instance: ""                                       # 필수 — 인스턴스 ID (웹 주소 /i/<여기>/ 의 값). COLLECTOR_INSTANCE 로 줘도 된다
+  timeout_s: 10
+
+auth:                     # 서버는 Supabase 로그인 토큰(JWT)을 받는다. 그 인스턴스의 소유자 계정이어야 읽힌다
+  mode: supabase_refresh  # supabase_refresh | static | none(서버 AUTH_MODE=off 일 때만)
+  supabase_url_env: SUPABASE_URL
+  anon_key_env: SUPABASE_ANON_KEY
+  refresh_token_env: SUPABASE_REFRESH_TOKEN          # 처음 한 번만. 이후엔 아래 파일의 새 토큰을 쓴다(1 회용으로 바뀐다)
+  refresh_token_file: /data/collector/state/refresh_token
+  static_token_env: HELPAI_TOKEN                     # mode: static 일 때
+
+cubes: [CUBE001]          # autoctl 과 같이 큐브 단위
+every_s: 60
+history_window_min: 35    # 30 분 추세 + 여유
+
+laya:
+  enabled: true           # 묶음이 아직 없으면 false — 기준 판단·autoctl 만 기록한다
+  url: http://laya-edge:8000
+  key_env: LAYA_API_KEY
+  timeout_s: 8
+  models_dir: /models     # 묶음 폴더(current 링크). calibration.yaml·manifest 를 여기서 읽는다
+
+log_dir: /data/collector/logs     # shadow-YYYY-MM-DD.jsonl (KST 날짜)

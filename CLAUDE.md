@@ -14,14 +14,15 @@ git log --oneline -10
 - **큐브에 명령을 보내는 코드(서버 제어 라우트·MQTT)를 만들지 않는다** — docs/06 §5 의 단계 6 전까지. autoctl 이 켜진 큐브에 명령을 보내면 autoctl 이 꺼진다(docs/05 §7).
 - **교사 라벨 기준은 서버 api 의 autoctl** (docs/05). 규칙을 바꾸면 시험 → 코드 → docs/04·05 순서.
 - `features.py` 를 바꾸면 `FEATURE_VERSION` + 1, `configs/questions.yaml` 을 바꾸면 `version` + 1. 둘 다 데이터셋부터 다시.
-- 토큰·키(`INFLUX_READ_TOKEN`, `LAYA_API_KEY`, HF 토큰, 서버 서비스 토큰)는 환경변수로만. 파일·명령 인자·커밋 금지.
+- 토큰·키(`INFLUX_READ_TOKEN`, `LAYA_API_KEY`, HF 토큰, Supabase refresh token·anon 키)는 환경변수나 그 장비의 파일(0600)로만. 파일·명령 인자·커밋 금지.
 - 모델·데이터·묶음(`data/ models/ runs/ bundles/`)은 git 에 넣지 않는다. 작은 결과만 `reports/<rev>/`.
 - 문서는 한국어, 표 위주, "확인한 것 / 못 한 것" 구분. 코드와 문서가 다르면 코드가 맞다.
 - 커밋은 시험 통과 상태로, `decision_model` 브랜치에만. 진행하면 docs/06 §2 상태표·§8 결정 기록을 같이 고친다.
 
 ## 구조 한 줄씩
 - `helpai_decide/` 학습·추론 공용 패키지 (핵심은 pyyaml 만) — `python -m helpai_decide --help`
-- `edge/` 젯슨 laya-edge 추론 서버(Node, `/v1/systemone`)
+- `edge/` 젯슨 laya-edge 추론 서버(Node, `/v1/systemone`) + 젯슨 compose
+- `helpai_decide/collector.py` shadow 수집기 — 서버 GET 만(values·status·auto·history), `ApiClient` 에 쓰기 경로를 더하지 말 것
 - `scripts/pipeline.sh` 집 PC 학습 전 과정
 - `docs/00~06`, `manual/01~04`
 

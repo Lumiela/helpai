@@ -342,9 +342,10 @@ helpai_decide/           학습·추론 공용 패키지 (핵심은 pyyaml 만 �
   cli.py                 python -m helpai_decide <명령>
 configs/                 questions.yaml · dataset.yaml · training.yaml · replay.yaml
 profiles/crops.json      작물표 (backend 브랜치 api/app/crops.json 복사본)
-edge/                    laya-edge: server.mjs · bench.mjs · Dockerfile · docker-compose.yml(젯슨 전용)
+edge/                    laya-edge: server.mjs · bench.mjs · Dockerfile · docker-compose.yml(젯슨 전용, laya-edge + collector)
+helpai_decide/collector.py  shadow 수집기 (서버 읽기만 → 기준 판단·autoctl 상태·모델 답 기록)  · collector/Dockerfile
 scripts/pipeline.sh      집 PC 학습 전 과정
-tests/                   시험 29 개 (모델 없이)
+tests/                   시험 36 개 (모델 없이)
 ```
 
 **rules v2 에 더할 것 — 다음 단계(아직 없음)**

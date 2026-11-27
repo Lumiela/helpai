@@ -6,6 +6,8 @@
   download-base                     기반 체크포인트 내려받기
   export-influx                     서버 InfluxDB(읽기 창구 /influx) → 1분 평균 CSV
   light-check                       조명을 CUBE001 로 옮긴 날 찾기 (LED·조도 상관)
+  collect                           shadow 수집기 (젯슨, 서버 읽기만 — 명령 없음)
+  shadow-report                     shadow 기록 요약 (모델↔autoctl 기준 일치율)
   dataset build | check             데이터셋 만들기 / 형식 검사
   token-count                       state 토큰 수 실측
   train                             미세조정
@@ -55,6 +57,33 @@ def cmd_export_influx(a):
     zone = _yaml(a.zone_config)["zone"]
     n = ie.export(zone, ie.parse_time(a.start), ie.parse_time(a.stop), a.out, url=a.url, org=a.org, bucket=a.bucket)
     print("저장 %s (%d 분)" % (a.out, n))
+
+
+def cmd_collect(a):
+    from . import collector as co
+    cfg = co.load_config(a.config)
+    if a.log_dir:
+        cfg["log_dir"] = a.log_dir
+    if a.no_model:
+        cfg.setdefault("laya", {})["enabled"] = False
+    c = co.make(cfg, load_profile(a.profile, a.crop), a.questions)
+    if a.once:
+        for rec in c.tick():
+            print(json.dumps(rec, ensure_ascii=False, indent=1)[:4000])
+        return 0
+    c.run()
+
+
+def cmd_shadow_report(a):
+    import glob
+    from . import collector as co
+    paths = sorted(p for pat in a.logs for p in glob.glob(pat))
+    if not paths:
+        raise SystemExit("기록 파일이 없다: %s" % a.logs)
+    rep = co.report(paths)
+    print(json.dumps(rep, ensure_ascii=False, indent=2))
+    if a.out:
+        Path(a.out).write_text(json.dumps(rep, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def cmd_light_check(a):
@@ -222,6 +251,18 @@ def main(argv=None):
     p.add_argument("--bucket", default="sensors")
     p.add_argument("--zone-config", default=str(ROOT / "configs" / "replay.yaml"))
     p.set_defaults(fn=cmd_export_influx)
+
+    p = sub.add_parser("collect", help="shadow 수집기 — 서버를 읽기만 하고 모델·기준 판단을 기록 (젯슨)")
+    p.add_argument("--config", default=str(ROOT / "configs" / "collector.yaml"))
+    p.add_argument("--once", action="store_true", help="한 번만 돌고 기록을 화면에도 출력")
+    p.add_argument("--no-model", action="store_true", help="laya-edge 없이 기준 판단·autoctl 만")
+    p.add_argument("--log-dir", default=None)
+    p.set_defaults(fn=cmd_collect)
+
+    p = sub.add_parser("shadow-report", help="shadow 기록 요약 (질문별 모델↔기준 일치율)")
+    p.add_argument("--logs", nargs="+", required=True, help="예: data/shadow/shadow-2026-12-*.jsonl")
+    p.add_argument("--out", default=None)
+    p.set_defaults(fn=cmd_shadow_report)
 
     p = sub.add_parser("light-check", help="조명을 CUBE001 로 옮긴 날 찾기 (날마다 LED·조도 상관)")
     p.add_argument("--csv", required=True, help="export-influx --zone-config configs/light_check.yaml 결과")

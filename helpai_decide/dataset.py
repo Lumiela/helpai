@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-데이터셋 조립 — 합성(synth) + 이력 재생(replay) → train / val / test JSONL.
+데이터셋 조립 — 합성(synth) + 이력 재생(replay) + 젯슨 shadow 기록 → train / val / test JSONL.
 
 Laya 학습 행 형식 (laya.train 이 읽는 그대로):
     {"state": {...}, "questions": {...}, "gold": {"질문": {"probabilities": {...}}}}
@@ -98,6 +98,28 @@ def build(cfg, profile, questions, out_dir, log=print):
             rid = "replay-%s" % info["utc"]
             add(dsplit[info["local_date"]], make_row(snap, profile, questions),
                 {"id": rid, "source": "replay", "scenario": "real", "snapshot": snap.to_dict(), **info})
+
+    hc = cfg.get("shadow")
+    if hc and hc.get("enabled", True):
+        import glob
+        from .features import Snapshot
+        items = []
+        for pat in hc.get("logs", []):
+            for path in sorted(glob.glob(pat)):
+                log("shadow %s" % path)
+                for rec in read_rows(path):
+                    if "snapshot" not in rec:
+                        continue
+                    snap = Snapshot.from_dict(rec["snapshot"])
+                    items.append((snap, {"utc": rec["t"], "local_date": snap.local_time.date().isoformat(),
+                                         "sn": rec.get("sn"), "model_revision": (rec.get("model") or {}).get("revision")}))
+        sub = int(hc.get("subsample", 5))
+        items = items[::max(1, sub)]
+        dsplit = _date_splits([i["local_date"] for _, i in items], val_frac, test_frac)
+        for snap, info in items:
+            rid = "shadow-%s-%s" % (info.get("sn"), info["utc"])
+            add(dsplit[info["local_date"]], make_row(snap, profile, questions),
+                {"id": rid, "source": "shadow", "scenario": "real", "snapshot": snap.to_dict(), **info})
 
     for split in SPLITS:
         rows = buckets.get(split, [])

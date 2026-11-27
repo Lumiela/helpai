@@ -1,8 +1,15 @@
 # 젯슨(현장 엣지) 전용 compose — 서버(네이버 클라우드, backend 브랜치)의 compose 와 섞지 않는다.
-# 젯슨에서:  이 edge/ 폴더를 /data/edge/ 로 복사 → /data/edge/.env 에 LAYA_API_KEY=… → 
-#            cd /data/edge && docker compose up -d --build
-# 묶음: /data/laya/models/<revision>/ + current 링크(상대 링크)  — manual/03_젯슨_배포_매뉴얼.md
-# 나중에 rules(규칙 엔진 + PolicyGate)도 이 파일에 같이 둔다 → 같은 망에서 http://laya-edge:8000 으로 부른다.
+# 젯슨에서 (manual/03_젯슨_배포_매뉴얼.md):
+#   git clone -b decision_model https://github.com/Lumiela/helpai.git ~/helpai-decision
+#   cd ~/helpai-decision/edge && 이 폴더에 .env 작성(아래 변수, git 에 안 올라감) && docker compose up -d --build
+# 묶음: /data/laya/models/<revision>/ + current 링크(상대 링크)
+#
+# .env 변수 (값은 화면·커밋에 남기지 말 것)
+#   LAYA_API_KEY            laya-edge 추론 키 (collector 도 같은 값)
+#   COLLECTOR_INSTANCE      서버 인스턴스 ID
+#   SUPABASE_URL            서버 인증(Supabase) 주소
+#   SUPABASE_ANON_KEY       Supabase 공개(anon) 키
+#   SUPABASE_REFRESH_TOKEN  인스턴스 소유자 계정의 refresh token — 처음 한 번. 이후 /data/collector/state 에 새 것이 저장된다
 
 services:
   laya-edge:
@@ -12,7 +19,7 @@ services:
     restart: unless-stopped
     environment:
       LAYA_MODEL_DIR: /models/current
-      LAYA_API_KEY: ${LAYA_API_KEY:?/data/edge/.env 에 LAYA_API_KEY 가 필요하다}
+      LAYA_API_KEY: ${LAYA_API_KEY:?edge/.env 에 LAYA_API_KEY 가 필요하다}
       LAYA_THREADS: "3"
     volumes:
       - /data/laya/models:/models:ro       # NVMe. <revision>/ 폴더들 + current 링크
@@ -20,3 +27,25 @@ services:
     cpus: "3"                              # Carmel 6 코어 중 절반
     ports:
       - "127.0.0.1:8000:8000"              # 젯슨 자기 자신에서만(점검용). 바깥에 열지 않는다
+    profiles: ["model"]                    # 묶음이 생긴 뒤: docker compose --profile model up -d
+
+  collector:                               # shadow 수집기 — 서버를 읽기만 한다(명령 없음)
+    build:
+      context: ..
+      dockerfile: collector/Dockerfile
+    image: helpai-collector:1
+    container_name: collector
+    restart: unless-stopped
+    environment:
+      COLLECTOR_INSTANCE: ${COLLECTOR_INSTANCE:?edge/.env 에 COLLECTOR_INSTANCE 가 필요하다}
+      COLLECTOR_CUBES: ${COLLECTOR_CUBES:-CUBE001}
+      COLLECTOR_LAYA: ${COLLECTOR_LAYA:-0}     # 묶음을 올리고 laya-edge 를 띄운 뒤 1
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
+      SUPABASE_REFRESH_TOKEN: ${SUPABASE_REFRESH_TOKEN:-}
+      LAYA_API_KEY: ${LAYA_API_KEY:-}
+    volumes:
+      - /data/collector:/data/collector     # logs/ (shadow-*.jsonl) · state/ (refresh token, 0600)
+      - /data/laya/models:/models:ro        # 묶음의 calibration.yaml·manifest
+    mem_limit: 200m
+    cpus: "0.5"
