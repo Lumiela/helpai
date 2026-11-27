@@ -25,7 +25,8 @@ ONNX 묶음 → 젯슨 Xavier NX 에서 **추론만** 하는 `laya-edge` → 규
 | 구조 | [docs/01_결정모델_InfluxDB_제어_아키텍처.md](docs/01_결정모델_InfluxDB_제어_아키텍처.md) | 전체 구조·배치·묶음·카나리·PolicyGate·장애·도입 단계 |
 | 흐름 | [docs/02_데이터_흐름.md](docs/02_데이터_흐름.md) | 운영(추론) 흐름·학습 흐름·파일 형식·교체 시퀀스 |
 | 방법 | [docs/03_학습_방법.md](docs/03_학습_방법.md) | 데이터 전략·교사 라벨·미세조정·INT8·보정·합격 기준 |
-| 명세 | [docs/04_질문_특징_라벨_명세.md](docs/04_질문_특징_라벨_명세.md) | state 문장 규칙·질문 5 개·교사 규칙표 |
+| 명세 | [docs/04_질문_특징_라벨_명세.md](docs/04_질문_특징_라벨_명세.md) | state 문장 규칙·질문 5 개·교사 규칙표 (autoctl 기준) |
+| 현재 제어 | [docs/05_현재_제어_방식.md](docs/05_현재_제어_방식.md) | 서버 api autoctl·사람 제어·송신 경로·펌웨어 안전장치·결정 모델을 붙이는 단계 |
 | 매뉴얼 | [manual/01_집PC_학습환경_설정.md](manual/01_집PC_학습환경_설정.md) | 드라이버·WSL·cu128·laya·Node·check-env |
 | | [manual/02_학습_실행_매뉴얼.md](manual/02_학습_실행_매뉴얼.md) | Influx 받기 → 데이터셋 → 학습 → ONNX → 평가 → 묶음 |
 | | [manual/03_젯슨_배포_매뉴얼.md](manual/03_젯슨_배포_매뉴얼.md) | laya-edge 설치·묶음 올리기·실측·교체·되돌리기 |
@@ -45,7 +46,7 @@ REV=2026-12-05_r1 bash scripts/pipeline.sh        # → bundles/2026-12-05_r1.ta
 ```
 helpai_decide/     학습·추론 공용 파이썬 패키지 (핵심은 pyyaml 만)   python -m helpai_decide --help
 configs/           questions.yaml(질문) · dataset.yaml · training.yaml · replay.yaml(구역 매핑)
-profiles/          rose.yaml (rules v2 와 같은 작물 프로필)
+profiles/          crops.json (서버 api 작물표 복사본 — autoctl 과 같은 값)
 edge/              laya-edge 추론 서버 (Node 20, @receptron/laya 0.2.0) · Dockerfile · 젯슨 전용 docker-compose.yml
 scripts/           pipeline.sh (집 PC 전 과정)
 tests/             시험 28 개 — python -m unittest discover -s tests -t .

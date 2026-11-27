@@ -19,8 +19,9 @@ from helpai_decide.replay import read_wide_csv, replay
 P = load_profile()
 Q = load_questions()
 ZONE = {"sensors": {"temperature": "C1.temperature", "humidity": "C1.humidity", "lux": "C1.lux",
-                    "soil_moisture": {"from": "C1.moisture_pct", "valid_if": "C1.moisture_calibrated"}},
-        "actuators": {"light": ["C2.led1"], "pump": "C1.pump", "fan": ["C1.fan1"]}}
+                    "soil_moisture": "C1.moisture_pct"},
+        "actuators": {"light": "C1.led1", "pump": "C1.pump", "fan": "C1.fan1"},
+        "soil_calibration": {"air": "C1.air", "water": "C1.water"}}
 
 
 class TmpDir(unittest.TestCase):
@@ -31,18 +32,19 @@ class TmpDir(unittest.TestCase):
         shutil.rmtree(self.tmp, ignore_errors=True)
 
 
-def write_csv(path, minutes=90, pulse_at=40, rise=0.2, flat=False):
-    cols = ["C1.temperature", "C1.humidity", "C1.lux", "C1.moisture_pct", "C1.moisture_calibrated", "C1.pump",
-            "C1.fan1", "C2.led1"]
+def write_csv(path, minutes=90, pulse_at=40, rise=0.2, flat=False, air=21000):
+    cols = ["C1.temperature", "C1.humidity", "C1.lux", "C1.moisture_pct", "C1.pump", "C1.fan1", "C1.led1",
+            "C1.air", "C1.water"]
     t0 = datetime(2026, 11, 20, 4, 0, tzinfo=timezone.utc)      # KST 13:00
     with open(path, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(["time"] + cols)
         for m in range(minutes):
             T = 25.0 if flat else 25.0 + 0.02 * m
-            M = 38.0 + (rise if m > pulse_at else 0.0)
-            w.writerow([(t0 + timedelta(minutes=m)).isoformat(), T, 50.0, 7000, M, 1, 1 if m == pulse_at else 0,
-                        20, 60])
+            M = 28.0 + (rise if m > pulse_at else 0.0)
+            st = (air, 11100) if m % 10 == 0 else ("", "")          # status 는 가끔만 온다
+            w.writerow([(t0 + timedelta(minutes=m)).isoformat(), T, 65.0, 7000, M, 1 if m == pulse_at else 0,
+                        33, 60, *st])
 
 
 class ReplayTest(TmpDir):
@@ -64,6 +66,17 @@ class ReplayTest(TmpDir):
         after = [s for s in snaps if s.minutes_since_irrigation is not None and 6 <= s.minutes_since_irrigation <= 30]
         self.assertNotIn("no_rise_after_watering", labeler.suspect_reasons(after[0], P))
         self.assertTrue(snaps[-1].temp_flat_30m)
+
+    def test_calibration_from_status(self):
+        p = self.tmp / "c.csv"
+        write_csv(p, minutes=40, pulse_at=100)
+        s = [s for s, _ in replay(read_wide_csv(p), ZONE)][0]
+        self.assertIs(s.soil_calibrated, True)
+        self.assertEqual(labeler.irrigate_of(s, P), "true")       # 28 % < 30 %, 보정됨, 오늘 0 회
+        write_csv(p, minutes=40, pulse_at=100, air=22520)          # 공장 기본값
+        s = [s for s, _ in replay(read_wide_csv(p), ZONE)][0]
+        self.assertIs(s.soil_calibrated, False)
+        self.assertEqual(labeler.irrigate_of(s, P), "false")
 
 
 class DatasetTest(TmpDir):
@@ -113,8 +126,8 @@ class FakeLaya(BaseHTTPRequestHandler):
 class PredictTest(TmpDir):
     def test_normalize(self):
         self.assertEqual(pr.normalize_answer(Q["irrigate_now"], {"noul": 0.25}), {"false": 0.75, "true": 0.25})
-        d = pr.normalize_answer(Q["fan_level"], {"probabilities": {"off": 2, "low": 2}})
-        self.assertEqual(d, {"off": 0.5, "low": 0.5, "mid": 0.0, "high": 0.0})
+        d = pr.normalize_answer(Q["fan_action"], {"probabilities": {"off": 2, "down": 2}})
+        self.assertEqual(d, {"off": 0.5, "down": 0.5, "hold": 0.0, "up": 0.0})
 
     def test_http_run_and_compare(self):
         cfg = {"synth": {"n": 30, "seed": 9}}
@@ -129,7 +142,7 @@ class PredictTest(TmpDir):
             self.assertGreater(n, 0)
             self.assertEqual(fails, 0)
             res = pr.compare(self.tmp / "a.jsonl", self.tmp / "a.jsonl")
-            self.assertEqual(res["questions"]["fan_level"]["top1_agreement"], 1.0)
+            self.assertEqual(res["questions"]["fan_action"]["top1_agreement"], 1.0)
         finally:
             srv.shutdown()
             srv.server_close()
@@ -142,8 +155,8 @@ class BundleTest(TmpDir):
         (d / "laya.onnx").write_bytes(b"\x08\x01fake")
         (d / "laya_config.json").write_text('{"max_len": 1024}')
         (d / "tokenizer" / "tokenizer.json").write_text("{}")
-        (self.tmp / "cal.yaml").write_text("version: 1\ntemperatures: {fan_level: 1.3}\n")
-        (self.tmp / "rep.json").write_text(json.dumps({"questions": {"fan_level": {"n": 5, "accuracy": 0.9}}}))
+        (self.tmp / "cal.yaml").write_text("version: 1\ntemperatures: {fan_action: 1.3}\n")
+        (self.tmp / "rep.json").write_text(json.dumps({"questions": {"fan_action": {"n": 5, "accuracy": 0.9}}}))
         return d
 
     def test_make_verify_tamper(self):
@@ -152,7 +165,7 @@ class BundleTest(TmpDir):
         m, n = bundle.make(d, self.tmp / "cal.yaml", DEFAULT_QUESTIONS, self.tmp / "rep.json", out, "r1", "int8",
                            "test")
         self.assertEqual(bundle.verify(out, DEFAULT_QUESTIONS), [])
-        self.assertEqual(m["eval"]["fan_level"]["accuracy"], 0.9)
+        self.assertEqual(m["eval"]["fan_action"]["accuracy"], 0.9)
         (out / "laya.onnx").write_bytes(b"tampered")
         self.assertTrue(any("해시 불일치" in p for p in bundle.verify(out)))
 

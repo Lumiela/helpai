@@ -10,7 +10,8 @@ synth:                        # 합성 — 경계·이상 상황을 넉넉히
   edge_frac: 0.6              # 판단 경계 근처에서 뽑는 비율
   anomaly_rate: 0.15          # 센서 이상 시나리오 비율
   missing_rate: 0.03
-  day_frac: 0.7
+  night_frac: 0.2           # 장미 광주기 01~23 시 — 실제 밤 2 시간이라 일부러 늘림
+  comfort_frac: 0.15        # 온도 22~29·습도 60~65 (팬 한 단계 내림 구간)
   year: 2026
 
 replay:                       # 젯슨 InfluxDB 이력 재생 — export-influx 로 받은 CSV

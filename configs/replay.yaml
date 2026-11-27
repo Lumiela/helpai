@@ -1,13 +1,16 @@
-# InfluxDB 이력 재생용 구역 매핑 — rules v2 config/zones.yaml 의 zone-1 과 같은 모양·같은 값으로 유지한다.
-# 2026-10-06 실서버 jetson-01 구성: 센서·펌프·팬 = CUBE001, 조명 = CUBE002.led1
+# InfluxDB 이력 재생용 매핑 — autoctl 과 같이 **큐브 한 대**의 값으로 Snapshot 을 만든다 (docs/05 §5).
+# autoctl 이 보는 키: temperature·humidity·moisture_pct·lux·fan1·led1·pump (kind=data), air·water (kind=status)
+# 다른 큐브를 학습에 쓰려면 CUBE001 을 그 SN 으로 바꾼 파일을 하나 더 만든다.
 zone:
-  id: zone-1
+  id: CUBE001
   sensors:
     temperature: CUBE001.temperature
     humidity: CUBE001.humidity
     lux: CUBE001.lux
-    soil_moisture: {from: CUBE001.moisture_pct, valid_if: CUBE001.moisture_calibrated}
+    soil_moisture: CUBE001.moisture_pct
   actuators:
-    light: [CUBE002.led1]
+    light: CUBE001.led1
     pump: CUBE001.pump
-    fan: [CUBE001.fan1]
+    fan: CUBE001.fan1
+  soil_calibration: {air: CUBE001.air, water: CUBE001.water}     # status — 공장 기본값이면 '보정 안 됨'
+  soil_sensor_ok: CUBE001.ads1115_ok

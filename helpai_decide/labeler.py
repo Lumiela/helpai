@@ -1,210 +1,185 @@
 # -*- coding: utf-8 -*-
 """
-교사(teacher) 라벨 — Snapshot + 작물 프로필 → 질문별 정답 확률 분포(gold).
+교사(teacher) 라벨 — Snapshot + 작물표 → 질문별 정답 확률 분포(gold).
 
-rules v2(domain/rules.py) 의 판단을 질문 단위로 옮긴 것이다. 차이:
-  · 상태 없음(stateless): v2 의 히스테리시스(latch)·관수 기억 대신, Snapshot 에 담긴 값(관수 횟수·경과 분)만 본다.
-    대신 경계 근처(히스테리시스 폭 안)는 정답을 **부드럽게(soft)** 준다 → 모델이 경계에서 과신하지 않게.
-  · 저온이면 팬 off (v2 는 idle 20 % 상한, api autoctl 은 0). 질문 기준("cold needs the fan off")과 맞춘다.
-  · plant_stress·data_suspect 는 v2 에 없는 새 판단 — 기준은 아래 함수 주석과 docs/04 에 있다.
+기준은 **서버 api 의 autoctl** (backend 브랜치 api/app/autoctl.py, docs/05 §5). autoctl 의 evaluate() 가
+"지금 원하는 출력"을 정하는 부분을 질문 단위로 옮겼다. 옮기지 않은 것(제어기 코드가 맡는다):
+  · 앞 단계가 장치에 적용됐는지 확인, 팬 단계 변경 후 120 s 유지, 15 s 재전송 방지, 주간 시작 LED 50 %
+  · 연속 실패 5 회 일시 정지, 급수 펄스 끄기
 
-출력 형식은 Laya 학습 데이터의 gold 와 같다:  {"fan_level": {"probabilities": {"off": 0, "low": 1, ...}}, ...}
+경계(autoctl 의 < · > 비교) 근처는 **부드러운 정답**을 준다: 값을 조금(±δ) 흔들었을 때 답이 바뀌면
+정답 0.7 / 바뀐 답들 0.3. 모델이 경계에서 과신하지 않게 하고, 낮은 확신은 PolicyGate 가 기준 제어기로 돌린다.
+
+plant_stress · data_suspect 는 autoctl 에 없는 판단이다 — autoctl 의 범위 이탈(excursion)·"센서 점검 필요"를
+바탕으로 넓혔다(docs/04 §3-4, §3-5).
+
+출력 형식은 Laya 학습 데이터의 gold 와 같다:  {"fan_action": {"probabilities": {"off": 0, "down": 0, "hold": 1, "up": 0}}, ...}
 """
-from .features import (FAN_LEVELS, LED_HIGH_PCT, LUX_LOW_UNDER_LED, STALE_AFTER_S, WATER_RISE_MIN,
-                       fan_level_of, in_vent_window, warm_band_edges, watering_check_active)
-from .profile import is_light_period
+from dataclasses import replace
+
+from .features import (FAN_STEPS, FAR_C, HUM_BAND, LED_HIGH_PCT, LUX_LOW_UNDER_LED, PUMP_MAX_PER_DAY, PUMP_WAIT_MIN,
+                       TEMP_BAND, WATER_RISE_MIN, data_stale, nearest_step, watering_check_active)
+from .profile import is_light_period, ranges_at
 from .questions import options_of
 
-SOFT_P = 0.7                 # 경계 근처 정답 확률 (나머지는 이웃 선택지)
-FAN_EDGE_C = 0.25            # 팬 단계 경계 ± °C
-LUX_EDGE = 150.0             # 조도 경계 ± lx
-MOIST_EDGE = 1.0             # 토양 경계 ± %p
-STRESS_FAR_C = 3.0           # 범위 밖으로 이만큼 넘으면 severe
-_FAN_ORDER = list(FAN_LEVELS)
-
-
-def _onehot(options, label):
-    return {o: (1.0 if o == label else 0.0) for o in options}
-
-
-def _soft(options, label, other, p=SOFT_P):
-    d = {o: 0.0 for o in options}
-    d[label] = p
-    d[other] = d[other] + (1.0 - p)
-    return d
-
-
-def _lerp(x, x0, x1, y0, y1):
-    if x <= x0:
-        return y0
-    if x >= x1:
-        return y1
-    return y0 + (y1 - y0) * (x - x0) / (x1 - x0)
-
-
-# ───────────────────────────────────────── fan_level
-def teacher_fan(s, p):
-    opts = _FAN_ORDER
-    t, f, h = p["temperature"], p["fan"], p["humidity"]
-    T, H = s.temperature, s.humidity
-    if T is not None and T >= t["critical"]:
-        return _onehot(opts, "high")
-    if T is not None and T < t["min"]:
-        if t["min"] - T < FAN_EDGE_C:
-            return _soft(opts, "off", "low")
-        return _onehot(opts, "off")
-    floors = []
-    if H is not None and H >= h["max"]:
-        floors.append(h["vent_fan_floor"])
-    if in_vent_window(s.local_time, p):
-        floors.append(p["ventilation"]["fan_floor"])
-    if T is None:
-        base = s.fan_pct if s.fan_pct is not None else f["idle"]
-    elif T >= t["max"]:
-        base = f["max"]
-    else:
-        base = _lerp(T, t["comfort"], t["max"], f["idle"], f["max"])
-    v = max([base] + floors)
-    label = fan_level_of(v)
-    # 경계 근처: 온도가 결정했고(바닥값이 이기지 않았고) 단계 경계 ± FAN_EDGE_C 안
-    if T is not None and v == base:
-        if T - t["min"] < FAN_EDGE_C and label == "low":
-            return _soft(opts, "low", "off")
-        for edge in warm_band_edges(p):
-            if abs(T - edge) < FAN_EDGE_C:
-                i = opts.index(label)
-                other = opts[i + 1] if T < edge else opts[i - 1]
-                return _soft(opts, label, other)
-    return _onehot(opts, label)
-
-
-# ───────────────────────────────────────── light_action
-def teacher_light(s, p):
-    opts = ["off", "decrease", "hold", "increase"]
-    t, li = p["temperature"], p["light"]
-    T, L = s.temperature, s.lux
-    led = s.led_pct if s.led_pct is not None else 50
-    if T is not None and T >= t["critical"]:
-        return _onehot(opts, "decrease" if led > t["heat_light_cap"] else "hold")
-    if T is not None and T < t["min"] and t["use_light_for_heating"]:
-        return _onehot(opts, "increase" if led < 100 else "hold")
-    if not is_light_period(s.local_time, p):
-        return _onehot(opts, "off")
-    if L is None:
-        return _onehot(opts, "increase" if led < 100 else "hold")
-    if L < li["lux_min"]:
-        label = "increase" if led < 100 else "hold"
-        if label == "increase" and li["lux_min"] - L < LUX_EDGE:
-            return _soft(opts, "increase", "hold")
-        return _onehot(opts, label)
-    if L > li["lux_max"]:
-        label = "decrease" if led > 0 else "hold"
-        if label == "decrease" and L - li["lux_max"] < LUX_EDGE:
-            return _soft(opts, "decrease", "hold")
-        return _onehot(opts, label)
-    if L - li["lux_min"] < LUX_EDGE and led < 100:
-        return _soft(opts, "hold", "increase")
-    if li["lux_max"] - L < LUX_EDGE and led > 0:
-        return _soft(opts, "hold", "decrease")
-    return _onehot(opts, "hold")
-
-
-# ───────────────────────────────────────── irrigate_now
-def irrigation_gates(s, p):
-    """관수 조건 중 토양 값을 뺀 나머지가 모두 허용하는가."""
-    ir = p["irrigation"]
-    if s.pump_on:
-        return False
-    if ir.get("require_calibrated", True) and not s.soil_calibrated:
-        return False
-    if s.irrigations_today >= ir["max_per_day"]:
-        return False
-    if s.minutes_since_irrigation is not None and s.minutes_since_irrigation < ir["min_interval_min"]:
-        return False
-    return True
-
-
-def teacher_irrigate(s, p):
-    opts = ["false", "true"]
-    M = s.soil_moisture
-    if M is None or not irrigation_gates(s, p):
-        return _onehot(opts, "false")
-    mn = p["irrigation"]["moisture_min"]
-    if M < mn:
-        if mn - M < MOIST_EDGE:
-            return _soft(opts, "true", "false")
-        return _onehot(opts, "true")
-    if M - mn < MOIST_EDGE:
-        return _soft(opts, "false", "true")
-    return _onehot(opts, "false")
-
-
-# ───────────────────────────────────────── plant_stress
+SOFT_P = 0.7
+PERTURB = {                     # 질문별로 흔들어 볼 값과 폭
+    "fan_action": {"temperature": 0.25, "humidity": 1.0},
+    "light_action": {"lux": 150.0},
+    "irrigate_now": {"soil_moisture": 0.5},
+    "plant_stress": {"temperature": 0.25},
+    "data_suspect": {},
+}
+FAN_ACTIONS = ["off", "down", "hold", "up"]
+LIGHT_ACTIONS = ["off", "decrease", "hold", "increase"]
 STRESS = ["none", "mild", "moderate", "severe"]
 
 
-def stress_level(s, p):
-    """0 none · 1 mild · 2 moderate · 3 severe. 가장 나쁜 항목이 결정한다."""
-    t, h, li, ir = p["temperature"], p["humidity"], p["light"], p["irrigation"]
+# ───────────────────────────────────────── autoctl 판단 (결정론, 한 개 답)
+def autoctl_fan(s, p):
+    """autoctl 의 배기팬 판단 → (지금 단계 번호, 원하는 단계 번호, 이유)."""
+    idx = nearest_step(s.fan_pct)
+    t, h = s.temperature, s.humidity
+    if t is None or h is None:
+        return idx, idx, "missing"                       # 출력 유지 + 센서 점검
+    trng, hrng = ranges_at(s.local_time, p)
+    top = len(FAN_STEPS) - 1
+    if t < trng["min"]:
+        return idx, 0, "temp_low"
+    if t > trng["max"]:
+        return idx, min(idx + 1, top), "temp_high"
+    if h > hrng["max"]:
+        return idx, min(idx + 1, top), "humidity_high"
+    if h < hrng["min"]:
+        return idx, 0, "humidity_low"
+    if idx > 0 and t <= trng["max"] - TEMP_BAND and h <= hrng["max"] - HUM_BAND:
+        return idx, idx - 1, "back_in_range"
+    return idx, idx, None
+
+
+def fan_action_of(s, p):
+    idx, want, why = autoctl_fan(s, p)
+    if want == idx:
+        return "hold"
+    if why in ("temp_low", "humidity_low"):
+        return "off"
+    return "up" if want > idx else "down"
+
+
+def light_action_of(s, p):
+    if not is_light_period(s.local_time, p):
+        return "off"
+    led = s.led_pct if s.led_pct is not None else 50
+    lr = p["lux_day"]
+    if s.lux is None:
+        return "hold"
+    if s.lux < lr["min"] and led < 100:
+        return "increase"
+    if s.lux > lr["max"] and led > 0:
+        return "decrease"
+    return "hold"
+
+
+def irrigate_of(s, p):
+    """autoctl 이 5 s 펄스를 시작할 조건인가."""
+    if s.soil_calibrated is not True or not s.soil_sensor_ok or s.soil_moisture is None:
+        return "false"
+    if s.pump_on or s.soil_moisture >= p["soil_moisture"]["min"]:
+        return "false"
+    if s.irrigations_today >= PUMP_MAX_PER_DAY:
+        return "false"
+    if s.minutes_since_irrigation is not None and s.minutes_since_irrigation < PUMP_WAIT_MIN:
+        return "false"
+    return "true"
+
+
+def stress_of(s, p):
+    trng, hrng = ranges_at(s.local_time, p)
     lvl = 0
-    T = s.temperature
-    if T is not None:
-        if T >= t["critical"] or T >= t["max"] + STRESS_FAR_C or T < t["min"] - STRESS_FAR_C:
-            lvl = max(lvl, 3)
-        elif T >= t["max"] or T < t["min"]:
-            lvl = max(lvl, 2)
-    H = s.humidity
-    if H is not None and (H >= h["max"] or (h.get("low_alert") is not None and H < h["low_alert"])):
-        lvl = max(lvl, 1)
+    t = s.temperature
+    if t is not None:
+        if t > trng["max"] + FAR_C or t < trng["min"] - FAR_C:
+            lvl = 3
+        elif t > trng["max"] or t < trng["min"]:
+            lvl = 2
+    sr = p["soil_moisture"]
     M = s.soil_moisture
-    if M is not None and s.soil_calibrated and M < ir["moisture_min"] and s.irrigations_today >= ir["max_per_day"]:
-        lvl = max(lvl, 2)
-    if (is_light_period(s.local_time, p) and s.lux is not None and s.lux < li["lux_min"]
-            and s.led_pct is not None and s.led_pct >= 100):
+    if M is not None and s.soil_calibrated is True and M < sr["min"] and s.irrigations_today >= PUMP_MAX_PER_DAY:
+        lvl = max(lvl, 2)                                # 말랐는데 오늘 더 줄 수 없음
+    h = s.humidity
+    if h is not None and (h > hrng["max"] or h < hrng["min"]):
         lvl = max(lvl, 1)
-    return lvl
+    if M is not None and s.soil_calibrated is True and M > sr["max"]:
+        lvl = max(lvl, 1)                                # 과습
+    if is_light_period(s.local_time, p) and s.lux is not None and s.led_pct is not None:
+        lr = p["lux_day"]
+        if (s.lux < lr["min"] and s.led_pct >= 100) or (s.lux > lr["max"] and s.led_pct <= 0):
+            lvl = max(lvl, 1)                            # LED 로 더는 맞출 수 없음
+    return STRESS[lvl]
 
 
-def teacher_stress(s, p):
-    return _onehot(STRESS, STRESS[stress_level(s, p)])
-
-
-# ───────────────────────────────────────── data_suspect
 def suspect_reasons(s, p):
     r = []
-    if s.max_data_age_s is not None and s.max_data_age_s > STALE_AFTER_S:
-        r.append("stale")
-    if s.temp_flat_30m:
-        r.append("stuck_temperature")
+    if data_stale(s):
+        r.append("stale")                                # autoctl: 30 s 넘게 보고 없음
     if s.temperature is None or s.humidity is None:
-        r.append("missing_reading")
+        r.append("missing_temp_humidity")                # autoctl: 온습도 값 없음
+    if is_light_period(s.local_time, p) and s.lux is None:
+        r.append("missing_lux")                          # autoctl: 조도 값 없음
+    if not s.soil_sensor_ok or s.soil_moisture is None:
+        r.append("soil_sensor")                          # autoctl: 토양 값 없음
+    if s.temp_flat_30m:
+        r.append("stuck_temperature")                    # 확장
     if watering_check_active(s) and s.moisture_change_since_irrigation < WATER_RISE_MIN:
-        r.append("no_rise_after_watering")
+        r.append("no_rise_after_watering")               # 확장
     if s.led_pct is not None and s.led_pct >= LED_HIGH_PCT and s.lux is not None and s.lux < LUX_LOW_UNDER_LED:
-        r.append("led_high_lux_low")
+        r.append("led_high_lux_low")                     # 확장
     return r
 
 
-def teacher_suspect(s, p):
-    return _onehot(["false", "true"], "true" if suspect_reasons(s, p) else "false")
+def suspect_of(s, p):
+    return "true" if suspect_reasons(s, p) else "false"
 
 
-TEACHERS = {
-    "fan_level": teacher_fan,
-    "light_action": teacher_light,
-    "irrigate_now": teacher_irrigate,
-    "plant_stress": teacher_stress,
-    "data_suspect": teacher_suspect,
+HARD = {
+    "fan_action": (FAN_ACTIONS, fan_action_of),
+    "light_action": (LIGHT_ACTIONS, light_action_of),
+    "irrigate_now": (["false", "true"], irrigate_of),
+    "plant_stress": (STRESS, stress_of),
+    "data_suspect": (["false", "true"], suspect_of),
 }
 
 
+# ───────────────────────────────────────── 부드러운 정답
+def soft_label(name, s, p):
+    opts, fn = HARD[name]
+    base = fn(s, p)
+    others = set()
+    for field, delta in PERTURB.get(name, {}).items():
+        v = getattr(s, field)
+        if v is None:
+            continue
+        for d in (-delta, delta):
+            lab = fn(replace(s, **{field: v + d}), p)
+            if lab != base:
+                others.add(lab)
+    probs = {o: 0.0 for o in opts}
+    if not others:
+        probs[base] = 1.0
+        return probs
+    probs[base] = SOFT_P
+    for o in others:
+        probs[o] += (1.0 - SOFT_P) / len(others)
+    return probs
+
+
 def label(s, profile, questions):
-    """질문 정의에 있는 모든 질문의 gold. 질문의 선택지와 교사 출력의 키가 다르면 오류(정의가 바뀐 것)."""
+    """질문 정의의 모든 질문에 대한 gold. 교사 선택지와 질문 선택지가 다르면 오류(정의가 바뀐 것)."""
     gold = {}
     for name, q in questions.items():
-        if name not in TEACHERS:
-            raise KeyError("질문 %r 의 교사 함수가 없다 (labeler.TEACHERS 에 추가)" % name)
-        probs = TEACHERS[name](s, profile)
+        if name not in HARD:
+            raise KeyError("질문 %r 의 교사 함수가 없다 (labeler.HARD 에 추가)" % name)
+        probs = soft_label(name, s, profile)
         if sorted(probs) != sorted(options_of(q)):
             raise ValueError("%s: 교사 선택지 %s ≠ 질문 선택지 %s" % (name, sorted(probs), sorted(options_of(q))))
         gold[name] = {"probabilities": probs}
@@ -213,3 +188,15 @@ def label(s, profile, questions):
 
 def argmax(probs):
     return max(probs.items(), key=lambda kv: kv[1])[0]
+
+
+def fan_target(s, action):
+    """모델 답(fan_action) → 보낼 fan1 값 (제어기가 쓴다)."""
+    idx = nearest_step(s.fan_pct)
+    if action == "off":
+        return 0
+    if action == "up":
+        return FAN_STEPS[min(idx + 1, len(FAN_STEPS) - 1)]
+    if action == "down":
+        return FAN_STEPS[max(idx - 1, 0)]
+    return FAN_STEPS[idx]

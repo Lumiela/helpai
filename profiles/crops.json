@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "crops": {
+    "rose": {
+      "name": "미니 장미",
+      "source": "사용자 제공 2026-10-06. 근거: https://lilys.ai/digest/11401543/13464080/",
+      "temp_day":       {"min": 22, "max": 30},
+      "temp_night":     {"min": 22, "max": 30},
+      "humidity_day":   {"min": 60, "max": 70},
+      "humidity_night": {"min": 60, "max": 70},
+      "soil_moisture":  {"min": 30, "max": 60},
+      "photoperiod":    {"on": "01:00", "off": "23:00"},
+      "lux_day":        {"min": 6000, "max": 12000}
+    }
+  }
+}

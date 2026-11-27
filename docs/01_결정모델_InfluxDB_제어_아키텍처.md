@@ -73,7 +73,7 @@ Convai Innovations 의 **Jev 호환 오픈 웨이트 결정 모델**. 글을 쓰
 │ export-influx(https://…/influx, 읽기 토큰) → replay + synth → 교사 라벨 → laya 미세조정              │
 │ → ONNX → INT8 → edge 서버로 예측·비교 → 보정 → 평가 → 묶음(manifest + SHA256SUMS)                    │
 └────────────────────────────────────────────────────────────────────────────────────────────────────┘
-   ESP32 펌웨어 안전장치 (펌프 30 s 자동 정지 · 연결 끊기면 펌프 끔) 는 모든 것과 별개로 항상 동작
+   ESP32 펌웨어 안전장치: 펌프 30 s 자동 정지 (연결이 끊겨도 다른 출력은 유지 — LEASE_ENFORCED=false, docs/05 §3)
 ```
 
 | 결정 | 이유 |
@@ -225,7 +225,7 @@ nginx 허용 목록(`/influx/api/v2/query`·`buckets`·`orgs`·`query`·`health`
   "feature_version": 1,
   "kit_commit": "…", "exporter_commit": "…",
   "dataset": {"rows_synth": 20000, "rows_replay": 4210, "split_test": 2400},
-  "eval": {"fan_level": {"accuracy": 0.93, "ece": 0.06, "temperature": 1.4}}
+  "eval": {"fan_action": {"accuracy": 0.93, "ece": 0.06, "temperature": 1.4}}
 }
 ```
 (`helpai_decide/bundle.py` 가 만든다. 실제 키는 그 파일이 기준이다.)
@@ -277,32 +277,37 @@ rules 가 모델 답을 쓰기 전에 검사:
 
 ## 9. 질문 설계
 
-| 이름 | 타입 | 선택지 / 기준 | 코드 변환 |
+정답 기준은 **지금 서버에서 실제로 제어하는 api autoctl** 이다 (docs/05, 상세 규칙은 docs/04 §3).
+
+| 이름 | 타입 | 선택지 / 기준 (autoctl) | 코드 변환 |
 |---|---|---|---|
-| `fan_level` | choice | `off`·`low`·`mid`·`high` | 0 / 33 / 66 / 100 |
-| `light_action` | choice | `off`·`decrease`·`hold`·`increase` | 현재 ± 20 |
-| `irrigate_now` | noul | true: soil below min, calibrated, interval and daily limit allow | 보정 P ≥ 0.9 일 때만 8 s 펄스 후보 |
-| `plant_stress` | choice | `none`·`mild`·`moderate`·`severe` | moderate 이상 경보 |
-| `data_suspect` | noul | true: readings contradict (watered but moisture flat, LED max but lux low) | P ≥ 0.8 → 그 구동기 보류 + "센서 점검" |
+| `fan_action` | choice | `off`(온도·습도 최저 미만) · `down`(온도 ≤ 최고−1, 습도 ≤ 최고−5) · `hold` · `up`(온도·습도 최고 초과) | 지금 단계(0·33·66·100)에서 한 칸 / 0 (`labeler.fan_target`) |
+| `light_action` | choice | `off`(야간) · `decrease` · `hold` · `increase` (주간 조도 범위) | 현재 ± 10 % |
+| `irrigate_now` | noul | 토양 < 30 %, 보정됨, 60 분 대기 지남, 오늘 < 4 회, 펌프 꺼짐 | 보정 P ≥ 0.9 일 때만 5 s 펄스 후보 |
+| `plant_stress` | choice | `none`·`mild`·`moderate`·`severe` (autoctl 범위 이탈 기반 확장) | moderate 이상 경보 |
+| `data_suspect` | noul | autoctl "센서 점검 필요" + 고착·급수 후 무반응·LED 높은데 조도 낮음 | P ≥ 0.8 → 그 구동기 보류 + "센서 점검" |
 
 - `score` 가 약해서 `plant_stress` 는 choice. 선택지 이름은 뜻이 드러나게(모델이 정의보다 이름을 따라간다는 연구: arXiv 2609.26758).
-- 질문 정의는 `questions.yaml` 하나에서 rules·학습 양쪽이 읽는다. 바꾸면 해시가 바뀌어 **재학습 전까지 자동 shadow**.
+- 팬은 autoctl 처럼 "한 칸"을 묻는다 — 목표 단계(4 개)를 묻는 것보다 autoctl 과 직접 비교되고, 한 번에 급변하지 않는다.
+- 질문 정의는 `questions.yaml` 하나에서 제어기·학습 양쪽이 읽는다. 바꾸면 해시가 바뀌어 **재학습 전까지 자동 shadow**.
 
 ---
 
 ## 10. PolicyGate
 
+"기준" = autoctl 규칙과 같은 결정론 판단(`labeler.HARD` 의 함수들 — 학습 정답과 같은 코드).
+
 ```
-1. 답 없음/만료/오류                 → rules        (model_unavailable)
-2. 묶음 검사 실패(§6)                → rules, 답은 기록만
-3. 보정 확신 < 문턱                  → rules        (low_confidence)   choice 0.75 · noul ≥ 0.9 / ≤ 0.1
-4. 안전 봉투 밖                       → 봉투 안으로   (clamped)
-      heat_stress(T ≥ 35) · 펌프 하루 상한 · 관수 간격 · 야간 소등 은 규칙이 항상 이긴다
-5. 모델 ≠ 규칙   shadow → rules · advisory → 한 단계 차이까지 model · primary → model
-6. → v2 Arbiter·Safety 그대로
+1. 답 없음/만료/오류                 → 기준          (model_unavailable)
+2. 묶음 검사 실패(§6)                → 기준, 답은 기록만
+3. 보정 확신 < 문턱                  → 기준          (low_confidence)   choice 0.75 · noul ≥ 0.9 / ≤ 0.1
+4. 안전 봉투 밖                       → 봉투 안으로    (clamped)
+      급수 하루 4 회 · 60 분 대기 · 보정 안 된 토양 센서면 급수 안 함 · 야간 LED 0 은 기준이 항상 이긴다
+5. 모델 ≠ 기준   shadow → 기준 · advisory → 한 단계 차이까지 model · primary → model
+6. → 실행 조건(앞 단계 적용 확인 · 팬 120 s 유지 · 15 s 재전송 방지 · 펄스 끄기)은 autoctl 과 같게 제어기가
 ```
 
-모델은 아비터에 규칙 하나처럼(`model_advice`, 우선순위 55) 들어간다 → 기존 아비터·안전 코드 수정 없음.
+**지금(autoctl 운영 중)은 1 단계 shadow 만** — 젯슨이 명령을 보내면 사람 조작으로 처리돼 autoctl 이 꺼진다(docs/05 §7).
 
 ---
 
@@ -317,8 +322,8 @@ rules 가 모델 답을 쓰기 전에 검사:
 | 젯슨 CPU 과부하 | `cpus: 3`, 주기 60 s. rules 가 api 응답 시간을 보고 늘면 모델 호출을 줄인다 |
 | 새 묶음이 나쁨 | 카나리에서 걸러짐. 지나갔어도 `current` 되돌리기 1줄 |
 | 답이 흔들림 | 같은 선택이 2 회 연속이어야 바꿈 |
-| 사람이 웹에서 조작 | v2 그대로 30 분 보류 |
-| api 내장 autoctl 과 충돌 | 한 큐브에 제어 주체 하나. rules 가 제어하는 큐브는 api 자동 제어를 끈다. 켜져 있으면 그 큐브를 dry-run 으로 |
+| 사람이 웹에서 조작 | 30 분 보류 (autoctl 은 사람 조작 시 아예 꺼짐 — 같은 원칙) |
+| api 내장 autoctl 과 충돌 | 한 큐브에 제어 주체 하나. autoctl 이 켜진 큐브(`GET …/auto` 의 enabled)에는 젯슨이 명령을 보내지 않는다 — shadow 로만 |
 
 ---
 
@@ -336,7 +341,7 @@ helpai_decide/           학습·추론 공용 패키지 (핵심은 pyyaml 만 �
   laya_tools.py          학습 PC 전용(check-env·download-base·train·export-onnx·convert)
   cli.py                 python -m helpai_decide <명령>
 configs/                 questions.yaml · dataset.yaml · training.yaml · replay.yaml
-profiles/rose.yaml       작물 프로필 (rules v2 와 같은 파일)
+profiles/crops.json      작물표 (backend 브랜치 api/app/crops.json 복사본)
 edge/                    laya-edge: server.mjs · bench.mjs · Dockerfile · docker-compose.yml(젯슨 전용)
 scripts/pipeline.sh      집 PC 학습 전 과정
 tests/                   시험 28개 (모델 없이)
@@ -382,7 +387,7 @@ series: {kind: influx, url: https://smartcubens.duckdns.org/influx, org: smartcu
 | 1 | **기본판 Laya** 를 PC 에서 ONNX INT8 로 → 젯슨 laya-edge(A, CPU) 실측 | 5문항 < 8 s, 젯슨 남은 메모리 ≥ 1 GB, api 응답 시간 변화 없음. 못 넘으면 B(GPU) 시도 |
 | 2 shadow | 기본판으로 기록만 + 시뮬레이터 합성 | 1~2 주, 질문별 수백 건 |
 | 3 학습 | PC/Colab 에서 미세조정 → 보정 → 묶음 → 카나리 | 질문별 acc ≥ 0.9, ECE ≤ 0.1, ONNX 일치 ≥ 97 % |
-| 4 advisory | `data_suspect`·`plant_stress` → `fan_level` → `light_action` | 안전 위반 0, 거절률 v2 수준 |
+| 4 advisory | `data_suspect`·`plant_stress` → `fan_action` → `light_action` | 안전 위반 0, autoctl 과 일치율 기준 충족 |
 | 5 primary | 질문별 승격, `irrigate_now` 마지막 | 범위 안 시간 비율 ≥ 규칙만 쓸 때 |
 
 평가 지표: 범위 안 시간 비율, 명령 횟수, 관수량, 규칙 대비 개선량, 모델 실패율·지연, ECE.

@@ -17,7 +17,7 @@ from datetime import datetime, timedelta, timezone
 FLUX = '''
 from(bucket: "{bucket}")
   |> range(start: {start}, stop: {stop})
-  |> filter(fn: (r) => r._measurement == "mqtt" and r.kind == "data")
+  |> filter(fn: (r) => r._measurement == "mqtt" and (r.kind == "data" or r.kind == "status"))
   |> filter(fn: (r) => contains(value: r.cube, set: [{cubes}]))
   |> filter(fn: (r) => contains(value: r._field, set: [{fields}]))
   |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)
@@ -35,14 +35,14 @@ def columns_of(zone):
             for x in m:
                 add(x)
         elif isinstance(m, dict):
-            add(m.get("from"))
-            add(m.get("valid_if"))
+            for x in m.values():
+                add(x)
         else:
             cols.append(str(m))
-    for m in zone.get("sensors", {}).values():
-        add(m)
-    for m in zone.get("actuators", {}).values():
-        add(m)
+    for key in ("sensors", "actuators", "soil_calibration"):
+        for m in (zone.get(key) or {}).values():
+            add(m)
+    add(zone.get("soil_sensor_ok"))
     return sorted(set(cols))
 
 

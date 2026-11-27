@@ -6,16 +6,18 @@ CSV 형식 (influx_export.py 가 만든다):
     time,CUBE001.temperature,CUBE001.humidity,...,CUBE002.led1
     2026-11-20T05:01:00+00:00,25.9,47.6,...,100
   · time 은 UTC, 창 끝 시각. 값이 없는 칸은 빈 문자열(그 분에 데이터 없음).
-  · 어떤 열을 어떤 논리 센서로 쓰는지는 configs/replay.yaml 의 zone 매핑(rules v2 zones.yaml 과 같은 모양).
+  · 어떤 열을 어떤 논리 센서로 쓰는지는 configs/replay.yaml 의 zone 매핑. autoctl 처럼 **큐브 한 대** 기준이 기본.
+  · 토양 보정 여부는 autoctl 과 같이 status 의 air·water 가 공장 기본값(22520·11100)인지로 본다
+    (zone.soil_calibration: {air: CUBE.air, water: CUBE.water}). 없으면 '모름'(→ 급수 정답 false).
 
-관수 횟수·경과 분·관수 후 수분 변화·30 분 추세·고착 여부는 이력에서 계산한다. 데이터 나이는
+급수 횟수·경과 분·급수 후 수분 변화·30 분 추세·고착 여부는 이력에서 계산한다. 데이터 나이는
 "마지막으로 값이 들어온 분"과의 차이(초)로 근사한다(1분 해상도).
 """
 import csv
 from collections import deque
 from datetime import datetime, timedelta, timezone
 
-from .features import Snapshot, WATER_CHECK_MIN
+from .features import Snapshot, WATER_CHECK_MIN, soil_calibrated_from_status
 
 KST = timezone(timedelta(hours=9))
 
@@ -60,8 +62,9 @@ def replay(rows, zone, tz=KST, window_min=30):
         "fan": _first(act.get("fan")) if act.get("fan") else None,
         "pump": _first(act.get("pump")) if act.get("pump") else None,
     }
-    sm = sens.get("soil_moisture")
-    cal_col = sm.get("valid_if") if isinstance(sm, dict) else None
+    sc = zone.get("soil_calibration") or {}
+    air_col, water_col = sc.get("air"), sc.get("water")
+    ok_col = zone.get("soil_sensor_ok")
 
     hist = deque()                      # (utc, temperature, humidity, soil)
     last_seen = {}                      # 열 → 마지막으로 값이 있던 utc
@@ -115,16 +118,17 @@ def replay(rows, zone, tz=KST, window_min=30):
             if since <= WATER_CHECK_MIN and M is not None and moist_at_pulse is not None:
                 change = round(M - moist_at_pulse, 2)
 
-        cal = True
-        if cal_col:
-            cv = last_val.get(cal_col)
-            cal = bool(cv) if cv is not None else False
+        cal = soil_calibrated_from_status(last_val.get(air_col) if air_col else None,
+                                          last_val.get(water_col) if water_col else None)
+        sensor_ok = True
+        if ok_col and last_val.get(ok_col) is not None:
+            sensor_ok = bool(last_val[ok_col])
 
         led = cur("light")
         fan = cur("fan")
         snap = Snapshot(
             local_time=local,
-            temperature=T, humidity=H, lux=cur("lux"), soil_moisture=M, soil_calibrated=cal,
+            temperature=T, humidity=H, lux=cur("lux"), soil_moisture=M, soil_calibrated=cal, soil_sensor_ok=sensor_ok,
             led_pct=None if led is None else int(round(led)),
             fan_pct=None if fan is None else int(round(fan)),
             pump_on=pump_now, irrigations_today=count, minutes_since_irrigation=since,

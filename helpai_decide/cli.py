@@ -60,7 +60,7 @@ def cmd_dataset_build(a):
     cfg = _yaml(a.config)
     if cfg.get("replay") and cfg["replay"].get("enabled") and "zone" not in cfg["replay"]:
         cfg["replay"]["zone"] = _yaml(ROOT / cfg["replay"].get("zone_config", "configs/replay.yaml"))["zone"]
-    summary = ds.build(cfg, load_profile(a.profile), load_questions(a.questions), a.out)
+    summary = ds.build(cfg, load_profile(a.profile, a.crop), load_questions(a.questions), a.out)
     print(json.dumps(summary["stats"], ensure_ascii=False, indent=2))
     print("정답 분포(train): %s" % json.dumps(summary["label_balance"].get("train", {}), ensure_ascii=False))
 
@@ -172,9 +172,9 @@ def cmd_sample_request(a):
     from datetime import datetime
     from .features import Snapshot, build_state
     s = Snapshot(local_time=datetime(2026, 11, 27, 14, 10), temperature=31.2, humidity=71.0, lux=4800,
-                 soil_moisture=38.0, led_pct=100, fan_pct=33, irrigations_today=3, minutes_since_irrigation=45,
+                 soil_moisture=28.0, led_pct=100, fan_pct=33, irrigations_today=2, minutes_since_irrigation=75,
                  temp_trend_30m=1.8, humidity_trend_30m=-0.5, max_data_age_s=4)
-    body = {"state": build_state(s, load_profile(a.profile)), "questions": load_questions(a.questions)}
+    body = {"state": build_state(s, load_profile(a.profile, a.crop)), "questions": load_questions(a.questions)}
     Path(a.out).write_text(json.dumps(body, ensure_ascii=False, indent=2), encoding="utf-8")
     print("저장 %s" % a.out)
 
@@ -182,7 +182,8 @@ def cmd_sample_request(a):
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="python -m helpai_decide", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--profile", default=str(ROOT / "profiles" / "rose.yaml"))
+    ap.add_argument("--profile", default=str(ROOT / "profiles" / "crops.json"), help="서버 crops.json 복사본")
+    ap.add_argument("--crop", default="rose")
     ap.add_argument("--questions", default=str(ROOT / "configs" / "questions.yaml"))
     sub = ap.add_subparsers(dest="cmd", required=True)
 
