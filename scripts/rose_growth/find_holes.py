@@ -2,6 +2,7 @@
 
     uv run python scripts/rose_growth/find_holes.py --CL data/samples/CL1.jpg --CR data/samples/CR1.jpg
     uv run python scripts/rose_growth/find_holes.py --CL ... --CR ... --write          # holes.yaml 갱신 (이전 파일은 백업)
+    uv run python scripts/rose_growth/find_holes.py --from-api --write                  # 카메라 API 의 최신 사진 쌍으로
 
 확인 그림: out/holes/<시각>/holes_<카메라>.jpg (빨강 = 트레이 테두리, 청록 = 구멍)
 설정: config/rose/growth.yaml 의 holes_auto
@@ -27,15 +28,24 @@ def main():
     ap.add_argument("--config", default="config/rose/growth.yaml")
     ap.add_argument("--CL", help="CL 카메라 사진")
     ap.add_argument("--CR", help="CR 카메라 사진")
+    ap.add_argument("--from-api", action="store_true", help="카메라 API 에서 최신 사진 쌍을 받아 사용 (config/crops.yaml 의 camera_api)")
     ap.add_argument("--write", action="store_true", help="찾은 위치로 holes.yaml 갱신 (모든 카메라가 성공했을 때만)")
     ap.add_argument("--out", default="out/holes")
     a = ap.parse_args()
 
     cfg = load_config(a.config)
-    paths = {k: v for k, v in (("CL", a.CL), ("CR", a.CR)) if v}
-    if not paths:
-        sys.exit("--CL/--CR 사진이 필요합니다")
-    images = {k: read_image(v) for k, v in paths.items()}
+    if a.from_api:
+        from crop_monitor.camera_api import latest_pairs
+        pairs = latest_pairs(1)
+        if not pairs:
+            sys.exit("API 에서 동시 촬영 사진 쌍을 찾지 못했습니다")
+        images = pairs[0]["images"]
+        print("API 사진:", pairs[0]["taken_at"])
+    else:
+        paths = {k: v for k, v in (("CL", a.CL), ("CR", a.CR)) if v}
+        if not paths:
+            sys.exit("--CL/--CR 사진 또는 --from-api 가 필요합니다")
+        images = {k: read_image(v) for k, v in paths.items()}
 
     auto = dict(cfg.get("holes_auto") or {})
     finder = HoleFinder(rows=cfg["layout"]["rows"], cols=cfg["layout"]["cols"], **auto)

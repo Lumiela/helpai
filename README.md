@@ -9,12 +9,19 @@ preprocess ─┬─(작물 등록됨)─┬─ growth_stage ─┐  생장 단�
             └─(미등록 작물)── unknown_crop
 ```
 
+> **2026-11-27 추가**
+> - **구멍(화분) 위치 자동 찾기**: 실행마다 사진에서 트레이 격자를 찾아 구멍 12개 위치를 정함 (트레이·카메라가 움직여도 됨)
+> - **빈 화분 판정 개선**: 채도 조건 추가 (검은 덮개 = 무채색, 흙 = 갈색) → 사진 3세트 36칸 모두 맞음
+> - **스테레오 보정 관리 (A 체커보드 재보정 + B 자동 미세 조정)**: 실행 중 세로 어긋남을 B 로 자동 보정, 이력 · 되돌리기, `calib_manager.py`
+>
+> 아래 "보정 관리", "구멍 위치 자동 찾기" 참고.
+
 ## 모듈
 
 | 모듈 | 원본 | 위치 | 하는 일 |
 |---|---|---|---|
-| 높이 (공통) | helpai-Height `stereo_pair.py` | `modules/height/` | 정렬 → SGBM 시차 → 거리(cm) → 기준면(RANSAC) 대비 높이 지도 |
-| 장미 생장 단계 | helpai-Rose_Growth `rose_pipeline` | `modules/rose_growth/` | 빈 화분 판정 → 트레이 칸 나누기 → 봉오리 검출(YOLOv8m) → 등급 분류(YOLO26m-cls) → Claude 검수·누락 추가 |
+| 높이 (공통) | helpai-Height `stereo_pair.py` | `modules/height/`, `calibration/` | 정렬 → SGBM 시차 → 거리(cm) → 기준면(RANSAC) 대비 높이 지도. 세로 어긋남이 크면 자동 미세 조정(B) 후 다시 계산 |
+| 장미 생장 단계 | helpai-Rose_Growth `rose_pipeline` | `modules/rose_growth/` | 구멍 위치 자동 찾기 → 빈 화분 판정 → 트레이 칸 나누기 → 봉오리 검출(YOLOv8m) → 등급 분류(YOLO26m-cls) → Claude 검수·누락 추가 |
 | 장미 이상 상태 | helpai-Rose_Disease `leafdx` (`rose_leaf_colab_keyfile.ipynb`) | `modules/rose_disease/` | 잎 탐지 → 잎별 상태 분류 → VLM 재확인 (켜져 있음) |
 
 각 모듈의 원본 코드는 거의 그대로 두고, `adapter.py` 가 그래프와 연결합니다. 원본에서 바꾼 곳은 경로 기준(프로젝트 루트)과 API 키 위치(`secrets/`)뿐입니다.
@@ -52,16 +59,18 @@ uv run python scripts/run.py --crop A --CL data/samples/rose_CL.jpg --CR data/sa
 ```
 
 `--out` 을 주면 `out/run/<시각>/` 에 `report.md`, `crop_data.json`, 모듈별 시각화(`growth/`, `disease/`, `height/`)가 저장됩니다.
+구멍 자동 찾기 확인 그림은 `growth/holes_<카메라>.jpg` 입니다.
 
 ## 설정 파일
 
 | 파일 | 내용 |
 |---|---|
-| `config/crops.yaml` | 카메라 이름·스테레오 좌우, 높이 모듈 설정, 작물 레지스트리 |
+| `config/crops.yaml` | 카메라 이름·스테레오 좌우, 높이 모듈 설정, 보정 관리(`height.autocalib`), 카메라 API(`camera_api`), 작물 레지스트리 |
 | `config/rules/A.yaml` | 장미 등급 라벨·정상 높이 범위, 잎 이상 유형별 심각도, 경고 기준, VLM 판정 반영 (`vlm_apply`) |
-| `config/rose/growth.yaml`, `holes.yaml` | 생장 단계 원본 설정 (트레이 배치, 빈 화분 판정, 검출·등급·Claude 검수) |
+| `config/rose/growth.yaml`, `holes.yaml` | 생장 단계 원본 설정 (트레이 배치, 구멍 자동 찾기 `holes_auto`, 빈 화분 판정, 검출·등급·Claude 검수). `holes.yaml` 은 고정 구멍 좌표 (자동 찾기 실패 때 사용) |
 | `config/rose/disease.json` | 잎 이상 원본 설정 (잎 탐지·분류 임계값) |
-| `config/stereo/stereo_calib.npz` | 스테레오 보정 (2026-11-11, 33쌍, 간격 33.3mm) |
+| `config/stereo/stereo_calib.npz` | 지금 쓰는 스테레오 보정. 처음 보정은 2026-11-11 체커보드 33쌍 (간격 33.3mm) |
+| `config/stereo/history/` | 보정 이력 (`current.json` = 지금 버전). 지금은 11/27 실행 중 B 가 만든 `20261127T111348_B`, `calib_manager.py rollback` 으로 처음 보정으로 되돌릴 수 있음 |
 
 자주 바꾸는 값
 
@@ -71,6 +80,7 @@ uv run python scripts/run.py --crop A --CL data/samples/rose_CL.jpg --CR data/sa
 | 잎 이상 VLM 켜기 · 끄기 | `config/crops.yaml` | `disease.vlm.enabled` |
 | 빈 화분 판정 기준 | `config/rose/growth.yaml` | `presence.dark_v_max` (110), `presence.dark_s_max` (100), `presence.empty_ratio` (0.25) — 구멍 원 안에서 명도 110 이하·채도 100 이하인 픽셀 비율의 두 카메라 평균이 이 값 이상이면 빈 칸 |
 | 구멍 위치 자동 · 고정 | `config/rose/growth.yaml` | `holes_auto.mode` (`auto` / `fixed`), 원 크기 `radius_ratio` (0.25) |
+| 실행 중 자동 보정(B) 켜기 · 끄기 | `config/crops.yaml` | `height.autocalib.in_pipeline` |
 | 식물 있는 칸 고정 | `config/rose/growth.yaml` | `presence.method: fixed` + `layout.plants` (O / X) |
 | 위험 기준 · 심각도 | `config/rules/A.yaml` | `alerts.critical_leaf_count`, `anomalies.<유형>.severity` |
 
@@ -78,6 +88,51 @@ uv run python scripts/run.py --crop A --CL data/samples/rose_CL.jpg --CR data/sa
 
 `stereo_calib.npz` 의 왼쪽 = 천장 C2 입니다. 생장 단계 샘플 사진으로 확인해 보니 **생장 단계 모듈의 CR 이 스테레오 왼쪽**이어서 `cameras.stereo_left: CR` 로 두었습니다.
 보고서에 "정렬 후 세로 어긋남" 경고가 나오면 카메라가 움직였거나 좌우가 바뀐 것이니 다시 보정하세요.
+
+## 보정 관리 (A 체커보드 재보정 + B 자동 미세 조정)
+
+```
+실행마다 상태 확인 (세로 어긋남)
+   정상 ≤ 2px ─────────────────────────────▶ 그대로
+   어긋남 ──▶ B 자동 미세 조정 ── 검증 통과 ──▶ 새 버전 저장·교체, 높이 다시 계산
+                                 └ 실패 ─────▶ 보고서에 "체커보드 재보정(A) 필요" 안내
+   좌우 바뀜 (시차 음수) ─────────────────────▶ cameras.stereo_left/right 바꾸라고 안내
+```
+
+| | A. 체커보드 재보정 | B. 자동 미세 조정 |
+|---|---|---|
+| 고치는 것 | 렌즈 특성(K, D) + 두 카메라 자세 전부 + 간격 | 오른쪽 카메라가 **제자리에서 돈 양**만 (렌즈 특성·간격은 A 값 유지) |
+| 필요한 것 | 체커보드를 여러 위치·각도로 동시 촬영 (6쌍 이상) | 평소 작물 사진 쌍 (사람 손 필요 없음) |
+| 언제 | 설치, 해상도·렌즈 변경, B 실패 | 카메라가 살짝 밀렸을 때 (파이프라인이 자동으로) |
+
+**B 가 맞추는 회전과 못 맞추는 회전**
+- 끄덕임(간격 축 둘레)·기울어짐(광축 둘레)은 세로 어긋남으로 바로 보여서 사진만으로 맞춥니다.
+- 좌우 돌아감(세로 축 둘레, yaw)은 세로 어긋남에 거의 안 보이고 **거리만** 바꿉니다 (1° ≈ 시차 11px).
+  세 회전을 한꺼번에 풀면 세로 어긋남은 0 이 되지만 큐브 거리가 56.7cm → 82cm 로 틀어지는 것을 확인했습니다.
+  그래서 좌우 돌아감은 **거리 기준**(보정이 맞을 때 잰 트레이 거리, 또는 줄자 실측)이 있을 때만 그 거리에 맞춥니다.
+  → A 를 한 직후 `set-reference` 로 기준을 기록해 두세요.
+
+**보정 이력**: `config/stereo/history/` 에 버전(id, 출처 A/B/initial, 세로 어긋남, 거리 기준)이 쌓이고,
+지금 쓰는 파일은 그대로 `config/stereo/stereo_calib.npz` 입니다. 언제든 `rollback` 으로 되돌립니다.
+
+```powershell
+uv run python scripts/height/calib_manager.py status
+uv run python scripts/height/calib_manager.py check --pair data/samples/rose_CL.jpg data/samples/rose_CR.jpg
+uv run python scripts/height/calib_manager.py auto --pair data/samples/rose_CL.jpg data/samples/rose_CR.jpg --dry-run
+uv run python scripts/height/calib_manager.py auto --from-api --n 3
+uv run python scripts/height/calib_manager.py checkerboard --since 2026-11-27T10:00 --square 24.2
+uv run python scripts/height/calib_manager.py set-reference --from-api --n 1
+uv run python scripts/height/calib_manager.py rollback
+```
+
+- `--pair CL.jpg CR.jpg` 는 파이프라인 카메라 이름 순서입니다. 스테레오 좌우는 `cameras.stereo_left/right` 로 자동 배치됩니다.
+- `--from-api` 는 스마트큐브 서버에서 두 ESP32-CAM 의 동시 촬영(pair) 사진을 받습니다 (`config/crops.yaml` 의 `camera_api`).
+  토큰은 환경 변수 `LEAFDX_API_TOKEN` 또는 `secrets/SMARTCUBE_API_TOKEN` 파일 (git 에 안 올라감).
+- 확인 그림(평행화 전후 + 가로선)은 `out/calib/<시각>/` 에 저장됩니다.
+- 테스트는 운영 중 바뀌는 보정 대신 처음 보정의 복사본(`tests/data/stereo_calib_ref.npz`)을 씁니다.
+- 설정: `config/crops.yaml` 의 `height.autocalib` (파이프라인 안 자동 실행 `in_pipeline`, 기준값, B 검증 기준).
+- A 는 원본 도구(`collect_pairs.py`, `stereo_calibrate.py`)를 그대로 실행하고, 결과를 검증(세로 어긋남 ≤ 1.5px,
+  쌍 6개 이상, 간격 변화 10% 이내)한 뒤 이력에 넣습니다.
 
 ## 구멍 위치 자동 찾기
 
@@ -94,22 +149,19 @@ uv run python scripts/run.py --crop A --CL data/samples/rose_CL.jpg --CR data/sa
   **카메라 높이를 바꾸면** 간격 자체가 바뀌므로 `pitch_prior_weight: 0` 으로 `find_holes.py --write` 를 실행해 `holes.yaml` 을 새로 만든 뒤 3.0 으로 되돌리세요.
 
 ```powershell
-uv run python scripts/rose_growth/find_holes.py --CL data/samples/CL2.jpg --CR data/samples/CR2.jpg
+uv run python scripts/rose_growth/find_holes.py --CL data/samples/CL1.jpg --CR data/samples/CR1.jpg
 uv run python scripts/rose_growth/find_holes.py --CL ... --CR ... --write     # holes.yaml 갱신 (이전 파일 백업)
 ```
 
-2026-11-27 사진(CL1/CR1, CL2/CR2)으로 확인한 것
-- 구멍: `holes.yaml` 보다 간격의 약 40% 어긋나 있었음 (트레이·카메라 이동). 자동 위치로 12칸 모두 화분에 맞음.
-- 빈 화분 판정: 검은 덮개는 무채색, 흙은 갈색 기운이 있어 채도 조건 `dark_s_max` 를 추가.
+### 2026-11-27 사진(CL1, CR1)로 확인한 것
+- 구멍: 두 카메라 모두 찾음. `holes.yaml` 보다 간격의 약 40% 어긋나 있었음 (트레이·카메라 이동).
+  자동 위치로 바꾸자 빈 화분 판정 오류가 6칸 → 3칸. 남은 3칸은 흙이 많이 보이는 식물 칸을 '어두움 = 빈 칸' 으로 본 것.
+- 빈 화분 판정: 검은 덮개는 무채색, 흙은 갈색 기운이 있어 `presence.dark_s_max`(채도 조건)를 추가.
   `dark_v_max 110 / dark_s_max 100 / empty_ratio 0.25`, 원 반지름 `radius_ratio 0.25` 로 사진 3세트 36칸 모두 맞음
-  (식물 칸 최고 0.22, 빈 칸 최저 0.28. 예전 100 / 채도 조건 없음 / 0.30 은 식물 칸 0.44, 빈 칸 0.40 으로 겹침).
-
-## 스테레오 다시 보정하기
-
-```powershell
-uv run python scripts/height/collect_pairs.py --since 2026-11-24T10:00 --out calib
-uv run python scripts/height/stereo_calibrate.py --dir calib --board 9x6 --square 24.2 --width 640 --out config/stereo/stereo_calib.npz
-```
+  (식물 칸 최고 0.22, 빈 칸 최저 0.28. 예전 100 / 채도 조건 없음 / 0.30 은 0.44 와 0.40 으로 겹침.
+  간격 보정 후 원이 화분에 정확히 맞자 반지름 0.3 은 흙·화분 벽까지 덮어 0.25 / 0.26 으로 거의 붙어서 0.25 로 줄임).
+- 보정: 지금 좌우(CR = 왼쪽)로는 시차가 음수, 바꾸면 세로 어긋남 36px → **좌우가 바뀌었고 카메라도 크게 움직임**.
+  `calib_manager.py check` 가 이것을 "좌우 바뀜" 으로 알려 줍니다. 좌우 설정을 확인한 뒤 체커보드 재보정(A)이 필요합니다.
 
 ## 작물 추가 (작물 N)
 
@@ -122,6 +174,6 @@ uv run python scripts/height/stereo_calibrate.py --dir calib --board 9x6 --squar
 ## 테스트
 
 ```powershell
-uv run pytest                  # 전체 (실제 모델로 그래프 실행 포함, 약 2~3분. 키가 있으면 Claude 요금 발생)
+uv run pytest                  # 전체 33개 (실제 모델로 그래프 실행 포함, 약 4분. 키가 있으면 Claude 요금 발생)
 uv run pytest -m "not slow"    # 빠른 테스트만
 ```

@@ -35,6 +35,32 @@ height:
   min_valid_px: 30
   max_rect_dy_px: 2.0   # 정렬 후 세로 어긋남(px)이 이보다 크면 보고서에 재보정 경고 (보정 당시 0.68px)
 
+  # 보정 관리 (src/crop_monitor/calibration, 도구: scripts/height/calib_manager.py)
+  #   A = 체커보드 재보정 (렌즈 특성 + 두 카메라 자세 전부, 사람이 보드 촬영)
+  #   B = 자동 미세 조정 (평소 사진으로 두 카메라 자세만, 렌즈 특성·간격은 A 값 유지)
+  #   상태 확인 → 어긋나면 B → B 가 실패하거나 크게 어긋나면 보고서에 'A 필요' 안내
+  #   보정 버전은 config/stereo/history 에 쌓이고 rollback 으로 되돌릴 수 있음
+  autocalib:
+    enabled: true
+    in_pipeline: true      # 파이프라인 실행 중 세로 어긋남 경고가 나면 그 사진 쌍으로 B 를 시도하고 높이를 다시 계산
+    ok_dy_px: 2.0          # 세로 어긋남이 이 이하면 정상 (위 max_rect_dy_px 와 같게)
+    escalate_dy_px: 15.0   # 이보다 크면 '크게 어긋남' (B 를 해 보고 실패하면 A 안내)
+    # 좌우 돌아감(yaw)은 세로 어긋남에 안 나타나고 거리만 바꿈 → '거리 기준'이 있어야 B 가 맞출 수 있음
+    #   기준은 보정이 맞을 때 calib_manager.py set-reference 로 이력에 기록 (또는 아래에 줄자 실측값)
+    reference_cm: null     # 카메라 → 트레이 면 거리(cm, 줄자). null = 이력의 기준 사용
+    history_dir: config/stereo/history
+    refine:                # calibration/refine.py RefineConfig 값 덮어쓰기
+      target_dy_px: 1.5
+      max_rotation_change_deg: 5.0
+      prior_window_px: 25.0
+
+# 카메라 API (ESP32-CAM 2대 → 스마트큐브 서버). calib_manager.py --from-api, find_holes.py --from-api 에서 사용
+#   토큰: 환경 변수 LEAFDX_API_TOKEN 또는 secrets/SMARTCUBE_API_TOKEN (git 에 안 올라감)
+camera_api:
+  base: https://smartcubens.duckdns.org/i/jetson-01/api
+  cube: CUBE001
+  serials: {CL: CUBE001-C1, CR: CUBE001-C2}   # 파이프라인 카메라 이름 ↔ 카메라 SN (CR = 스테레오 왼쪽 = C2). 실제 배치로 확인 필요
+
 # ─────────────────────────────────────────────
 # 작물 레지스트리
 #   module 은 src/crop_monitor/modules/<module>/adapter.py 를 가리킴

@@ -1,0 +1,19 @@
+{
+ "source": "B",
+ "note": "자동 미세 조정",
+ "before_dy_px": 4.53,
+ "rect_dy_median_px": 0.31,
+ "rotation_change_deg": 0.707,
+ "yaw_change_deg": null,
+ "n_points": 601,
+ "pairs": 1,
+ "id": "20261127T111348_B",
+ "created": "2026-11-27T11:13:48",
+ "parent": "20261127T110958_initial",
+ "baseline_mm": 33.31,
+ "rot_deg": 3.161,
+ "size": [
+  640,
+  480
+ ]
+}

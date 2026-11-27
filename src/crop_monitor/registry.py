@@ -71,6 +71,7 @@ def get_crop(crop_id: str) -> CropConfig | None:
 
 def height_config() -> HeightConfig:
     h = dict(_raw().get("height") or {})
+    h.pop("autocalib", None)  # 보정 관리 설정은 calibration.manager.load_config() 가 읽음
     if h.get("calib"):
         h["calib"] = resolve(h["calib"])
     return HeightConfig(**h)

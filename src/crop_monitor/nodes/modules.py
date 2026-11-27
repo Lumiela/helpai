@@ -41,6 +41,23 @@ def disease(state: PipelineState) -> PipelineState:
     return _run_adapter(state, "disease", "이상 상태")
 
 
+def _try_autocalib(left_img, right_img, cfg) -> tuple[bool, list[str]]:
+    """세로 어긋남이 클 때 이 사진 쌍으로 B(자동 미세 조정) 시도. 반환: (보정이 바뀌었는지, 안내 문구)."""
+    if not (cfg.calib and cfg.calib.exists()):
+        return False, []
+    try:
+        from crop_monitor.calibration.manager import load_config, maintain
+
+        ac = load_config()
+        if not (ac.enabled and ac.in_pipeline):
+            return False, ["자동 보정이 꺼져 있음 (height.autocalib) → scripts/height/calib_manager.py auto 로 직접 실행"]
+        r = maintain([(left_img, right_img)], cfg, ac)
+    except Exception as e:
+        traceback.print_exc()
+        return False, [f"자동 보정 시도 실패: {type(e).__name__}: {e}"]
+    return r.action == "refined", [r.message]
+
+
 def height(state: PipelineState) -> PipelineState:
     cfg = height_config()
     left, right = stereo_pair()
@@ -55,8 +72,19 @@ def height(state: PipelineState) -> PipelineState:
 
     dy = res.info["align"].get("rect_dy_median_px")
     if dy is not None and dy > cfg.max_rect_dy_px:
-        warnings.append(f"[높이] 정렬 후 세로 어긋남 {dy}px (기준 {cfg.max_rect_dy_px}px 초과) → 카메라가 움직였거나 "
-                        f"좌우(cameras.stereo_left/right)가 바뀌었을 수 있음. 높이 값을 믿기 어려우니 다시 보정하세요")
+        fixed, msgs = _try_autocalib(state["frames"][left], state["frames"][right], cfg)
+        if fixed:
+            try:
+                res = height_mod.compute(state["frames"][left], state["frames"][right], cfg)
+                res.info["autocalib"] = msgs[0]
+                warnings.append(f"[높이] 세로 어긋남 {dy}px → {msgs[0]} → 높이를 새 보정으로 다시 계산")
+            except Exception as e:
+                traceback.print_exc()
+                return {"height": None, "warnings": warnings + [f"[높이] 자동 보정 뒤 다시 계산 실패: {type(e).__name__}: {e}"]}
+        else:
+            warnings.append(f"[높이] 정렬 후 세로 어긋남 {dy}px (기준 {cfg.max_rect_dy_px}px 초과) → 카메라가 움직였거나 "
+                            f"좌우(cameras.stereo_left/right)가 바뀌었을 수 있음. 높이 값을 믿기 어려움")
+            warnings += [f"[높이] {m}" for m in msgs]
 
     if state.get("out_dir"):
         import cv2
