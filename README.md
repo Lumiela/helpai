@@ -1,6 +1,6 @@
 # langgraph 브랜치: AWS 시험 서버 자동 반영
 
-이 브랜치에 푸시하면 AWS 시험 서버("https://smartcubeaws.duckdns.org")와 젯슨 추론 서버에 자동으로 반영됩니다. 보통 푸시하고 1~2분 안에 끝납니다.
+이 브랜치에 푸시하면 AWS 시험 서버( https://smartcubeaws.duckdns.org )와 젯슨 추론 서버에 자동으로 반영됩니다. 보통 푸시하고 1~2분 안에 끝납니다.
 
 ## 폴더
 
