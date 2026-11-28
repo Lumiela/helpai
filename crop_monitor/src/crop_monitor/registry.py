@@ -11,7 +11,6 @@ from typing import Any
 import yaml
 
 from crop_monitor.modules.height.height import HeightConfig
-from crop_monitor.remote import RemoteConfig
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CONFIG = PROJECT_ROOT / "config" / "crops.yaml"
@@ -51,12 +50,6 @@ def cameras() -> list[str]:
     return list((_raw().get("cameras") or {}).get("names", ["CL", "CR"]))
 
 
-def input_width() -> int | None:
-    """모든 모듈에 넣을 사진의 가로 크기 (없으면 원본 그대로)."""
-    v = (_raw().get("cameras") or {}).get("input_width")
-    return int(v) if v else None
-
-
 def stereo_pair() -> tuple[str, str]:
     """(스테레오 왼쪽, 오른쪽) 이미지 이름 — stereo_calib.npz 의 좌우 기준."""
     c = _raw().get("cameras") or {}
@@ -78,13 +71,10 @@ def get_crop(crop_id: str) -> CropConfig | None:
 
 def height_config() -> HeightConfig:
     h = dict(_raw().get("height") or {})
+    h.pop("autocalib", None)  # 보정 관리 설정은 calibration.manager.load_config() 가 읽음
     if h.get("calib"):
         h["calib"] = resolve(h["calib"])
     return HeightConfig(**h)
-
-
-def remote_config() -> RemoteConfig:
-    return RemoteConfig(**(_raw().get("remote") or {}))
 
 
 def clear_caches() -> None:

@@ -15,7 +15,7 @@ from crop_monitor.modules.height import height as height_mod
 from crop_monitor.registry import get_crop, height_config, stereo_pair
 from crop_monitor.state import PipelineState
 
-SEVERITY_ORDER = {"ok": 0, "incomplete": 1, "warning": 2, "critical": 3}
+SEVERITY_ORDER = {"ok": 0, "warning": 1, "critical": 2}
 
 
 def worst(*levels: str) -> str:
@@ -43,21 +43,69 @@ def _assign_leaves(disease: dict | None, segments: dict) -> tuple[dict, list]:
     return by_cell, unassigned
 
 
+VLM_KEYS = ("label", "verdict", "confidence", "symptoms", "reason", "error")
+# VLM 재확인 판정 → 최종 잎 상태
+#   FALSE_ALARM : 모델은 병, VLM 은 정상          → FRESH (정상)
+#   MISSED      : 모델은 정상, VLM 은 병          → ANOMALY (VLM 이 본 병)
+#   OTHER_CLASS : 둘 다 병, 종류가 다름           → ANOMALY (VLM 이 본 병)
+#   NOT_A_LEAF  : 잎이 아님                      → 판정에서 뺌 (NOT_A_LEAF)
+DEFAULT_VLM_APPLY = ["FALSE_ALARM", "MISSED", "OTHER_CLASS", "NOT_A_LEAF"]
+NOT_A_LEAF = "NOT_A_LEAF"
+
+
+def _final_state(l: dict, apply: set) -> tuple[str, str | None, str | None]:
+    """(최종 상태, 최종 이상 유형, 적용한 VLM 판정 또는 None)."""
+    v = l.get("vlm") or {}
+    verdict = v.get("verdict")
+    if verdict not in apply:
+        return l["state"], l.get("anomaly_class"), None
+    if verdict == "FALSE_ALARM":
+        return "FRESH", None, verdict
+    if verdict in ("MISSED", "OTHER_CLASS"):
+        return "ANOMALY", v["label"], verdict
+    if verdict == "NOT_A_LEAF":
+        return NOT_A_LEAF, None, verdict
+    return l["state"], l.get("anomaly_class"), None
+
+
 def _leaf_summary(leaves: list, rules: dict) -> dict[str, Any]:
+    """VLM 재확인 판정(alerts.vlm_apply)을 적용한 최종 잎 상태로 요약.
+
+    counts      : 최종 상태별 잎 수 (VLM 이 잎이 아니라고 본 것은 NOT_A_LEAF)
+    model_counts: 분류 모델 상태별 잎 수 (VLM 적용 전)
+    anomalies   : 상태 판정에 쓰는 이상 잎 (최종)
+    changed     : VLM 판정으로 상태가 바뀐 잎 (모델 판정, VLM 판정, 바뀐 결과)
+    unknown     : 상태 판정에 쓰는 판단 보류(UNKNOWN) 잎 수"""
     anomaly_rules = rules.get("anomalies", {})
+    apply = set((rules.get("alerts") or {}).get("vlm_apply", DEFAULT_VLM_APPLY) or [])
+
+    def describe(state, cls):
+        if state == "ANOMALY":
+            return anomaly_rules.get(cls, {}).get("label", cls)
+        return {"FRESH": "정상", "UNKNOWN": "판단 보류", NOT_A_LEAF: "잎 아님"}.get(state, state)
+
     counts: dict[str, int] = {}
-    anomalies = []
+    model_counts: dict[str, int] = {}
+    anomalies, changed, unknown = [], [], 0
     for l in leaves:
-        counts[l["state"]] = counts.get(l["state"], 0) + 1
-        if l["state"] == "ANOMALY":
-            r = anomaly_rules.get(l["anomaly_class"], {})
-            item = dict(camera=l["camera"], id=l["id"], type=l["anomaly_class"],
-                        label=r.get("label", l["anomaly_class"]), severity=r.get("severity", "warning"),
-                        prob=l["probs"].get(l["anomaly_class"]), box=l["box"])
-            if "vlm" in l:
-                item["vlm"] = {k: l["vlm"][k] for k in ("label", "verdict", "confidence")}
+        model_counts[l["state"]] = model_counts.get(l["state"], 0) + 1
+        state, cls, applied = _final_state(l, apply)
+        counts[state] = counts.get(state, 0) + 1
+        item = dict(camera=l["camera"], id=l["id"], state=state, box=l["box"])
+        if "vlm" in l:
+            item["vlm"] = {k: l["vlm"][k] for k in VLM_KEYS if l["vlm"].get(k)}
+        if applied:
+            item["model"] = dict(state=l["state"], type=l.get("anomaly_class"),
+                                 label=describe(l["state"], l.get("anomaly_class")))
+            changed.append({**item, "type": cls, "label": describe(state, cls)})
+        if state == "ANOMALY":
+            r = anomaly_rules.get(cls, {})
+            item.update(type=cls, label=r.get("label", cls), severity=r.get("severity", "warning"),
+                        prob=(l.get("probs") or {}).get(cls))  # VLM 이 바꾼 병이면 모델 확률은 참고용
             anomalies.append(item)
-    return dict(counts=counts, anomalies=anomalies)
+        elif state == "UNKNOWN":
+            unknown += 1
+    return dict(counts=counts, model_counts=model_counts, anomalies=anomalies, changed=changed, unknown=unknown)
 
 
 def merge_results(state: PipelineState) -> PipelineState:
@@ -80,8 +128,7 @@ def merge_results(state: PipelineState) -> PipelineState:
             continue
         stage = c["grade"]
         stage_rule = stage_rules.get(stage, {}) if stage else {}
-        # 잎 이상 판정을 못 했으면 정상이라고 하지 않음
-        status, issues = ("ok" if disease is not None else "incomplete"), []
+        status, issues = "ok", []
 
         # 높이 (스테레오 왼쪽 카메라 마스크 기준)
         height = None
@@ -97,15 +144,19 @@ def merge_results(state: PipelineState) -> PipelineState:
 
         # 잎 이상
         leaves = _leaf_summary(leaves_by_cell.get(cid, []), rules)
-        leaves["judged"] = disease is not None
         for a in leaves["anomalies"]:
             status = worst(status, a["severity"])
-        n_anom = len(leaves["anomalies"])
+        # 두 카메라가 같은 잎을 각각 잡을 수 있으므로 합계가 아니라 카메라별 개수 중 최댓값으로 센다
+        per_cam: dict[str, int] = {}
+        for a in leaves["anomalies"]:
+            per_cam[a["camera"]] = per_cam.get(a["camera"], 0) + 1
+        n_anom = max(per_cam.values(), default=0)
         crit_n = alerts.get("critical_leaf_count")
         if crit_n and n_anom >= crit_n:
             status = worst(status, "critical")
-            issues.append(f"이상 잎 {n_anom}장 (기준 {crit_n}장 이상)")
-        if leaves["counts"].get("UNKNOWN"):
+            cams = ", ".join(f"{k} {v}" for k, v in sorted(per_cam.items()))
+            issues.append(f"이상 잎 {n_anom}장 (카메라별 최대, {cams} / 기준 {crit_n}장 이상)")
+        if leaves["unknown"]:
             status = worst(status, alerts.get("unknown_leaf", "warning"))
 
         cells.append(dict(
@@ -115,7 +166,7 @@ def merge_results(state: PipelineState) -> PipelineState:
             height=height, leaves=leaves, issues=issues, status=status,
         ))
 
-    overall = worst("ok" if growth is not None and disease is not None else "incomplete", *(c["status"] for c in cells if c["status"] != "empty"))
+    overall = worst("ok", *(c["status"] for c in cells if c["status"] != "empty"))
     return {"crop_data": dict(
         crop_id=crop.crop_id, crop_name=crop.name, status=overall,
         modules=dict(growth=growth is not None, disease=disease is not None, height=hres is not None),

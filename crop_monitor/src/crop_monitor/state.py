@@ -15,7 +15,6 @@ class PipelineState(TypedDict, total=False):
     crop_id: str
     images: dict[str, str]          # {카메라: 이미지 경로}  예: {"CL": ".../CL.jpg", "CR": ".../CR.jpg"}
     out_dir: str | None             # 지정하면 모듈별 시각화 결과 저장
-    use_vlm: bool                   # False 면 Gemini 검수·재확인을 하지 않음 (기본 True)
 
     # ── 전처리 ──
     frames: dict[str, np.ndarray]   # {카메라: BGR 원본 이미지}

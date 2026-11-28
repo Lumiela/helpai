@@ -5,20 +5,19 @@
 YoloGradeClassifier : train_hybrid.py cls 로 학습한 YOLO 분류 모델 (기존)
 EmbedGradeClassifier: 학습 없이 사전학습 분류 모델(yolo26m-cls.pt)을 특징 추출기로 쓰고, 등급을 아는 참고 크롭
                       (embed_reference/<클래스>/*.jpg) 중 가장 비슷한 k장의 등급으로 판단 (최근접 이웃)
-VlmGradeClassifier  : Gemini(VLM)에게 등급 설명 + 등급별 예시 사진을 주고 크롭을 묶어서 판단. 학습 불필요
+VlmGradeClassifier  : Claude(VLM)에게 등급 설명 + 등급별 예시 사진을 주고 크롭을 묶어서 판단. 학습 불필요
 CascadeClassifier   : YOLO 로 먼저 판단하고, 확신이 낮은 크롭만 VLM 에게 다시 물음 (비용 절약)
 """
 
 import base64
+import json
 import random
 import warnings
 
 import cv2
 import numpy as np
 
-from crop_monitor.gemini import image_part, text_part
-
-from .api_key import KEY_FILE, gemini_client
+from .api_key import KEY_FILE, anthropic_client
 from .config import resolve
 
 NOT_BUD = "not_bud"
@@ -107,11 +106,8 @@ def encode_jpeg(image, size):
 
 
 def image_block(image, size):
-    return image_part(encode_jpeg(image, size))
-
-
-def empty_usage():
-    return {"requests": 0, "input_tokens": 0, "output_tokens": 0, "thought_tokens": 0, "cached_tokens": 0}
+    return {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg",
+                                        "data": encode_jpeg(image, size)}}
 
 
 def imread(path):
@@ -120,31 +116,32 @@ def imread(path):
 
 
 class VlmGradeClassifier:
-    """Gemini 로 봉오리 크롭 등급 판단.
+    """Claude 로 봉오리 크롭 등급 판단.
 
     - 한 요청에 크롭을 batch_size 장씩 묶어 보내고, 크롭 번호별 {grade, confidence} JSON 으로 받음
       (structured outputs 로 형식 고정)
     - 등급 설명(grade_descriptions)과 예시 사진(examples_dir/<클래스>/*.jpg)은 매 요청 앞부분에 같은 내용으로
-      들어감 (Gemini 가 알아서 캐시)
+      들어가므로 프롬프트 캐시로 재사용됨
     - confidence 는 모델이 스스로 매긴 값이라 YOLO 확률처럼 보정된 값이 아님 → cls_conf 를 따로 맞춰야 함
     """
 
-    def __init__(self, client, model="gemini-4-hydrogen", grade_descriptions=None, examples=None,
-                 batch_size=8, image_size=256, thinking="low", max_tokens=8000,
+    def __init__(self, client, model="claude-opus-5-5", grade_descriptions=None, examples=None,
+                 batch_size=8, image_size=256, effort="low", max_tokens=8000, fallbacks="default",
                  classes=CLASSES, **_):  # **_: vlm_plant 전용 설정(plant_image_size 등)은 무시
         self.client, self.model = client, model
         self.classes = list(classes)
         self.descriptions = grade_descriptions or {}
         self.examples = examples or []  # [(클래스, BGR 이미지)]
         self.batch_size, self.image_size = int(batch_size), int(image_size)
-        self.thinking, self.max_tokens = thinking, int(max_tokens)
-        self.usage = empty_usage()
+        self.effort, self.max_tokens, self.fallbacks = effort, int(max_tokens), fallbacks
+        self.usage = {"requests": 0, "input_tokens": 0, "output_tokens": 0,
+                      "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}
         self._prefix = None
 
     @classmethod
-    def from_config(cls, model="gemini-4-hydrogen", examples_dir=None, examples_per_class=2, seed=0,
+    def from_config(cls, model="claude-opus-5-5", examples_dir=None, examples_per_class=2, seed=0,
                     api_key_file=KEY_FILE, **cfg):
-        client = gemini_client(api_key_file)
+        client = anthropic_client(api_key_file)  # 인증: 프로젝트 폴더의 ANTHROPIC_API_KEY.txt
         examples = load_examples(examples_dir, examples_per_class, seed) if examples_dir else []
         return cls(client, model=model, examples=examples, **cfg)
 
@@ -174,16 +171,17 @@ class VlmGradeClassifier:
         return "\n".join(lines)
 
     def prefix_blocks(self):
-        """요청마다 같은 앞부분 (예시 사진)."""
+        """요청마다 같은 앞부분 (예시 사진). 마지막 블록에 캐시 표시."""
         if self._prefix is None:
             blocks = []
             if self.examples:
-                blocks.append(text_part("Reference examples with their correct class:"))
+                blocks.append({"type": "text", "text": "Reference examples with their correct class:"})
                 for name, img in self.examples:
-                    blocks.append(text_part(f"Example - {name}:"))
+                    blocks.append({"type": "text", "text": f"Example - {name}:"})
                     blocks.append(image_block(img, self.image_size))
             else:
-                blocks.append(text_part("No reference examples are available."))
+                blocks.append({"type": "text", "text": "No reference examples are available."})
+            blocks[-1] = {**blocks[-1], "cache_control": {"type": "ephemeral"}}
             self._prefix = blocks
         return self._prefix
 
@@ -210,28 +208,42 @@ class VlmGradeClassifier:
 
     def _classify_batch(self, crops):
         content = list(self.prefix_blocks())
-        content.append(text_part(f"Now grade these {len(crops)} crops."))
+        content.append({"type": "text", "text": f"Now grade these {len(crops)} crops."})
         for k, c in enumerate(crops, 1):
-            content.append(text_part(f"Crop {k}:"))
+            content.append({"type": "text", "text": f"Crop {k}:"})
             content.append(image_block(c, self.image_size))
-        content.append(text_part(f"Return one result per crop, crop numbers 1 to {len(crops)}."))
+        content.append({"type": "text", "text": f"Return one result per crop, crop numbers 1 to {len(crops)}."})
 
-        answer, usage = self.client.generate_json(self.model, self.system_prompt(), content, self.schema(),
-                                                  self.thinking, self.max_tokens)
-        self._count(usage)
+        kwargs = dict(model=self.model, max_tokens=self.max_tokens, system=self.system_prompt(),
+                      messages=[{"role": "user", "content": content}],
+                      output_config={"effort": self.effort,
+                                     "format": {"type": "json_schema", "schema": self.schema()}})
+        if self.fallbacks:  # 안전 분류기가 거절하면 서버가 다른 모델로 다시 실행
+            resp = self.client.beta.messages.create(betas=["server-side-fallback-2026-07-01"],
+                                                    fallbacks=self.fallbacks, **kwargs)
+        else:
+            resp = self.client.messages.create(**kwargs)
+        self._count(resp)
+
+        if resp.stop_reason == "refusal":
+            raise RuntimeError(f"VLM 이 요청을 거절했습니다: {getattr(resp, 'stop_details', None)}")
+        if resp.stop_reason == "max_tokens":
+            raise RuntimeError("VLM 응답이 max_tokens 에서 잘렸습니다. vlm.max_tokens 를 늘리거나 batch_size 를 줄이세요.")
+        text = next(b.text for b in resp.content if b.type == "text")
         by_crop = {}
-        for r in answer.get("results", []):
-            if r.get("grade") in self.classes and 1 <= r["crop"] <= len(crops) and r["crop"] not in by_crop:
+        for r in json.loads(text)["results"]:
+            if 1 <= r["crop"] <= len(crops) and r["crop"] not in by_crop:
                 by_crop[r["crop"]] = (r["grade"], float(min(max(r["confidence"], 0.0), 1.0)))
         missing = [k for k in range(1, len(crops) + 1) if k not in by_crop]
         if missing:
             warnings.warn(f"VLM 응답에 크롭 {missing} 결과가 없어 not_bud 로 처리합니다")
         return [by_crop.get(k, (NOT_BUD, 0.0)) for k in range(1, len(crops) + 1)]
 
-    def _count(self, usage):
+    def _count(self, resp):
         self.usage["requests"] += 1
-        for key, v in usage.items():
-            self.usage[key] = self.usage.get(key, 0) + int(v)
+        u = getattr(resp, "usage", None)
+        for key in ("input_tokens", "output_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"):
+            self.usage[key] += int(getattr(u, key, 0) or 0)
 
 
 class CascadeClassifier:

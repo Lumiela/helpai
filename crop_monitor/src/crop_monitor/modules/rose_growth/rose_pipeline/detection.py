@@ -1,10 +1,10 @@
 """꽃봉오리 검출기.
 
-VlmPlantGrader    : (plant_vlm.py) 식물마다 Gemini 가 봉오리 위치·등급을 직접 판단. 검출 모델 불필요 (type: vlm_plant)
+VlmPlantGrader    : (plant_vlm.py) 식물마다 Claude 가 봉오리 위치·등급을 직접 판단. 검출 모델 불필요 (type: vlm_plant)
 YoloBudDetector   : train_detector.py 로 학습한 YOLO (위치 + 등급을 한 모델이 판단)
-HybridBudDetector : 혼합형. YOLO 위치(후보) → FastSAM 마스크 → 등급 분류 → (선택) Gemini 검수
+HybridBudDetector : 혼합형. YOLO 위치(후보) → FastSAM 마스크 → 등급 분류 → (선택) Claude 검수
                     (분류는 cls_backend 로 고름: yolo = train_hybrid.py 학습 모델, embed = 사전학습 모델 특징 + 참고 크롭,
-                     vlm = Gemini, cascade = yolo 뒤 애매한 것만 Gemini. vlm.py)
+                     vlm = Claude, cascade = yolo 뒤 애매한 것만 Claude. vlm.py)
 다른 검출기를 쓰려면 BudDetector 를 상속하고 DETECTORS 에 등록한다.
 """
 
@@ -27,9 +27,9 @@ class BudDetection:
     mask: np.ndarray | None = field(default=None)  # bool, 봉오리 마스크 (혼합형만). 좌상단 = mask_xy
     mask_xy: tuple | None = field(default=None)    # mask 좌상단의 이미지 좌표 (x, y)
     det_conf: float | None = field(default=None)   # 혼합형: 위치 검출 신뢰도 (conf 는 분류 신뢰도)
-    first_class: str | None = field(default=None)  # Gemini 검수 전 분류 모델의 등급 (검수했을 때만)
+    first_class: str | None = field(default=None)  # Claude 검수 전 분류 모델의 등급 (검수했을 때만)
     first_conf: float | None = field(default=None)
-    added: bool = field(default=False)  # 위치 모델이 놓쳐 Gemini 검수가 추가한 봉오리
+    added: bool = field(default=False)  # 위치 모델이 놓쳐 Claude 검수가 추가한 봉오리
     crop_xyxy: np.ndarray | None = field(default=None)  # 혼합형: 등급 판단에 쓴 크롭 영역 (박스보다 넓음)
 
     @property
@@ -101,9 +101,9 @@ class HybridBudDetector(BudDetector):
     3) cls (분류기): 마스크(없으면 박스) 둘레를 정사각형으로 잘라 not_bud / grade_one~four 판단.
        classify(crops) 를 가진 분류기(vlm.py) 또는 ultralytics YOLO 분류 모델.
        not_bud 이거나 확신(cls_conf)이 낮으면 버림 → 검출기 오탐지를 여기서 거름
-    4) review (선택, Gemini): 3) 에서 남은 크롭을 Gemini 가 분류 결과를 모른 채 다시 판단해 최종 등급으로 씀.
+    4) review (선택, Claude): 3) 에서 남은 크롭을 Claude 가 분류 결과를 모른 채 다시 판단해 최종 등급으로 씀.
        not_bud 이거나 확신(review_conf)이 낮으면 버림. 분류 모델의 등급은 first_class / first_conf 에 남김
-    5) missed (선택, Gemini): 식물마다 찾은 봉오리를 박스로 그린 사진을 보내 놓친 봉오리를 추가 (plant_vlm.VlmMissedFinder).
+    5) missed (선택, Claude): 식물마다 찾은 봉오리를 박스로 그린 사진을 보내 놓친 봉오리를 추가 (plant_vlm.VlmMissedFinder).
        식물 정보가 필요해서 RosePipeline.grade_plants 가 봉오리 배정 뒤 add_missed() 를 부름
 
     det_classes: 위치 모델에서 쓸 클래스 번호 목록 (None = 전부). agnostic_nms: 클래스 상관없이 겹친 박스 정리.
@@ -132,7 +132,7 @@ class HybridBudDetector(BudDetector):
 
     @property
     def usage(self):
-        """run_pipeline.py 출력용: 후보·분류·검수 개수 (+ Gemini 요청·토큰 수)."""
+        """run_pipeline.py 출력용: 후보·분류·검수 개수 (+ Claude 요청·토큰 수)."""
         u = dict(self.stats)
         for vlm in (self.review, self.missed):
             for k, v in (getattr(vlm, "usage", None) or {}).items():
@@ -141,7 +141,7 @@ class HybridBudDetector(BudDetector):
 
     @property
     def last_notes(self):
-        """누락 추가 때 Gemini 가 식물마다 답한 내용 (vlm_plant 와 같은 형식 → 결과판·vlm/ 에 표시)."""
+        """누락 추가 때 Claude 가 식물마다 답한 내용 (vlm_plant 와 같은 형식 → 결과판·vlm/ 에 표시)."""
         return self.missed.last_notes if self.missed is not None else None
 
     def add_missed(self, image, plants, buds):
@@ -235,7 +235,7 @@ class HybridBudDetector(BudDetector):
         return self.review_buds(kept, kept_crops) if self.review is not None else kept
 
     def review_buds(self, dets, crops):
-        """Gemini 검수: 분류 결과를 알려 주지 않고 크롭을 다시 판단시켜 그 답을 최종 등급으로."""
+        """Claude 검수: 분류 결과를 알려 주지 않고 크롭을 다시 판단시켜 그 답을 최종 등급으로."""
         if not dets:
             return []
         out = []

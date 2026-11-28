@@ -7,19 +7,17 @@ Each selected leaf is shown to the VLM as two views cut from the original photo,
 The VLM returns one of LABELS, a confidence, the symptoms it saw and a short reason (Korean).
 verdict() then compares the VLM label with the classifier result.
 
-Backend: GeminiVerifier (Gemini API key: crop_monitor.keys).
+Backends: ClaudeVerifier (Anthropic API, needs ANTHROPIC_API_KEY) and QwenVerifier (open model on the local GPU, transformers).
 """
+from . import _compat  # noqa: F401
 import base64
 import io
 import json
 import random
 import re
-import threading
 import numpy as np
 import cv2
 from PIL import Image, ImageDraw, ImageFont
-
-from crop_monitor.gemini import GeminiClient, GeminiError, GeminiFatal, cost_usd, image_part, text_part
 
 LABELS = ["healthy", "black_spot", "downy_mildew", "insects_infected", "not_a_leaf", "unclear"]
 CYAN = (0, 255, 255)
@@ -56,6 +54,10 @@ SCHEMA = {
     "required": ["label", "confidence", "symptoms", "reason"],
     "additionalProperties": False,
 }
+
+JSON_HINT = ('\n\nReply with only one JSON object, no other text: {"label": "<one of ' + ", ".join(LABELS) +
+             '>", "confidence": "<low|medium|high>", "symptoms": "<Korean>", "reason": "<Korean>"}')
+
 
 def _square(box, scale, W, H):
     x0, y0, x1, y1 = box
@@ -108,31 +110,67 @@ def parse_answer(text):
                 reason=str(d.get("reason", "")))
 
 
-class GeminiVerifier:
+class ClaudeVerifier:
+    PRICE = {"claude-opus-5-5": (4.0, 20.0), "claude-sonnet-5-5": (2.0, 10.0), "claude-haiku-5-5": (0.10, 0.50)}  # $ / 1M tokens
     workers = 4
-    fatal = (GeminiFatal,)
 
-    def __init__(self, api_key, model="gemini-4-hydrogen", thinking="low", max_tokens=8000, client=None):
-        self.client = client or GeminiClient(api_key)
-        self.model, self.thinking, self.max_tokens = model, thinking, max_tokens
-        self.tokens = [0, 0]          # 입력, 출력(생각 포함)
-        self._lock = threading.Lock()
+    def __init__(self, model="claude-opus-5-5", effort="low", api_key=None):
+        import anthropic
+        self.anthropic = anthropic
+        self.client = anthropic.Anthropic(api_key=api_key) if api_key else anthropic.Anthropic()
+        self.model, self.effort = model, effort
+        self.fatal = (anthropic.AuthenticationError, anthropic.PermissionDeniedError, anthropic.NotFoundError)
+        self.tokens = [0, 0]
 
     def __call__(self, images):
-        parts = [text_part(USER)] + [image_part(_jpeg_b64(im)) for im in images]
-        try:
-            answer, usage = self.client.generate_json(self.model, SYSTEM, parts, SCHEMA, self.thinking, self.max_tokens)
-        except GeminiFatal:
-            raise
-        except GeminiError as e:
-            return dict(label="unclear", confidence="low", symptoms="", reason="", error=str(e)[:300])
-        with self._lock:
-            self.tokens[0] += usage["input_tokens"]
-            self.tokens[1] += usage["output_tokens"] + usage["thought_tokens"]
-        return parse_answer(json.dumps(answer, ensure_ascii=False))
+        content = [{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": _jpeg_b64(im)}} for im in images]
+        r = self.client.beta.messages.create(
+            model=self.model,
+            max_tokens=8000,
+            system=SYSTEM,
+            messages=[{"role": "user", "content": content + [{"type": "text", "text": USER}]}],
+            output_config={"effort": self.effort, "format": {"type": "json_schema", "schema": SCHEMA}},
+            betas=["server-side-fallback-2026-07-01"],
+            fallbacks="default",  # a declined request is re-run on a fallback model inside the same call
+        )
+        self.tokens[0] += r.usage.input_tokens; self.tokens[1] += r.usage.output_tokens
+        if r.stop_reason == "refusal":
+            cat = getattr(getattr(r, "stop_details", None), "category", None)
+            return dict(label="unclear", confidence="low", symptoms="", reason="", error=f"refusal ({cat})")
+        if r.stop_reason == "max_tokens":
+            return dict(label="unclear", confidence="low", symptoms="", reason="", error="max_tokens")
+        return parse_answer(next(b.text for b in r.content if b.type == "text"))
 
     def cost(self):
-        return cost_usd(self.model, self.tokens[0], self.tokens[1])
+        p = self.PRICE.get(self.model)
+        return None if p is None else (self.tokens[0] * p[0] + self.tokens[1] * p[1]) / 1e6
+
+
+class QwenVerifier:
+    workers = 1
+
+    def __init__(self, model="Qwen/Qwen2.5-VL-3B-Instruct", max_new_tokens=300):
+        import torch
+        from transformers import AutoModelForImageTextToText, AutoProcessor
+        self.torch = torch
+        self.proc = AutoProcessor.from_pretrained(model)
+        dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+        self.model = AutoModelForImageTextToText.from_pretrained(model, dtype=dtype, device_map="auto").eval()
+        self.max_new_tokens, self.fatal, self.tokens = max_new_tokens, (), [0, 0]
+
+    def __call__(self, images):
+        msgs = [{"role": "system", "content": [{"type": "text", "text": SYSTEM + JSON_HINT}]},
+                {"role": "user", "content": [{"type": "image", "image": im} for im in images] + [{"type": "text", "text": USER}]}]
+        inp = self.proc.apply_chat_template(msgs, add_generation_prompt=True, tokenize=True, return_dict=True,
+                                            return_tensors="pt").to(self.model.device)
+        with self.torch.no_grad():
+            out = self.model.generate(**inp, max_new_tokens=self.max_new_tokens, do_sample=False)
+        n = inp["input_ids"].shape[1]
+        self.tokens[0] += n; self.tokens[1] += out.shape[1] - n
+        return parse_answer(self.proc.batch_decode(out[:, n:], skip_special_tokens=True)[0])
+
+    def cost(self):
+        return None
 
 
 def model_label(leaf):

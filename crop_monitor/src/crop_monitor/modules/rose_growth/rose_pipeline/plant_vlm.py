@@ -1,11 +1,11 @@
 """화분 단위 VLM 등급 판단 (grading.detector.type: vlm_plant).
 
-YOLO 위치 검출·FastSAM·분류 모델 없이, 1단계에서 나눈 식물마다 Gemini(VLM)에게 그 식물 사진을 보여 주고
+YOLO 위치 검출·FastSAM·분류 모델 없이, 1단계에서 나눈 식물마다 Claude(VLM)에게 그 식물 사진을 보여 주고
 봉오리·꽃의 위치와 등급을 직접 받는다.
 
   식물 bbox + 여백으로 잘라냄 → 이웃 식물 마스크 픽셀만 어둡게(dim_outside), 이 식물의 화분은 흰 원으로 표시
   → 긴 변 image_size 로 맞춤
-  → Gemini: {요약(summary), 봉오리·꽃마다 {등급, 확신, 박스(0~1 비율)}}  (봉오리가 없으면 빈 목록)
+  → Claude: {요약(summary), 봉오리·꽃마다 {등급, 확신, 박스(0~1 비율)}}  (봉오리가 없으면 빈 목록)
   → BudDetection(cell_id = 그 식물) 로 바꿔 돌려줌. 판단 내용(요약, 버린 봉오리 포함 전체 목록, 보낸 사진)은
     last_notes 에 남겨 결과판·vis·vlm/ 폴더에 표시함
 
@@ -17,6 +17,7 @@ YOLO 위치 검출·FastSAM·분류 모델 없이, 1단계에서 나눈 식물�
 식물을 정해서 받으므로 쓰지 않는다.
 """
 
+import json
 import threading
 
 import cv2
@@ -24,32 +25,31 @@ from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 
-from crop_monitor.gemini import GeminiError, image_part, text_part
-
-from .api_key import KEY_FILE, gemini_client
+from .api_key import KEY_FILE, anthropic_client
 from .detection import BudDetection
-from .vlm import CLASSES, NOT_BUD, empty_usage, encode_jpeg, image_block, load_examples
+from .vlm import CLASSES, NOT_BUD, encode_jpeg, image_block, load_examples
 
 GRADE_CLASSES = [c for c in CLASSES if c != NOT_BUD]
 
 
 class VlmPlantGrader:
-    """식물별로 Gemini 에게 봉오리·꽃 목록을 받아 BudDetection 으로 반환.
+    """식물별로 Claude 에게 봉오리·꽃 목록을 받아 BudDetection 으로 반환.
 
     pipeline.RosePipeline.grade_plants 는 검출기에 grade_plants 가 있으면 이것을 쓰고 배정을 건너뜀.
     """
 
-    def __init__(self, client, model="gemini-4-hydrogen", grade_descriptions=None, examples=None,
+    def __init__(self, client, model="claude-opus-5-5", grade_descriptions=None, examples=None,
                  image_size=1024, example_size=256, crop_padding=0.1, dim_outside=0.35, min_conf=0.5,
-                 thinking="low", max_tokens=8000, max_workers=4):
+                 effort="low", max_tokens=8000, fallbacks="default", max_workers=4):
         self.client, self.model = client, model
         self.descriptions = grade_descriptions or {}
         self.examples = examples or []
         self.image_size, self.example_size = int(image_size), int(example_size)
         self.crop_padding, self.dim_outside, self.min_conf = crop_padding, dim_outside, min_conf
-        self.thinking, self.max_tokens = thinking, int(max_tokens)
+        self.effort, self.max_tokens, self.fallbacks = effort, int(max_tokens), fallbacks
         self.max_workers = max(1, int(max_workers))
-        self.usage = empty_usage()
+        self.usage = {"requests": 0, "input_tokens": 0, "output_tokens": 0,
+                      "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}
         self._prefix = None
         self._lock = threading.Lock()
         self.last_notes = {}  # 마지막 grade_plants 호출의 {칸: 판단 내용}
@@ -60,13 +60,14 @@ class VlmPlantGrader:
         v = dict(vlm or {})
         examples = load_examples(v["examples_dir"], v.get("examples_per_class", 2), v.get("seed", 0),
                                  GRADE_CLASSES) if v.get("examples_dir") else []
-        keys = ("model", "grade_descriptions", "thinking", "max_tokens", "dim_outside", "min_conf", "max_workers")
+        keys = ("model", "grade_descriptions", "effort", "max_tokens", "fallbacks", "dim_outside",
+                "min_conf", "max_workers")
         kw = {k: v[k] for k in keys if k in v}
         if "plant_image_size" in v:
             kw["image_size"] = v["plant_image_size"]
         if "image_size" in v:
             kw["example_size"] = v["image_size"]
-        client = gemini_client(v.get("api_key_file", KEY_FILE))
+        client = anthropic_client(v.get("api_key_file", KEY_FILE))  # 인증: 프로젝트 폴더의 ANTHROPIC_API_KEY.txt
         return cls(client, examples=examples, crop_padding=crop_padding, **kw)
 
     # BudDetector 처럼 쓰일 때 (plant 정보 없이 호출되면 판단할 수 없음)
@@ -99,9 +100,9 @@ class VlmPlantGrader:
             "If the plant has no buds or flowers, return an empty list. Do not guess buds you cannot see.",
             "In summary, describe in one short plain-English sentence (ASCII only, at most 80 characters) what you "
             "see on this plant, e.g. '2 closed red buds at top right, no open flowers'.",
-            "For each bud give box_2d, a tight bounding box [ymin, xmin, ymax, xmax] normalized to 0-1000 "
-            "(0 = top/left, 1000 = bottom/right), and confidence as your probability (0 to 1) that the bud exists "
-            "and the grade is correct.",
+            "For each bud give a tight bounding box as fractions of the image width and height (0 = left/top, "
+            "1 = right/bottom), and confidence as your probability (0 to 1) that the bud exists and the grade is "
+            "correct.",
         ]
         return "\n".join(lines)
 
@@ -109,25 +110,28 @@ class VlmPlantGrader:
         if self._prefix is None:
             blocks = []
             if self.examples:
-                blocks.append(text_part("Reference close-up crops of single buds with their grade:"))
+                blocks.append({"type": "text", "text": "Reference close-up crops of single buds with their grade:"})
                 for name, img in self.examples:
-                    blocks.append(text_part(f"Example - {name}:"))
+                    blocks.append({"type": "text", "text": f"Example - {name}:"})
                     blocks.append(image_block(img, self.example_size))
             else:
-                blocks.append(text_part("No reference examples are available."))
+                blocks.append({"type": "text", "text": "No reference examples are available."})
+            blocks[-1] = {**blocks[-1], "cache_control": {"type": "ephemeral"}}
             self._prefix = blocks
         return self._prefix
 
     def schema(self):
+        coord = {"type": "number"}
         return {
             "type": "object",
             "properties": {"summary": {"type": "string"}, "buds": {"type": "array", "items": {
                 "type": "object",
                 "properties": {"grade": {"type": "string", "enum": GRADE_CLASSES},
                                "confidence": {"type": "number"},
-                               "box_2d": {"type": "array", "items": {"type": "integer"}, "minItems": 4, "maxItems": 4,
-                                          "description": "[ymin, xmin, ymax, xmax] normalized to 0-1000"}},
-                "required": ["grade", "confidence", "box_2d"],
+                               "box": {"type": "object",
+                                       "properties": {"x1": coord, "y1": coord, "x2": coord, "y2": coord},
+                                       "required": ["x1", "y1", "x2", "y2"], "additionalProperties": False}},
+                "required": ["grade", "confidence", "box"],
                 "additionalProperties": False}}},
             "required": ["summary", "buds"],
             "additionalProperties": False,
@@ -205,27 +209,36 @@ class VlmPlantGrader:
 
     def ask(self, crop, cell_id=""):
         content = list(self.prefix_blocks())
-        content.append(text_part(self.request_text(cell_id)))
-        content.append(image_part(encode_jpeg(crop, self.image_size)))
-        try:
-            answer, usage = self.client.generate_json(self.model, self.system_prompt(), content, self.schema(),
-                                                      self.thinking, self.max_tokens)
-        except GeminiError as e:
-            raise type(e)(f"{cell_id}: {e}") from None
-        self._count(usage)
-        answer["buds"] = [{**b, "box": box} for b in answer.get("buds", [])
-                          for box in [fraction_box(b.get("box_2d"))] if box is not None]
-        return answer
+        content.append({"type": "text", "text": self.request_text(cell_id)})
+        content.append({"type": "image", "source": {"type": "base64", "media_type": "image/jpeg",
+                                                    "data": encode_jpeg(crop, self.image_size)}})
+        kwargs = dict(model=self.model, max_tokens=self.max_tokens, system=self.system_prompt(),
+                      messages=[{"role": "user", "content": content}],
+                      output_config={"effort": self.effort,
+                                     "format": {"type": "json_schema", "schema": self.schema()}})
+        if self.fallbacks:  # 안전 분류기가 거절하면 서버가 다른 모델로 다시 실행
+            resp = self.client.beta.messages.create(betas=["server-side-fallback-2026-07-01"],
+                                                    fallbacks=self.fallbacks, **kwargs)
+        else:
+            resp = self.client.messages.create(**kwargs)
+        self._count(resp)
+        if resp.stop_reason == "refusal":
+            raise RuntimeError(f"{cell_id}: VLM 이 요청을 거절했습니다: {getattr(resp, 'stop_details', None)}")
+        if resp.stop_reason == "max_tokens":
+            raise RuntimeError(f"{cell_id}: VLM 응답이 max_tokens 에서 잘렸습니다. vlm.max_tokens 를 늘리세요.")
+        text = next(b.text for b in resp.content if b.type == "text")
+        return json.loads(text)
 
-    def _count(self, usage):
+    def _count(self, resp):
+        u = getattr(resp, "usage", None)
         with self._lock:  # 여러 스레드에서 호출됨
             self.usage["requests"] += 1
-            for key, v in usage.items():
-                self.usage[key] = self.usage.get(key, 0) + int(v)
+            for key in ("input_tokens", "output_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"):
+                self.usage[key] += int(getattr(u, key, 0) or 0)
 
 
 class VlmMissedFinder(VlmPlantGrader):
-    """혼합형 Gemini 검수의 '누락 추가': 위치 모델이 놓친 봉오리를 식물마다 Gemini 가 찾아 추가.
+    """혼합형 Claude 검수의 '누락 추가': 위치 모델이 놓친 봉오리를 식물마다 Claude 가 찾아 추가.
 
     식물 사진(vlm_plant 와 같은 방식: 이웃 식물 어둡게 + 화분 흰 원)에 이미 찾은 봉오리를 청록색 번호 박스로
     그려 보내고, 박스 밖에 있는 이 식물의 봉오리·꽃만 받음. 이미 찾은 봉오리와 겹치는 답(중심이 박스 안이거나
@@ -306,15 +319,6 @@ class VlmMissedFinder(VlmPlantGrader):
                                 "view": crop, "view_xy": (ox, oy)}
         self.last_notes = notes
         return added
-
-
-def fraction_box(box_2d):
-    """Gemini 의 [ymin, xmin, ymax, xmax] (0~1000) → {x1, y1, x2, y2} (0~1). 형식이 다르면 None."""
-    try:
-        y1, x1, y2, x2 = (min(max(float(v) / 1000.0, 0.0), 1.0) for v in box_2d)
-    except (TypeError, ValueError):
-        return None
-    return {"x1": x1, "y1": y1, "x2": x2, "y2": y2}
 
 
 def box_iou(a, b):

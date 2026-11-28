@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+data/*
+!data/.gitkeep
+!data/samples/
+out/
+
+# API 키
+secrets/*
+!secrets/README.md

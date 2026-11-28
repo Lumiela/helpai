@@ -28,10 +28,15 @@ class PresenceDetector(ABC):
 
 
 class DarkCoverPresence(PresenceDetector):
-    """빈 화분은 검은 덮개가 보이므로, 원 안의 어두운 픽셀 비율이 높으면 빈 구멍."""
+    """빈 화분은 검은 덮개가 보이므로, 원 안의 어두운 픽셀 비율이 높으면 빈 구멍.
 
-    def __init__(self, dark_v_max=70, empty_ratio=0.38, **_):
+    dark_s_max: 채도(S)가 이 값 이하인 픽셀만 '어둡다'로 셈. 검은 덮개는 무채색 회색, 흙은 갈색 기운(채도 있음)이라
+                흙이 많이 보이는 식물 칸을 빈 칸으로 잘못 보는 것을 막음. 255 = 채도 조건 없음 (예전 방식)
+    """
+
+    def __init__(self, dark_v_max=70, empty_ratio=0.38, dark_s_max=255, **_):
         self.dark_v_max = dark_v_max
+        self.dark_s_max = dark_s_max
         self.empty_ratio = empty_ratio
 
     def score(self, image, hole):
@@ -43,8 +48,11 @@ class DarkCoverPresence(PresenceDetector):
             return float("nan")
         crop = image[y1:y2, x1:x2]
         m = circle_mask(crop.shape, hole.center - np.float32([x1, y1]), hole.radius)
-        v = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)[..., 2][m]
-        return float((v <= self.dark_v_max).mean()) if v.size else float("nan")
+        hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)[m]
+        if not len(hsv):
+            return float("nan")
+        dark = (hsv[:, 2] <= self.dark_v_max) & (hsv[:, 1] <= self.dark_s_max)
+        return float(dark.mean())
 
     def is_present(self, cell_id, scores):
         valid = [s for s in scores if not np.isnan(s)]

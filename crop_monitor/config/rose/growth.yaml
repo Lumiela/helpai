@@ -16,7 +16,7 @@ layout:
     - ["CL,CR", "CL,CR", "CL,CR", "CL,CR"]
     - ["CL,CR", "CL,CR", "CL,CR", "CL,CR"]
     - ["CL,CR", "CL,CR", "CL,CR", "CL,CR"]
-  plants:            # 2026-11-24 20:13 사진의 배치. 화분을 옮기면 고쳐야 함
+  plants:
     - [X, O, X, O]
     - [O, X, O, X]
     - [X, O, X, O]
@@ -32,11 +32,32 @@ cameras:
   CR:
     source: {type: file, path: data/samples/rose_CR.jpg}
 
-# 카메라별 구멍 중심 좌표는 tools/calibrate_holes.py 로 생성
+# 카메라별 구멍 중심 좌표 (고정값). scripts/rose_growth/find_holes.py --write 로 사진에서 다시 만들 수 있음
 holes_file: config/rose/holes.yaml
 
+# 구멍 위치 자동 찾기 (rose_pipeline/hole_finder.py)
+#   트레이 직사각형 + 3x4 격자를 사진에 통째로 맞춤: 트레이 안은 어둡고, 바깥 띠는 밝은(은색 반사판) 쪽으로.
+#   잎·꽃·전선(채도 높은 픽셀)은 점수에서 빼므로 화분이 잎에 가려도 찾을 수 있음.
+#   mode: fixed = holes.yaml 그대로 / auto = 실행마다 자동으로 찾음 (실패하면 holes.yaml 로 대신하고 경고)
+#   가정: R1C1 = 사진 왼쪽 위. 트레이를 180° 돌려 넣으면 칸 번호가 바뀌니 트레이에 방향 표시를 해 두세요
+holes_auto:
+  mode: auto
+  margin: 0.5              # 트레이 가장자리 = 바깥 구멍 중심에서 간격 x 0.5 (트레이 실측: 화분이 가장자리까지 거의 닿음)
+  band: 0.3                # 트레이 바깥 '밝아야 하는 띠' 폭 (간격 배수)
+  pitch_range: [0.15, 0.26]    # 구멍 간격이 사진 가로의 몇 배인지 범위 (천장 카메라 높이에 맞춤)
+  aspect_range: [0.92, 1.08]   # 세로 간격 / 가로 간격
+  aspect_weight: 0.5       # 세로/가로 간격이 1 에서 벗어날수록 점수에서 깎는 정도 (화분 간격은 가로·세로가 거의 같음)
+  pitch_prior_weight: 3.0  # holes.yaml 의 간격과 다를수록 점수에서 깎는 정도 (5% 차이 → 약 0.15).
+                           #  카메라 높이가 그대로면 사진 속 간격도 그대로이므로, 트레이 한쪽 테두리가
+                           #  잎·검은 전선에 가려도 간격이 줄거나 늘지 않게 잡아 줌.
+                           #  카메라 높이를 바꿨으면 0 으로 두고 find_holes.py --write 로 holes.yaml 을 새로 만든 뒤 다시 3.0
+  max_rotation_deg: 10
+  min_score: 1.4           # 맞춤 점수(최대 2)가 이보다 낮으면 실패로 보고 holes.yaml 사용
+  warn_shift_ratio: 0.25   # holes.yaml 보다 간격의 25% 넘게 다르면 보고서에 '트레이·카메라 이동' 경고
+
 # 구멍 반지름(px) = 그 구멍에서 가장 가까운 다른 구멍까지 거리 × radius_ratio
-radius_ratio: 0.3
+radius_ratio: 0.25       # 0.3 → 0.25 (2026-11-27): 구멍 위치가 화분에 정확히 맞자 0.3 원이 흙·화분 벽까지 넓게 덮어
+                         # 식물/빈 칸 점수가 겹침. 0.25 에서 가장 잘 갈림 (아래 presence 참고)
 
 # ─────────────────────────────────────────────
 # 1단계-1: 식물 유무 판단
@@ -45,9 +66,13 @@ radius_ratio: 0.3
 #   fixed      : layout.plants 의 O/X 표를 그대로 사용. 사진 판단과 다르면 경고만 출력
 # ─────────────────────────────────────────────
 presence:
-  method: fixed        # 11-24 사진에서는 dark_cover 점수가 식물 칸 최대 0.49, 빈 칸 최소 0.50 으로 겹쳐 고정표를 씀 (원본 dark_cover)
-  dark_v_max: 100      # HSV 명도(V)가 이 값 이하이면 "어두운 픽셀"
-  empty_ratio: 0.30    # 어두운 픽셀 비율이 이 값 이상이면 빈 구멍 (여러 카메라면 평균)
+  method: dark_cover
+  dark_v_max: 110      # HSV 명도(V)가 이 값 이하이고
+  dark_s_max: 100      # 채도(S)가 이 값 이하이면 "어두운 픽셀" (회색 덮개만 셈, 갈색 흙은 뺌. 255 = 채도 조건 없음)
+  empty_ratio: 0.25    # 어두운 픽셀 비율이 이 값 이상이면 빈 구멍 (여러 카메라면 평균)
+  # 2026-11-27 사진 3세트(rose, CL1/CR1, CL2/CR2) 36칸, 자동 구멍 위치 + radius_ratio 0.25 기준:
+  #   식물 칸 최고 0.22, 빈 칸 최저 0.28 → 36칸 모두 맞음 (반지름 0.3 이면 0.25 / 0.26 으로 거의 붙음)
+  # (예전 100 / 채도 조건 없음 / 0.30 은 식물 칸 0.44, 빈 칸 0.40 으로 겹쳐서 흙이 보이는 칸을 빈 칸으로 봄)
 
 # ─────────────────────────────────────────────
 # 1단계-2: 각각의 미니 장미 구분 (식물 세그멘테이션)
@@ -73,10 +98,10 @@ grading:
   # 낮은 → 높은 순서. 첫 번째가 기본 클래스(봉오리가 없을 때)
   grades: [grade_zero, grade_one, grade_two, grade_three, grade_four]
 
-  # hybrid    : (현재) YOLO 로 후보 위치 → FastSAM 으로 봉오리 마스크 → 분류 모델로 등급 → (review) Gemini 검수
+  # hybrid    : (현재) YOLO 로 후보 위치 → FastSAM 으로 봉오리 마스크 → 분류 모델로 등급 → (review) Claude 검수
   #             지금 설정: 위치 = yolov8m_best.pt, 등급 = yolo26m-cls_best.pt (둘 다 장미 데이터로 학습한 모델),
-  #             검수·누락 추가 = Gemini
-  # vlm_plant : 식물(화분)마다 Gemini(VLM)에게 그 식물 사진을 보내 봉오리·꽃 위치와 등급을 직접 받음.
+  #             검수·누락 추가 = Claude
+  # vlm_plant : 식물(화분)마다 Claude(VLM)에게 그 식물 사진을 보내 봉오리·꽃 위치와 등급을 직접 받음.
   #             검출·분류 모델 불필요 (아래 ①②③ 설정은 쓰지 않고 vlm 설정만 씀). 요금·인터넷·API 키 필요
   # yolo      : 기존 방식 (train_detector.py) — YOLO 한 모델이 위치와 등급을 함께 판단
   # none      : 검출 없음 → 모두 기본 클래스
@@ -85,7 +110,7 @@ grading:
     type: hybrid
     # ① 봉오리 위치 검출: yolov8m_best.pt (yolov8m.pt 에서 장미 봉오리 1클래스 'bud' 로 학습, 30 epoch)
     #    (학습 안 한 COCO 모델로 돌아가려면 weights/yolov8m.pt + conf 0.01)
-    weights: weights/rose/growth/yolov8m_best.pt
+    weights: ../models/growth/yolov8m_best.pt
     det_classes: null    # 쓸 클래스 번호 목록 (null = 전부)
     agnostic_nms: true   # 클래스 상관없이 겹친 박스 정리
     conf: 0.15           # 넓게 잡고 ③ 분류·④ 검수에서 거름
@@ -94,46 +119,50 @@ grading:
                          # 식물 크롭이 크면 비율 기준만으로는 식물 일부를 크게 잡은 박스(209x576)가 남았음 (11/23)
     imgsz: 640
     # ② 봉오리 마스크 (FastSAM). null 이면 생략하고 박스만 사용
-    sam_weights: weights/rose/growth/FastSAM-s.pt   # 프로젝트 안에 없으면 ultralytics 가 자동으로 내려받음
+    sam_weights: ../models/growth/FastSAM-s.pt   # 프로젝트 안에 없으면 ultralytics 가 자동으로 내려받음
     sam_imgsz: 1024
     sam_conf: 0.4
     mask_iou: 0.3        # 박스와 조각의 IoU 가 이보다 작으면 마스크 없이 박스만 사용
     mask_margin: 0.1     # 고른 조각을 박스보다 이만큼만 넓게 잘라 씀 (잎으로 번지는 것 방지)
     # ③ 등급 분류 (not_bud / grade_one ~ grade_four)
-    cls_weights: weights/rose/growth/yolo26m-cls_best.pt   # yolo26m-cls.pt 에서 not_bud / grade_one~four 로 학습 (30 epoch)
+    cls_weights: ../models/growth/yolo26m-cls_best.pt   # yolo26m-cls.pt 에서 not_bud / grade_one~four 로 학습 (30 epoch)
     cls_imgsz: 224
     cls_conf: 0.5        # 분류 확신이 이보다 낮으면 버림 (embed: 이긴 등급의 득표 비율)
     crop_pad: 0.15       # 분류 크롭 여백. tools/prepare_hybrid_data.py --pad 와 같게
     # ③ 분류를 누가 하나
     #   yolo    : (현재) cls_weights 가 우리 클래스로 학습된 YOLO 분류 모델일 때
     #   embed   : 학습 안 한 cls_weights(yolo26m-cls.pt)를 특징 추출기로 쓰고, 참고 크롭 중 가장 비슷한 k장으로 판단
-    #   vlm     : Gemini(VLM)가 등급 설명 + 예시 사진을 보고 판단. 학습 불필요, 요금 발생, 인터넷 필요
+    #   vlm     : Claude(VLM)가 등급 설명 + 예시 사진을 보고 판단. 학습 불필요, 요금 발생, 인터넷 필요
     #   cascade : YOLO 로 먼저 판단하고 확신이 cascade_below 미만인 크롭만 VLM 에게 다시 물음
     # 바꾸기 전에 tools/eval_classifier.py 로 val 크롭에서 비교하세요.
-    cls_backend: yolo
+    cls_backend: cascade
     cascade_below: 0.8
     embed:
-      reference_dir: weights/rose/growth/cls_reference   # <클래스>/*.jpg 참고 크롭 (tools/make_vlm_examples.py --out cls_reference)
+      reference_dir: ../models/growth/cls_reference   # <클래스>/*.jpg 참고 크롭 (tools/make_vlm_examples.py --out cls_reference)
       per_class: 200       # 클래스마다 쓸 참고 크롭 수
       k: 15                # 가장 비슷한 몇 장으로 투표할지
-    # ④ Gemini 검수: ③ 에서 남은 크롭을 Gemini 가 ③ 결과를 모른 채 다시 판단해 최종 등급으로 씀 (아래 vlm 설정 사용)
+    # ④ Claude 검수: ③ 에서 남은 크롭을 Claude 가 ③ 결과를 모른 채 다시 판단해 최종 등급으로 씀 (아래 vlm 설정 사용)
     #    not_bud 이거나 확신 < review_conf 이면 버림. ③ 등급은 result.json 의 cls_class 에 남음. false = 검수 안 함
     review: true
     review_conf: 0.6   # 0.5 에서는 식물 일부를 크게 잡은 박스가 G1 0.50 으로 남은 적이 있음 (11/23)
-    # ⑤ 누락 추가: 식물마다 찾은 봉오리를 청록색 박스로 그린 사진을 Gemini 에게 보내, 박스 밖에서 놓친 봉오리를 추가
+    # ⑤ 누락 추가: 식물마다 찾은 봉오리를 청록색 박스로 그린 사진을 Claude 에게 보내, 박스 밖에서 놓친 봉오리를 추가
     #    (vlm 설정의 plant_image_size·dim_outside·min_conf·max_workers 사용). 식물 수 × 카메라 수만큼 요청이 늘어남
-    #    추가된 봉오리는 vis 에 '+VLM', result.json 에 added_by: gemini. false = 추가 안 함
+    #    추가된 봉오리는 vis 에 '+VLM', result.json 에 added_by: claude. false = 추가 안 함
     #    추가 뒤 중복 정리: 검수 봉오리의 등급 판단 크롭 안에 같은 등급 추가 봉오리가 있으면 검수 봉오리를 뺌
     add_missed: true
-    # Gemini API 설정 (2026-11-24 Gemini 에서 바꿈). 키는 /data/.env 의 GEMINI_API_KEY. review·add_missed 가 false 면 API 를 안 씀.
+    # Claude API 설정. 사용법: 프로젝트 폴더에 ANTHROPIC_API_KEY.txt (키 sk-ant-... 한 줄)를 만들면 끝.
+    #   키 파일이 없으면 ANTHROPIC_API_KEY 환경 변수를 씀. review·add_missed 가 false 면 API 를 안 씀.
+    #   자세한 설명: rose_pipeline/api_key.py 맨 위
     vlm:
-      model: gemini-4-hydrogen   # 다른 모델 이름으로 바꿀 수 있음 (가격은 src/crop_monitor/gemini.py 의 PRICE 참고)
-      thinking: low            # low | medium | high. 높을수록 신중하지만 느리고 비쌈
+      model: claude-opus-5-5
+      api_key_file: secrets/ANTHROPIC_API_KEY   # Claude API 키 파일 (프로젝트 루트 기준, .txt 붙어도 됨). 공유·깃 업로드 금지
+      effort: low              # low | medium | high. 높을수록 신중하지만 느리고 비쌈
       batch_size: 8            # 한 요청에 묶어 보낼 크롭 수
       image_size: 256          # 크롭의 긴 변을 이 크기로 맞춰 보냄 (작은 봉오리는 확대)
       max_tokens: 8000
-      examples_dir: null       # <클래스>/*.jpg 예시 사진 폴더. 팀 브랜치에 사진이 없어 예시 없이 판단
-      examples_per_class: 2
+      fallbacks: default       # 안전 분류기가 거절하면 서버가 다른 모델로 다시 실행. 끄려면 null
+      examples_dir: ../models/growth/vlm_examples   # <클래스>/*.jpg 예시 사진 (tools/make_vlm_examples.py). 없으면 예시 없이
+      examples_per_class: 3      # 클래스마다 보낼 예시 수 (vlm_examples/<클래스>/ 에 3장씩)
       # vlm_plant 전용
       plant_image_size: 1024   # 식물 사진의 긴 변 (크게 할수록 작은 봉오리가 잘 보이지만 비쌈)
       dim_outside: 0.35        # 이웃 식물로 나뉜 픽셀의 밝기 배율 (이웃 봉오리를 헷갈리지 않게). 1 = 안 어둡게

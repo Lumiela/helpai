@@ -1,0 +1,16 @@
+{
+ "source": "initial",
+ "note": "기존 stereo_calib.npz",
+ "method": "stereoCalibrate",
+ "rect_dy_median_px": 0.683,
+ "baseline_mm": 33.31,
+ "stereo_rms_px": 1.246,
+ "id": "20261127T110958_initial",
+ "created": "2026-11-27T11:09:58",
+ "parent": null,
+ "rot_deg": 3.643,
+ "size": [
+  640,
+  480
+ ]
+}

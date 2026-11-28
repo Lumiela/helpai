@@ -21,4 +21,12 @@ anomalies:
 alerts:
   unknown_leaf: warning        # UNKNOWN(이상 의심, 판단 보류) 잎이 있으면
   critical_leaf_count: 3       # 한 칸에 이상 잎이 이 개수 이상이면 위험(critical)으로 올림. null = 사용 안 함
+                               # 개수는 카메라별로 센 값 중 최댓값 (두 카메라가 같은 잎을 잡아도 두 번 세지 않음)
   height_out_of_range: warning
+  # 잎 이상 VLM 재확인(crops.yaml disease.vlm.enabled) 판정 중 잎 상태에 반영할 것
+  #   FALSE_ALARM : 모델은 병, VLM 은 정상      → 정상(FRESH) 으로 바꿈
+  #   MISSED      : 모델은 정상, VLM 은 병      → VLM 이 본 병(ANOMALY) 으로 바꿈
+  #   OTHER_CLASS : 둘 다 병인데 종류가 다름     → VLM 이 본 병으로 바꿈
+  #   NOT_A_LEAF  : 잎이 아님 (반사, 줄기, 화분, 여러 잎이 합쳐짐) → 판정에서 뺌
+  #   [] = VLM 결과를 판정에 쓰지 않음 (참고용으로만 저장)
+  vlm_apply: [FALSE_ALARM, MISSED, OTHER_CLASS, NOT_A_LEAF]

@@ -4,34 +4,21 @@
 # ─────────────────────────────────────────────
 # 카메라: 천장 카메라 2대
 #   names        : 입력 이미지 이름. 생장 단계 모듈(config/rose/holes.yaml)의 카메라 이름과 같아야 함
-#   stereo_left  : 스테레오 왼쪽 카메라에 해당하는 이미지 (젯슨 stereo_calib.npz 를 만들 때의 왼쪽과 같아야 함)
-#   stereo_right : 오른쪽 카메라
-#   CL = CUBE001-C1, CR = CUBE001-C2. 2026-11-24 20:13 사진에서 C1 이 왼쪽 (C1 보드 교체 뒤 좌우가 바뀜)
+#   stereo_left  : stereo_calib.npz 의 왼쪽 카메라(C2)에 해당하는 이미지
+#   stereo_right : 오른쪽 카메라(C1)
+#   생장 단계 샘플(rose_CL/CR.jpg)로 확인한 결과, 생장 단계의 CR 이 스테레오 왼쪽이었음
+#   (CL 을 왼쪽으로 넣으면 정렬 후 세로 어긋남 49.8px, CR 을 왼쪽으로 넣으면 4.2px)
 # ─────────────────────────────────────────────
 cameras:
   names: [CL, CR]
-  input_width: 2000     # 더 넓은 사진은 이 폭으로 줄여 씀 (팀 설정값의 기준 크기. 젯슨 GPU 메모리도 아낌)
-  stereo_left: CL
-  stereo_right: CR
-  devices: {CL: CUBE001-C1, CR: CUBE001-C2}   # 최신 쌍을 자동으로 찾을 때 쓰는 카메라 SN
-
-# ─────────────────────────────────────────────
-# 젯슨 추론 창구
-# ─────────────────────────────────────────────
-remote:
-  crop_url: http://127.0.0.1:8002     # crop-infer (생장 추론, 높이 지도)
-  leafdx_url: http://127.0.0.1:8001   # leafdx-api (잎 이상)
-  key_file: ~/.leafdx/api_key
-  growth_timeout_s: 360
-  disease_timeout_s: 420
-  height_timeout_s: 180
-  on_bad_calib: skip      # 보정이 지금 카메라와 맞지 않으면: skip = 높이를 내지 않음 | warn = 경고만 하고 냄
+  stereo_left: CR
+  stereo_right: CL
 
 # ─────────────────────────────────────────────
 # 작물 높이 공통 모듈 (helpai-Height / stereo_pair.py)
 # ─────────────────────────────────────────────
 height:
-  calib: null           # 보정 파일은 젯슨 /data/notebooks/height/stereo_calib.npz 한 곳에만 둠
+  calib: config/stereo/stereo_calib.npz   # 없으면 근사 모드(y-align + 아래 화각·간격)로 계산
   mode: auto            # auto | y-align | none
   disp_offset: 0.0      # 시차 보정값 px (캘리브레이션 모드 v4 = 0)
   block: 5
@@ -48,6 +35,32 @@ height:
   min_valid_px: 30
   max_rect_dy_px: 2.0   # 정렬 후 세로 어긋남(px)이 이보다 크면 보고서에 재보정 경고 (보정 당시 0.68px)
 
+  # 보정 관리 (src/crop_monitor/calibration, 도구: scripts/height/calib_manager.py)
+  #   A = 체커보드 재보정 (렌즈 특성 + 두 카메라 자세 전부, 사람이 보드 촬영)
+  #   B = 자동 미세 조정 (평소 사진으로 두 카메라 자세만, 렌즈 특성·간격은 A 값 유지)
+  #   상태 확인 → 어긋나면 B → B 가 실패하거나 크게 어긋나면 보고서에 'A 필요' 안내
+  #   보정 버전은 config/stereo/history 에 쌓이고 rollback 으로 되돌릴 수 있음
+  autocalib:
+    enabled: true
+    in_pipeline: true      # 파이프라인 실행 중 세로 어긋남 경고가 나면 그 사진 쌍으로 B 를 시도하고 높이를 다시 계산
+    ok_dy_px: 2.0          # 세로 어긋남이 이 이하면 정상 (위 max_rect_dy_px 와 같게)
+    escalate_dy_px: 15.0   # 이보다 크면 '크게 어긋남' (B 를 해 보고 실패하면 A 안내)
+    # 좌우 돌아감(yaw)은 세로 어긋남에 안 나타나고 거리만 바꿈 → '거리 기준'이 있어야 B 가 맞출 수 있음
+    #   기준은 보정이 맞을 때 calib_manager.py set-reference 로 이력에 기록 (또는 아래에 줄자 실측값)
+    reference_cm: null     # 카메라 → 트레이 면 거리(cm, 줄자). null = 이력의 기준 사용
+    history_dir: config/stereo/history
+    refine:                # calibration/refine.py RefineConfig 값 덮어쓰기
+      target_dy_px: 1.5
+      max_rotation_change_deg: 5.0
+      prior_window_px: 25.0
+
+# 카메라 API (ESP32-CAM 2대 → 스마트큐브 서버). calib_manager.py --from-api, find_holes.py --from-api 에서 사용
+#   토큰: 환경 변수 LEAFDX_API_TOKEN 또는 secrets/SMARTCUBE_API_TOKEN (git 에 안 올라감)
+camera_api:
+  base: https://smartcubens.duckdns.org/i/jetson-01/api
+  cube: CUBE001
+  serials: {CL: CUBE001-C1, CR: CUBE001-C2}   # 파이프라인 카메라 이름 ↔ 카메라 SN (CR = 스테레오 왼쪽 = C2). 실제 배치로 확인 필요
+
 # ─────────────────────────────────────────────
 # 작물 레지스트리
 #   module 은 src/crop_monitor/modules/<module>/adapter.py 를 가리킴
@@ -61,19 +74,22 @@ crops:
     # 생장 단계 (helpai-Rose_Growth / rose_pipeline)
     growth:
       module: rose_growth
-      config: config/rose/growth.yaml     # 트레이 배치·검출·등급·Gemini 검수 설정은 이 파일에서
-      on_missing_key: disable_vlm         # API 키가 없으면: disable_vlm = Gemini 검수·누락 추가를 끄고 YOLO 만 | error
+      config: config/rose/growth.yaml     # 트레이 배치·검출·등급·Claude 검수 설정은 이 파일에서
+      on_missing_key: disable_vlm         # API 키가 없으면: disable_vlm = Claude 검수·누락 추가를 끄고 YOLO 만 | error
 
     # 이상 상태 (helpai-Rose_Disease / leafdx)
     disease:
       module: rose_disease
-      cls_weights: leaf_cls_yolov8m.pt    # 젯슨 leafdx-api 가 쓰는 모델 (바꾸려면 젯슨 쪽을 바꿔야 함)
+      models_dir: ../models/disease
+      config: config/rose/disease.json    # 잎 탐지·분류 설정 (원본 package/config.json)
+      cls_weights: leaf_cls_yolov8m_du.pt    # leaf_cls_yolov8m.pt | leaf_cls_yolov8m_du.pt | leaf_cls_yolo26m_du.pt
       cameras: [CL, CR]                   # 잎 상태를 판단할 카메라
-      # VLM 재확인 (원본 노트북 6번, Gemini). 요청 수만큼 요금 발생 → 기본 꺼 둠
+      # VLM 재확인 (원본 노트북 6번). 요청 수만큼 요금 발생 (지금 켜 둠, 판정 반영은 rules 의 alerts.vlm_apply)
       vlm:
-        enabled: false
-        model: gemini-4-hydrogen
-        thinking: low
+        enabled: true
+        backend: claude                   # claude | qwen (qwen 은 GPU + transformers 필요)
+        model: claude-opus-5-5
+        effort: low
         states: [ANOMALY, UNKNOWN]        # 다시 확인할 잎 상태
         fresh: 5                          # 사진마다 무작위로 확인할 정상 잎 수
         max: 40                           # 사진마다 최대 확인 잎 수

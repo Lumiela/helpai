@@ -114,9 +114,9 @@ def draw_frame(frame, cell_results):
             contours, _ = cv2.findContours(b.mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             cv2.drawContours(image, contours, -1, (255, 255, 255), max(1, t // 2), offset=b.mask_xy)
         tag = f"{GRADE_SHORT.get(b.class_name, b.class_name)} {b.conf:.2f} -> {b.cell_id or 'none'}"
-        if b.first_class and b.first_class != b.class_name:  # Gemini 검수로 바뀐 등급: (cls 분류 모델 등급)
+        if b.first_class and b.first_class != b.class_name:  # Claude 검수로 바뀐 등급: (cls 분류 모델 등급)
             tag += f" (cls {GRADE_SHORT.get(b.first_class, b.first_class)})"
-        if b.added:  # 위치 모델이 놓쳐 Gemini 가 추가한 봉오리
+        if b.added:  # 위치 모델이 놓쳐 Claude 가 추가한 봉오리
             tag += " +VLM"
         _label(image, tag, (x1, max(y1 - 5, 15)), color, scale * 0.6)
     return image
